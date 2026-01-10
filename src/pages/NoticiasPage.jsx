@@ -71,9 +71,9 @@ const NoticiasPage = () => {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-3xl font-bold text-gray-900">Últimas Noticias</h2>
-            <a href="#" className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
-              Ver todas <ArrowRight size={18} />
-            </a>
+            <div className="text-blue-600 font-medium flex items-center gap-1">
+              Todas las noticias
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {noticias.map((noticia) => (

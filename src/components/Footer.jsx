@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Trophy, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Youtube } from 'lucide-react';
 
 const Footer = () => {
@@ -20,16 +21,16 @@ const Footer = () => {
               Información actualizada sobre competencias, atletas y eventos.
             </p>
             <div className="flex gap-3">
-              <a href="#" className="text-gray-400 hover:text-blue-400 transition-colors">
+              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-400 transition-colors" aria-label="Facebook">
                 <Facebook size={20} />
               </a>
-              <a href="#" className="text-gray-400 hover:text-blue-400 transition-colors">
+              <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-400 transition-colors" aria-label="Twitter">
                 <Twitter size={20} />
               </a>
-              <a href="#" className="text-gray-400 hover:text-blue-400 transition-colors">
+              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-400 transition-colors" aria-label="Instagram">
                 <Instagram size={20} />
               </a>
-              <a href="#" className="text-gray-400 hover:text-blue-400 transition-colors">
+              <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-400 transition-colors" aria-label="YouTube">
                 <Youtube size={20} />
               </a>
             </div>
@@ -39,11 +40,9 @@ const Footer = () => {
           <div>
             <h4 className="text-lg font-semibold mb-4">Deportes</h4>
             <ul className="space-y-2 text-sm text-gray-400">
-              <li><a href="#" className="hover:text-white transition-colors">Natación</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Clavados</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Polo Acuático</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Natación Artística</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Aguas Abiertas</a></li>
+              <li><Link to="/resultados?deporte=natacion" className="hover:text-white transition-colors">Natación</Link></li>
+              <li><Link to="/resultados?deporte=waterpolo" className="hover:text-white transition-colors">Waterpolo</Link></li>
+              <li><Link to="/resultados?deporte=aguas-abiertas" className="hover:text-white transition-colors">Aguas Abiertas</Link></li>
             </ul>
           </div>
 
@@ -51,11 +50,13 @@ const Footer = () => {
           <div>
             <h4 className="text-lg font-semibold mb-4">Enlaces</h4>
             <ul className="space-y-2 text-sm text-gray-400">
-              <li><a href="#resultados" className="hover:text-white transition-colors">Resultados</a></li>
-              <li><a href="#atletas" className="hover:text-white transition-colors">Atletas</a></li>
-              <li><a href="#calendario" className="hover:text-white transition-colors">Calendario</a></li>
-              <li><a href="#noticias" className="hover:text-white transition-colors">Noticias</a></li>
-              <li><a href="#videos" className="hover:text-white transition-colors">Videos</a></li>
+              <li><Link to="/resultados" className="hover:text-white transition-colors">Resultados</Link></li>
+              <li><Link to="/atletas" className="hover:text-white transition-colors">Atletas</Link></li>
+              <li><Link to="/calendario" className="hover:text-white transition-colors">Calendario</Link></li>
+              <li><Link to="/noticias" className="hover:text-white transition-colors">Noticias</Link></li>
+              <li><Link to="/videos" className="hover:text-white transition-colors">Videos</Link></li>
+              <li><Link to="/fotos" className="hover:text-white transition-colors">Fotos</Link></li>
+              <li><Link to="/record-estadal" className="hover:text-white transition-colors">Récord Estadal</Link></li>
             </ul>
           </div>
 
@@ -94,8 +95,8 @@ const Footer = () => {
         <div className="mt-8 pt-8 border-t border-gray-800 text-center text-sm text-gray-400">
           <p>Copyright 2025 - Natación Estadal. Todos los derechos reservados.</p>
           <div className="mt-2 flex justify-center gap-4">
-            <a href="#" className="hover:text-white transition-colors">Legal</a>
-            <a href="#" className="hover:text-white transition-colors">Privacidad</a>
+            <a href="/legal" className="hover:text-white transition-colors">Legal</a>
+            <a href="/privacidad" className="hover:text-white transition-colors">Privacidad</a>
           </div>
         </div>
       </div>

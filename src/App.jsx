@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { atletas } from './data/atletas';
 import Header from './components/Header';
@@ -9,9 +9,6 @@ import NewsSection from './components/NewsSection';
 import VideoSection from './components/VideoSection';
 import PhotoGallery from './components/PhotoGallery';
 import AthletesSection from './components/AthletesSection';
-import ResultsCards from './components/ResultsCards';
-import CompetitionsCalendar from './components/CompetitionsCalendar';
-import RecordEstadal from './components/RecordEstadal';
 import HeroSponsor from './components/HeroSponsor';
 import HeroBackground from './components/HeroBackground';
 import HeroStats from './components/HeroStats';
@@ -19,45 +16,15 @@ import Footer from './components/Footer';
 import NoticiasPage from './pages/NoticiasPage';
 import VideosPage from './pages/VideosPage';
 import FotosPage from './pages/FotosPage';
+import AlbumPage from './pages/AlbumPage';
 import CalendarioPage from './pages/CalendarioPage';
 import ResultadosPage from './pages/ResultadosPage';
 import AtletasPage from './pages/AtletasPage';
+import RecordEstadalPage from './pages/RecordEstadalPage';
 
 function HomePage() {
-  const [filtroClub, setFiltroClub] = useState('Todos');
-  const [filtroCategoria, setFiltroCategoria] = useState('Todas');
-  const [busqueda, setBusqueda] = useState('');
   const [atletaSeleccionado, setAtletaSeleccionado] = useState(null);
   const [modalAbierto, setModalAbierto] = useState(false);
-
-  const handleFiltroChange = (tipo, valor) => {
-    if (tipo === 'club') setFiltroClub(valor);
-    else if (tipo === 'categoria') setFiltroCategoria(valor);
-    else if (tipo === 'busqueda') setBusqueda(valor);
-  };
-
-  // Obtener valores únicos para los filtros
-  const clubs = useMemo(() => {
-    const clubsUnicos = [...new Set(atletas.map(a => a.club))];
-    return ['Todos', ...clubsUnicos];
-  }, []);
-
-  const categorias = useMemo(() => {
-    const categoriasUnicas = [...new Set(atletas.map(a => a.categoria))];
-    return ['Todas', ...categoriasUnicas];
-  }, []);
-
-  // Filtrar atletas
-  const atletasFiltrados = useMemo(() => {
-    return atletas.filter(atleta => {
-      const coincideClub = filtroClub === 'Todos' || atleta.club === filtroClub;
-      const coincideCategoria = filtroCategoria === 'Todas' || atleta.categoria === filtroCategoria;
-      const coincideBusqueda = busqueda === '' || 
-        atleta.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-        atleta.club.toLowerCase().includes(busqueda.toLowerCase());
-      return coincideClub && coincideCategoria && coincideBusqueda;
-    });
-  }, [filtroClub, filtroCategoria, busqueda]);
 
   const abrirModal = (atleta) => {
     setAtletaSeleccionado(atleta);
@@ -84,15 +51,15 @@ function HomePage() {
         {/* Imagen de fondo optimizada con parallax */}
         <HeroBackground useVideo={false} />
         
-        {/* Contenido Principal - Tarjetas de Estadísticas */}
+        {/* Contenido Principal - Tarjetas de Estadísticas en la parte superior */}
         <HeroStats 
           atletas={atletas} 
-          clubs={clubs} 
-          categorias={categorias}
+          clubs={['Todos', ...new Set(atletas.map(a => a.club))]} 
+          categorias={['Todas', ...new Set(atletas.map(a => a.categoria))]}
         />
 
         {/* Publicidad de Patrocinante en la parte inferior izquierda */}
-        <div className="relative z-10 pb-4 sm:pb-6 md:pb-8 lg:pb-12">
+        <div className="relative z-10 mt-auto pb-4 sm:pb-6 md:pb-8 lg:pb-12">
           <HeroSponsor />
         </div>
       </section>
@@ -101,7 +68,7 @@ function HomePage() {
       <NewsSection />
 
       {/* Banner Ad Principal */}
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 py-3 sm:py-4">
         <BannerAd />
       </div>
 
@@ -109,44 +76,15 @@ function HomePage() {
       <AthletesSection atletas={atletas} onAtletaClick={abrirModal} />
 
       {/* Banner Ad Principal */}
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 py-3 sm:py-4">
         <BannerAd />
       </div>
-
-      {/* Sección de Resultados con Tarjetas */}
-      <section className="py-12 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <div className="lg:col-span-3">
-              <ResultsCards
-                atletas={atletasFiltrados}
-                filtroClub={filtroClub}
-                filtroCategoria={filtroCategoria}
-                busqueda={busqueda}
-                clubs={clubs}
-                categorias={categorias}
-                onFiltroChange={handleFiltroChange}
-                onAtletaClick={abrirModal}
-              />
-            </div>
-            <div className="lg:col-span-1">
-              <SidebarAd />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Sección de Calendario */}
-      <CompetitionsCalendar />
 
       {/* Sección de Videos */}
       <VideoSection />
 
       {/* Galería de Fotos */}
       <PhotoGallery />
-
-      {/* Sección de Récord Estadal */}
-      <RecordEstadal />
 
       {/* Footer */}
       <Footer />
@@ -168,9 +106,11 @@ function App() {
       <Route path="/noticias" element={<NoticiasPage />} />
       <Route path="/videos" element={<VideosPage />} />
       <Route path="/fotos" element={<FotosPage />} />
+      <Route path="/fotos/album/:id" element={<AlbumPage />} />
       <Route path="/calendario" element={<CalendarioPage />} />
       <Route path="/resultados" element={<ResultadosPage />} />
       <Route path="/atletas" element={<AtletasPage />} />
+      <Route path="/record-estadal" element={<RecordEstadalPage />} />
     </Routes>
   );
 }

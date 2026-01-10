@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, BarChart3, Users, Calendar, Newspaper, Video, ChevronDown, Waves, UsersRound, Droplet } from 'lucide-react';
 
 const Header = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [deportesAbierto, setDeportesAbierto] = useState(false);
   const [loUltimoAbierto, setLoUltimoAbierto] = useState(false);
@@ -47,7 +49,7 @@ const Header = () => {
     { href: '/calendario', label: 'Calendario', icon: Calendar },
     { href: '/resultados', label: 'Resultados', icon: BarChart3 },
     { href: '/atletas', label: 'Atletas', icon: Users },
-    { href: '/#record-estadal', label: 'Récord Estadal', icon: BarChart3 },
+    { href: '/record-estadal', label: 'Récord Estadal', icon: BarChart3 },
   ];
 
   return (
@@ -71,7 +73,17 @@ const Header = () => {
         <div className="container mx-auto px-4 lg:px-6">
           <div className="flex items-center justify-between h-20 lg:h-24">
             {/* Logo */}
-            <Link to="/" className="flex items-center flex-1 min-w-0">
+            <Link 
+              to="/" 
+              className="flex items-center flex-1 min-w-0"
+              onClick={(e) => {
+                // Si ya estamos en la página principal, hacer scroll al top
+                if (location.pathname === '/') {
+                  e.preventDefault();
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+              }}
+            >
               <div className="flex-shrink-0">
                 <img 
                   src="/asanda.png" 

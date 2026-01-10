@@ -1,97 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import PageHero from '../components/PageHero';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Camera } from 'lucide-react';
+import { albumes } from '../data/albumes';
 
 const FotosPage = () => {
-  const [imagenSeleccionada, setImagenSeleccionada] = useState(null);
-
-  const fotos = [
-    {
-      id: 1,
-      titulo: "Atletas del Año 2025",
-      imagen: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop",
-      categoria: "Premiación",
-      cantidad: 30
-    },
-    {
-      id: 2,
-      titulo: "Nominados al Atleta del Año - Natación",
-      imagen: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&h=400&fit=crop",
-      categoria: "Nominaciones",
-      cantidad: 21
-    },
-    {
-      id: 3,
-      titulo: "Nominados al Atleta del Año - Clavados",
-      imagen: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=400&fit=crop",
-      categoria: "Nominaciones",
-      cantidad: 24
-    },
-    {
-      id: 4,
-      titulo: "Nominados al Atleta del Año - Clavados Altos",
-      imagen: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600&h=400&fit=crop",
-      categoria: "Nominaciones",
-      cantidad: 18
-    },
-    {
-      id: 5,
-      titulo: "Campeonato Estadal 2025",
-      imagen: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600&h=400&fit=crop",
-      categoria: "Competencia",
-      cantidad: 45
-    },
-    {
-      id: 6,
-      titulo: "Ceremonia de Apertura",
-      imagen: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=600&h=400&fit=crop",
-      categoria: "Evento",
-      cantidad: 32
-    },
-    {
-      id: 7,
-      titulo: "Lo mejor de 2025 - Natación",
-      imagen: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop",
-      categoria: "Highlights",
-      cantidad: 28
-    },
-    {
-      id: 8,
-      titulo: "Lo mejor de 2025 - Waterpolo",
-      imagen: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&h=400&fit=crop",
-      categoria: "Highlights",
-      cantidad: 19
-    },
-    {
-      id: 9,
-      titulo: "Lo mejor de 2025 - Aguas Abiertas",
-      imagen: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=400&fit=crop",
-      categoria: "Highlights",
-      cantidad: 22
-    }
-  ];
-
-  const abrirImagen = (foto) => {
-    setImagenSeleccionada(foto);
-  };
-
-  const cerrarImagen = () => {
-    setImagenSeleccionada(null);
-  };
-
-  const siguienteImagen = () => {
-    const indiceActual = fotos.findIndex(f => f.id === imagenSeleccionada.id);
-    const siguiente = fotos[(indiceActual + 1) % fotos.length];
-    setImagenSeleccionada(siguiente);
-  };
-
-  const anteriorImagen = () => {
-    const indiceActual = fotos.findIndex(f => f.id === imagenSeleccionada.id);
-    const anterior = fotos[(indiceActual - 1 + fotos.length) % fotos.length];
-    setImagenSeleccionada(anterior);
-  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -103,83 +18,93 @@ const FotosPage = () => {
         backgroundImage="https://images.unsplash.com/photo-1530549387789-4c1017266635?w=1920&h=1080&fit=crop&q=80"
       />
 
-      {/* Contenido de Fotos */}
-      <section className="py-12 bg-gray-50">
+      {/* Contenido de Álbumes */}
+      <section className="py-12 bg-white">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8">Lo mejor de 2025</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {fotos.map((foto) => (
-              <div
-                key={foto.id}
-                onClick={() => abrirImagen(foto)}
-                className="relative group cursor-pointer overflow-hidden rounded-lg aspect-square"
-              >
-                <img
-                  src={foto.imagen}
-                  alt={foto.titulo}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="absolute bottom-0 left-0 right-0 p-4">
-                    <span className="text-xs text-white/80 bg-blue-600 px-2 py-1 rounded mb-2 inline-block">
-                      {foto.categoria}
-                    </span>
-                    <p className="text-white font-semibold text-sm mb-1">{foto.titulo}</p>
-                    <div className="flex items-center gap-1 text-white/80 text-xs">
-                      <span>📷</span>
-                      <span>{foto.cantidad} fotos</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+            {albumes.map((album) => {
+              // Obtener las primeras 3 fotos para el collage
+              const fotosPreview = album.fotos.slice(0, 3);
+              const fotosRestantes = album.cantidad - 3;
+
+              return (
+                <Link
+                  key={album.id}
+                  to={`/fotos/album/${album.id}`}
+                  className="group block bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border border-gray-200"
+                >
+                  {/* Collage de imágenes */}
+                  <div className="relative h-64 md:h-80 overflow-hidden">
+                    <div className="grid grid-cols-2 gap-1 h-full">
+                      {/* Imagen principal (izquierda, ocupa 2 filas) */}
+                      <div className="row-span-2 bg-gray-200">
+                        <img
+                          src={fotosPreview[0]?.url || album.portada}
+                          alt={fotosPreview[0]?.titulo || album.titulo}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            e.target.src = album.portada;
+                          }}
+                        />
+                      </div>
+                      {/* Imagen superior derecha */}
+                      <div className="bg-gray-200">
+                        <img
+                          src={fotosPreview[1]?.url || album.portada}
+                          alt={fotosPreview[1]?.titulo || album.titulo}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            e.target.src = album.portada;
+                          }}
+                        />
+                      </div>
+                      {/* Imagen inferior derecha con overlay de más fotos */}
+                      <div className="relative bg-gray-200">
+                        <img
+                          src={fotosPreview[2]?.url || album.portada}
+                          alt={fotosPreview[2]?.titulo || album.titulo}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            e.target.src = album.portada;
+                          }}
+                        />
+                        {fotosRestantes > 0 && (
+                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                            <div className="text-center text-white">
+                              <Camera size={24} className="mx-auto mb-1" />
+                              <p className="text-sm font-semibold">+{fotosRestantes}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            ))}
+
+                  {/* Información del álbum */}
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide">
+                        {album.categoria}
+                      </span>
+                      <div className="flex items-center gap-1 text-gray-500 text-sm">
+                        <Camera size={14} />
+                        <span>{album.cantidad} fotos</span>
+                      </div>
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+                      {album.titulo}
+                    </h3>
+                    <div className="flex items-center justify-between text-sm text-gray-500">
+                      <span>{album.fecha}</span>
+                      <span className="text-gray-400">Créditos: {album.creditos}</span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
-
-      {/* Modal de Imagen */}
-      {imagenSeleccionada && (
-        <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-          onClick={cerrarImagen}
-        >
-          <button
-            onClick={cerrarImagen}
-            className="absolute top-4 right-4 text-white hover:bg-white/20 rounded-full p-2 transition-colors z-10"
-          >
-            <X size={24} />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              anteriorImagen();
-            }}
-            className="absolute left-4 text-white hover:bg-white/20 rounded-full p-2 transition-colors z-10"
-          >
-            <ChevronLeft size={32} />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              siguienteImagen();
-            }}
-            className="absolute right-4 text-white hover:bg-white/20 rounded-full p-2 transition-colors z-10"
-          >
-            <ChevronRight size={32} />
-          </button>
-          <div onClick={(e) => e.stopPropagation()} className="max-w-5xl w-full">
-            <img
-              src={imagenSeleccionada.imagen}
-              alt={imagenSeleccionada.titulo}
-              className="w-full h-auto rounded-lg"
-            />
-            <div className="mt-4 text-center">
-              <p className="text-white text-xl font-semibold">{imagenSeleccionada.titulo}</p>
-              <p className="text-white/60 text-sm mt-1">{imagenSeleccionada.categoria}</p>
-            </div>
-          </div>
-        </div>
-      )}
 
       <Footer />
     </div>

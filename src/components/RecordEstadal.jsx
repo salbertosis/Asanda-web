@@ -1,36 +1,61 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Trophy, Clock, Award, TrendingUp, Filter } from 'lucide-react';
 import { atletas } from '../data/atletas';
 
 const RecordEstadal = () => {
   const [filtroEvento, setFiltroEvento] = useState('Todos');
   const [filtroCategoria, setFiltroCategoria] = useState('Todas');
+  const [filtroSexo, setFiltroSexo] = useState('Todos');
 
   // Obtener todos los eventos únicos
-  const eventos = ['Todos', ...new Set(atletas.map(a => a.evento))];
-  const categorias = ['Todas', ...new Set(atletas.map(a => a.categoria))];
+  const eventos = useMemo(() => {
+    const eventosUnicos = [...new Set(atletas.map(a => a.evento))];
+    return ['Todos', ...eventosUnicos];
+  }, []);
+
+  // Obtener todas las categorías únicas con orden específico
+  const categorias = useMemo(() => {
+    const categoriasUnicas = [...new Set(atletas.map(a => a.categoria))];
+    // Ordenar categorías: Infantil B, Infantil A, Juvenil B, Juvenil A, Absoluto
+    const ordenCategorias = ['Infantil B', 'Infantil A', 'Juvenil B', 'Juvenil A', 'Absoluto'];
+    const categoriasOrdenadas = ordenCategorias.filter(cat => 
+      categoriasUnicas.includes(cat) || cat === 'Absoluto'
+    );
+    // Agregar cualquier categoría que no esté en el orden
+    categoriasUnicas.forEach(cat => {
+      if (!categoriasOrdenadas.includes(cat)) {
+        categoriasOrdenadas.push(cat);
+      }
+    });
+    return ['Todas', ...categoriasOrdenadas];
+  }, []);
 
   // Simular récords estatales (mejores tiempos)
-  const recordsEstadales = atletas
-    .map(atleta => ({
-      ...atleta,
-      recordEstadal: atleta.recordPersonal, // En producción vendría de una base de datos
-      año: 2025,
-      competencia: 'Campeonato Estadal 2025'
-    }))
-    .sort((a, b) => {
-      // Ordenar por tiempo (convertir a segundos para comparar)
-      const tiempoA = parseFloat(a.recordPersonal.replace(':', '.'));
-      const tiempoB = parseFloat(b.recordPersonal.replace(':', '.'));
-      return tiempoA - tiempoB;
-    })
-    .slice(0, 10); // Top 10 récords
+  const recordsEstadales = useMemo(() => {
+    return atletas
+      .map(atleta => ({
+        ...atleta,
+        recordEstadal: atleta.recordPersonal, // En producción vendría de una base de datos
+        año: 2025,
+        competencia: 'Campeonato Estadal 2025'
+      }))
+      .sort((a, b) => {
+        // Ordenar por tiempo (convertir a segundos para comparar)
+        const tiempoA = parseFloat(a.recordPersonal.replace(':', '.'));
+        const tiempoB = parseFloat(b.recordPersonal.replace(':', '.'));
+        return tiempoA - tiempoB;
+      });
+  }, []);
 
-  const recordsFiltrados = recordsEstadales.filter(record => {
-    const coincideEvento = filtroEvento === 'Todos' || record.evento === filtroEvento;
-    const coincideCategoria = filtroCategoria === 'Todas' || record.categoria === filtroCategoria;
-    return coincideEvento && coincideCategoria;
-  });
+  // Filtrar récords según los filtros seleccionados
+  const recordsFiltrados = useMemo(() => {
+    return recordsEstadales.filter(record => {
+      const coincideEvento = filtroEvento === 'Todos' || record.evento === filtroEvento;
+      const coincideCategoria = filtroCategoria === 'Todas' || record.categoria === filtroCategoria;
+      const coincideSexo = filtroSexo === 'Todos' || record.sexo === filtroSexo;
+      return coincideEvento && coincideCategoria && coincideSexo;
+    }).slice(0, 10); // Top 10 récords
+  }, [recordsEstadales, filtroEvento, filtroCategoria, filtroSexo]);
 
   return (
     <section id="record-estadal" className="py-16 bg-gradient-to-b from-white to-blue-50">
@@ -48,20 +73,18 @@ const RecordEstadal = () => {
         </div>
 
         {/* Filtros */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-200">
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6 border border-gray-200">
           <div className="flex items-center gap-2 mb-4">
             <Filter className="text-blue-600" size={20} />
             <h3 className="text-lg font-semibold text-gray-900">Filtros</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Evento
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Evento</label>
               <select
                 value={filtroEvento}
                 onChange={(e) => setFiltroEvento(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white appearance-none cursor-pointer"
               >
                 {eventos.map(evento => (
                   <option key={evento} value={evento}>{evento}</option>
@@ -69,17 +92,27 @@ const RecordEstadal = () => {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Categoría
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
               <select
                 value={filtroCategoria}
                 onChange={(e) => setFiltroCategoria(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white appearance-none cursor-pointer"
               >
                 {categorias.map(categoria => (
                   <option key={categoria} value={categoria}>{categoria}</option>
                 ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Género</label>
+              <select
+                value={filtroSexo}
+                onChange={(e) => setFiltroSexo(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white appearance-none cursor-pointer"
+              >
+                <option value="Todos">Todos</option>
+                <option value="Masculino">Masculino</option>
+                <option value="Femenino">Femenino</option>
               </select>
             </div>
           </div>
@@ -198,7 +231,7 @@ const RecordEstadal = () => {
               <Trophy className="text-yellow-500" size={24} />
               <h3 className="text-lg font-semibold text-gray-900">Total de Récords</h3>
             </div>
-            <p className="text-3xl font-bold text-gray-900">{recordsEstadales.length}</p>
+            <p className="text-3xl font-bold text-gray-900">{recordsFiltrados.length}</p>
           </div>
           <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
             <div className="flex items-center gap-3 mb-2">
@@ -206,7 +239,7 @@ const RecordEstadal = () => {
               <h3 className="text-lg font-semibold text-gray-900">Este Año</h3>
             </div>
             <p className="text-3xl font-bold text-gray-900">
-              {recordsEstadales.filter(r => r.año === 2025).length}
+              {recordsFiltrados.filter(r => r.año === 2025).length}
             </p>
           </div>
           <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
