@@ -1,34 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, ArrowRight } from 'lucide-react';
+import { getUltimasNoticias } from '../data/noticias';
 
 const NewsSection = () => {
-  const noticias = [
-    {
-      id: 1,
-      titulo: "Campeonato Estadal 2025: Récords Históricos",
-      fecha: "Hace 2 días",
-      categoria: "Competencia",
-      imagen: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=400&fit=crop",
-      resumen: "Tres nuevos récords estatales fueron establecidos durante el campeonato..."
-    },
-    {
-      id: 2,
-      titulo: "Selección Estadal para Nacionales 2025",
-      fecha: "Hace 5 días",
-      categoria: "Selección",
-      imagen: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&h=400&fit=crop",
-      resumen: "La federación anunció la lista de atletas que representarán al estado..."
-    },
-    {
-      id: 3,
-      titulo: "Nuevo Centro de Entrenamiento Inaugurado",
-      fecha: "Hace 1 semana",
-      categoria: "Infraestructura",
-      imagen: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=400&fit=crop",
-      resumen: "El nuevo complejo acuático cuenta con piscina olímpica y tecnología de última generación..."
-    }
-  ];
+  const noticias = getUltimasNoticias(3);
 
   return (
     <section id="noticias" className="py-12 bg-gray-50">

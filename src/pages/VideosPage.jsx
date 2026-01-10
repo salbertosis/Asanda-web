@@ -3,74 +3,9 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import PageHero from '../components/PageHero';
 import { Play, Clock, ArrowRight } from 'lucide-react';
+import { videos } from '../data/videos';
 
 const VideosPage = () => {
-  const videos = [
-    {
-      id: 1,
-      titulo: "Momentos Inolvidables del Campeonato 2025",
-      duracion: "09:45",
-      thumbnail: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=450&fit=crop",
-      vistas: "12.5K",
-      fecha: "Hace 1 día"
-    },
-    {
-      id: 2,
-      titulo: "Récord Estatal: 100m Libre",
-      duracion: "03:32",
-      thumbnail: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&h=450&fit=crop",
-      vistas: "8.2K",
-      fecha: "Hace 3 días"
-    },
-    {
-      id: 3,
-      titulo: "Colección Completa de Medallas 2025",
-      duracion: "27:52",
-      thumbnail: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=450&fit=crop",
-      vistas: "15.8K",
-      fecha: "Hace 5 días"
-    },
-    {
-      id: 4,
-      titulo: "Dominio Total: Récords Mundiales",
-      duracion: "11:07",
-      thumbnail: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&h=450&fit=crop",
-      vistas: "22.1K",
-      fecha: "Hace 1 semana"
-    },
-    {
-      id: 5,
-      titulo: "Popovici Dominando los 100m y 200m Libre",
-      duracion: "09:45",
-      thumbnail: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=450&fit=crop",
-      vistas: "18.3K",
-      fecha: "Hace 2 días"
-    },
-    {
-      id: 6,
-      titulo: "El Maestro de los 50m Pecho: Camino al Oro",
-      duracion: "03:32",
-      thumbnail: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&h=450&fit=crop",
-      vistas: "9.7K",
-      fecha: "Hace 4 días"
-    },
-    {
-      id: 7,
-      titulo: "Leon Marchand: Récord Mundial y Medallas",
-      duracion: "11:07",
-      thumbnail: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=450&fit=crop",
-      vistas: "25.1K",
-      fecha: "Hace 1 semana"
-    },
-    {
-      id: 8,
-      titulo: "Moesha Johnson: Colección Completa de Medallas",
-      duracion: "27:52",
-      thumbnail: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&h=450&fit=crop",
-      vistas: "14.2K",
-      fecha: "Hace 6 días"
-    }
-  ];
 
   return (
     <div className="min-h-screen bg-white">
