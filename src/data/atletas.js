@@ -1,0 +1,123 @@
+export const atletas = [
+  {
+    id: 1,
+    nombre: "Carlos Mendoza",
+    club: "Club Deportivo Acuático",
+    categoria: "Juvenil A",
+    tiempo: "52.34",
+    evento: "100m Libre",
+    foto: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=400&fit=crop",
+    recordPersonal: "51.89",
+    marcaMinimaFederada: "53.20",
+    medallas: ["Oro", "Plata"]
+  },
+  {
+    id: 2,
+    nombre: "María González",
+    club: "Aqua Sports",
+    categoria: "Juvenil B",
+    tiempo: "1:02.15",
+    evento: "100m Mariposa",
+    foto: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop",
+    recordPersonal: "1:01.45",
+    marcaMinimaFederada: "1:03.50",
+    medallas: ["Oro"]
+  },
+  {
+    id: 3,
+    nombre: "José Ramírez",
+    club: "Club Deportivo Acuático",
+    categoria: "Infantil A",
+    tiempo: "2:15.67",
+    evento: "200m Espalda",
+    foto: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop",
+    recordPersonal: "2:14.20",
+    marcaMinimaFederada: "2:18.00",
+    medallas: ["Bronce"]
+  },
+  {
+    id: 4,
+    nombre: "Ana Martínez",
+    club: "Nadadores Elite",
+    categoria: "Juvenil A",
+    tiempo: "58.92",
+    evento: "100m Libre",
+    foto: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop",
+    recordPersonal: "57.80",
+    marcaMinimaFederada: "59.50",
+    medallas: ["Oro", "Oro", "Plata"]
+  },
+  {
+    id: 5,
+    nombre: "Luis Fernández",
+    club: "Aqua Sports",
+    categoria: "Infantil B",
+    tiempo: "1:25.43",
+    evento: "100m Pecho",
+    foto: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop",
+    recordPersonal: "1:24.10",
+    marcaMinimaFederada: "1:27.00",
+    medallas: ["Plata"]
+  },
+  {
+    id: 6,
+    nombre: "Sofía Herrera",
+    club: "Nadadores Elite",
+    categoria: "Juvenil B",
+    tiempo: "4:32.18",
+    evento: "400m Libre",
+    foto: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop",
+    recordPersonal: "4:28.50",
+    marcaMinimaFederada: "4:35.00",
+    medallas: ["Oro", "Bronce"]
+  },
+  {
+    id: 7,
+    nombre: "Diego Torres",
+    club: "Club Deportivo Acuático",
+    categoria: "Juvenil A",
+    tiempo: "2:08.45",
+    evento: "200m Libre",
+    foto: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop",
+    recordPersonal: "2:06.90",
+    marcaMinimaFederada: "2:10.00",
+    medallas: ["Plata", "Bronce"]
+  },
+  {
+    id: 8,
+    nombre: "Valentina Ruiz",
+    club: "Aqua Sports",
+    categoria: "Infantil A",
+    tiempo: "1:18.76",
+    evento: "100m Espalda",
+    foto: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop",
+    recordPersonal: "1:17.20",
+    marcaMinimaFederada: "1:20.00",
+    medallas: ["Oro"]
+  },
+  {
+    id: 9,
+    nombre: "Andrés Vargas",
+    club: "Nadadores Elite",
+    categoria: "Juvenil B",
+    tiempo: "1:45.32",
+    evento: "200m Mariposa",
+    foto: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop",
+    recordPersonal: "1:43.80",
+    marcaMinimaFederada: "1:47.00",
+    medallas: ["Oro", "Oro"]
+  },
+  {
+    id: 10,
+    nombre: "Isabella Morales",
+    club: "Club Deportivo Acuático",
+    categoria: "Infantil B",
+    tiempo: "1:32.89",
+    evento: "100m Pecho",
+    foto: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=400&fit=crop",
+    recordPersonal: "1:31.50",
+    marcaMinimaFederada: "1:34.00",
+    medallas: ["Plata", "Bronce"]
+  }
+];
+
