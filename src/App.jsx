@@ -75,7 +75,7 @@ function HomePage() {
 
       {/* Hero Section */}
       <section 
-        className="relative min-h-[500px] sm:min-h-[600px] md:min-h-[700px] lg:min-h-[800px] flex flex-col overflow-hidden"
+        className="relative min-h-[400px] sm:min-h-[500px] md:min-h-[600px] lg:min-h-[700px] xl:min-h-[800px] flex flex-col overflow-hidden"
         role="banner"
         aria-label="Sección principal del portal"
         itemScope
@@ -92,7 +92,7 @@ function HomePage() {
         />
 
         {/* Publicidad de Patrocinante en la parte inferior izquierda */}
-        <div className="relative z-10 pb-6 sm:pb-8 md:pb-12">
+        <div className="relative z-10 pb-4 sm:pb-6 md:pb-8 lg:pb-12">
           <HeroSponsor />
         </div>
       </section>

@@ -100,20 +100,20 @@ const HeroStats = ({ atletas, clubs, categorias }) => {
   return (
     <div 
       ref={statsRef}
-      className="relative z-10 flex-1 flex items-start justify-center pt-8 sm:pt-12 md:pt-16 lg:pt-20"
+      className="relative z-10 flex-1 flex items-start justify-center pt-4 sm:pt-8 md:pt-12 lg:pt-16 xl:pt-20"
       role="region"
       aria-label="Estadísticas principales"
       itemScope
       itemType="https://schema.org/SportsOrganization"
     >
-      <div className="container mx-auto px-4">
-        <div className="flex flex-wrap justify-center gap-3 sm:gap-4 md:gap-6 lg:gap-8">
+      <div className="container mx-auto px-2 sm:px-4">
+        <div className="flex flex-wrap justify-center gap-2 sm:gap-3 md:gap-4 lg:gap-6 xl:gap-8">
           {stats.map((stat, index) => {
             const Icon = stat.icon;
             return (
               <div
                 key={stat.label}
-                className={`bg-white/20 backdrop-blur-lg border border-white/30 px-6 py-5 sm:px-8 sm:py-6 rounded-2xl shadow-2xl hover:bg-white/25 transition-all duration-300 min-w-[140px] sm:min-w-[160px] md:min-w-[180px] transform hover:scale-105 ${
+                className={`bg-white/20 backdrop-blur-lg border border-white/30 px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-5 lg:px-8 lg:py-6 rounded-xl sm:rounded-2xl shadow-2xl hover:bg-white/25 transition-all duration-300 min-w-[100px] sm:min-w-[120px] md:min-w-[140px] lg:min-w-[160px] xl:min-w-[180px] transform hover:scale-105 ${
                   isVisible 
                     ? 'opacity-100 translate-y-0' 
                     : 'opacity-0 translate-y-8'
@@ -127,26 +127,27 @@ const HeroStats = ({ atletas, clubs, categorias }) => {
                 itemScope
                 itemType="https://schema.org/QuantitativeValue"
               >
-                    <div className="flex items-center justify-center mb-2">
-                      <Icon
-                        className="text-white/90"
-                        size={24}
-                        aria-hidden="true"
-                      />
-                    </div>
-                    <div
-                      className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 text-white drop-shadow-lg text-center"
-                      aria-live="polite"
-                      itemProp="value"
-                    >
-                      {stat.value}
-                    </div>
-                    <div
-                      className="text-xs sm:text-sm md:text-base text-blue-50 font-semibold uppercase tracking-wide text-center"
-                      itemProp="name"
-                    >
-                      {stat.label}
-                    </div>
+                <div className="flex items-center justify-center mb-1 sm:mb-2">
+                  <Icon 
+                    className="text-white/90" 
+                    size={18}
+                    style={{ width: '18px', height: '18px' }}
+                    aria-hidden="true"
+                  />
+                </div>
+                <div 
+                  className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold mb-1 sm:mb-2 text-white drop-shadow-lg text-center leading-tight"
+                  aria-live="polite"
+                  itemProp="value"
+                >
+                  {stat.value}
+                </div>
+                <div 
+                  className="text-[10px] sm:text-xs md:text-sm lg:text-base text-blue-50 font-semibold uppercase tracking-wide text-center leading-tight"
+                  itemProp="name"
+                >
+                  {stat.label}
+                </div>
                 <meta itemProp="unitText" content="unidades" />
               </div>
             );
