@@ -515,12 +515,11 @@ export const atletas = [
   {
     id: 31,
     nombre: "Dylan Aguilera",
-    cedula: "33895827",
     club: "CCE",
     categoria: "Infantil A",
     sexo: "Masculino",
     genero: "Masculino",
-    fechaNacimiento: "02/08/2011",
+    fechaNacimiento: "2011",
     disciplina: ["Nadar"],
     foto: "https://res.cloudinary.com/tu-cloud-name/image/upload/w_400,h_400,c_fill,q_auto,f_auto/asanda/atletas/cce/33895827.jpg",
     tipo: "federado"
@@ -528,12 +527,11 @@ export const atletas = [
   {
     id: 32,
     nombre: "Ian Aguilera",
-    cedula: "33895840",
     club: "CCE",
     categoria: "Infantil A",
     sexo: "Masculino",
     genero: "Masculino",
-    fechaNacimiento: "02/08/2011",
+    fechaNacimiento: "2011",
     disciplina: ["Nadar"],
     foto: "https://res.cloudinary.com/tu-cloud-name/image/upload/w_400,h_400,c_fill,q_auto,f_auto/asanda/atletas/cce/33895840.jpg",
     tipo: "federado"
@@ -541,15 +539,13 @@ export const atletas = [
   {
     id: 33,
     nombre: "Valentina Camacaro",
-    cedula: "35003581",
     club: "CCE",
     categoria: "Infantil A",
     sexo: "Femenino",
     genero: "Femenino",
-    fechaNacimiento: "04/05/2011",
+    fechaNacimiento: "2011",
     disciplina: ["Nadar"],
     foto: "https://res.cloudinary.com/tu-cloud-name/image/upload/w_400,h_400,c_fill,q_auto,f_auto/asanda/atletas/cce/35003581.jpg",
     tipo: "federado"
   }
 ];
-
