@@ -25,3 +25,4 @@ const RecordEstadalPage = () => {
 
 export default RecordEstadalPage;
 
+
