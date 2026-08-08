@@ -26,35 +26,35 @@ Chain strategy: stacked-to-main
 
 ## Phase 1: Data & Validation (PR 1)
 
-- [ ] 1.1 Create `src/data/sponsors.js` — 4 fictional brands (aquatic equipment, sports health, hydration, training) with `id`, `slug`, `name`, `category`, `creative:{url,alt,width,height}`, `disclosure`, `badge` per design contract. No real brand names.
+- [x] 1.1 Create `src/data/sponsors.js` — 4 fictional brands (aquatic equipment, sports health, hydration, training) with `id`, `slug`, `name`, `category`, `creative:{url,alt,width,height}`, `disclosure`, `badge` per design contract. No real brand names.
   - **Verify:** `node -e "const s = require('./src/data/sponsors.js'); console.log(s.sponsors.length)"` → 4; visual scan: no real brand names.
-- [ ] 1.2 Create `src/data/campaigns.js` — campaign fixtures linking `sponsorId` → `placementId` with `startDate`/`endDate`/`priority`.
+- [x] 1.2 Create `src/data/campaigns.js` — campaign fixtures linking `sponsorId` → `placementId` with `startDate`/`endDate`/`priority`.
   - **Verify:** All `sponsorId` values match sponsor ids; all dates parseable via `new Date()`.
-- [ ] 1.3 Create `src/data/adPlacements.js` — 4 placement definitions (`hero-sponsor`, `leaderboard`, `partner-grid`, `competition-sponsor`) with reserved dimensions per design contract.
+- [x] 1.3 Create `src/data/adPlacements.js` — 4 placement definitions (`hero-sponsor`, `leaderboard`, `partner-grid`, `competition-sponsor`) with reserved dimensions per design contract.
   - **Verify:** Each placement has `id`, `kind`, `dimensions` matching design data contracts.
-- [ ] 1.4 Create `src/services/ads.js` — `resolveAd(placementId, { routeKey })` with hash-based rotation (`hash(placementId + routeKey + loadCounter) % active.length`), `validateSponsors()`, `validateCampaigns()`, `isActive(campaign, today)`. Malformed → `console.warn('[ads]', ...)`, never throws. Expired → excluded. Empty → `{ isEmpty: true, reason }`.
+- [x] 1.4 Create `src/services/ads.js` — `resolveAd(placementId, { routeKey })` with hash-based rotation (`hash(placementId + routeKey + loadCounter) % active.length`), `validateSponsors()`, `validateCampaigns()`, `isActive(campaign, today)`. Malformed → `console.warn('[ads]', ...)`, never throws. Expired → excluded. Empty → `{ isEmpty: true, reason }`.
   - **Verify:** Node script: malformed sponsor (missing `name`) → `console.warn` logged, entry skipped; expired campaign (`endDate` past) → excluded; empty catalog → `{ isEmpty: true }`.
 
 ## Phase 2: Hooks, Components & Route (PR 1)
 
-- [ ] 2.1 Create `src/hooks/useNoindex.js` — on mount: insert `<meta name="robots" content="noindex">`; on unmount: restore prior meta or remove tag.
+- [x] 2.1 Create `src/hooks/useNoindex.js` — on mount: insert `<meta name="robots" content="noindex">`; on unmount: restore prior meta or remove tag.
   - **Verify:** Mount → meta present in `document.head`; unmount → prior meta restored or tag removed.
-- [ ] 2.2 Create `src/hooks/useAdPlacement.js` — wraps `resolveAd`, returns `{ ad, isEmpty, isLoading: false }`. Stable across re-renders for same `placementId`+`routeKey`.
+- [x] 2.2 Create `src/hooks/useAdPlacement.js` — wraps `resolveAd`, returns `{ ad, isEmpty, isLoading: false }`. Stable across re-renders for same `placementId`+`routeKey`.
   - **Verify:** Hook returns same `ad` object reference on re-render when inputs unchanged.
-- [ ] 2.3 Create `src/components/ads/AdSlotFrame.jsx` — shared slot frame: `role="complementary"`, `aria-label="Publicidad: {name}"`, disclosure label, demo badge, reserved `min-h`+`aspect-[X/Y]`, anchor `rel="sponsored noopener"`, `focus-visible:ring-2`, `motion-safe:` animations, `dark:` variants.
+- [x] 2.3 Create `src/components/ads/AdSlotFrame.jsx` — shared slot frame: `role="complementary"`, `aria-label="Publicidad: {name}"`, disclosure label, demo badge, reserved `min-h`+`aspect-[X/Y]`, anchor `rel="sponsored noopener"`, `focus-visible:ring-2`, `motion-safe:` animations, `dark:` variants.
   - **Verify:** DOM inspection: `role`, `aria-label`, disclosure text, badge text, `rel` attribute all present.
-- [ ] 2.4 Create `src/components/ads/EmptySlotTile.jsx` — reserved dimensions matching active slot, "Espacio disponible" text, no link, no badge, no disclosure.
+- [x] 2.4 Create `src/components/ads/EmptySlotTile.jsx` — reserved dimensions matching active slot, "Espacio disponible" text, no link, no badge, no disclosure.
   - **Verify:** Renders with same `min-height` as active slot; no `<a>` element in DOM.
-- [ ] 2.5 Create `src/components/ads/HeroSponsorSlot.jsx` — hero placement using `AdSlotFrame` with `useAdPlacement('hero-sponsor')`.
-- [ ] 2.6 Create `src/components/ads/LeaderboardSlot.jsx` — responsive: full-width banner ≥768px, compact card <768px. Uses `AdSlotFrame` + `useAdPlacement('leaderboard')`.
+- [x] 2.5 Create `src/components/ads/HeroSponsorSlot.jsx` — hero placement using `AdSlotFrame` with `useAdPlacement('hero-sponsor')`.
+- [x] 2.6 Create `src/components/ads/LeaderboardSlot.jsx` — responsive: full-width banner ≥768px, compact card <768px. Uses `AdSlotFrame` + `useAdPlacement('leaderboard')`.
   - **Verify:** Resize browser: layout switches at 768px; reserved height prevents CLS in both modes.
-- [ ] 2.7 Create `src/components/ads/PartnerGridSlot.jsx` — 4-cell grid using `AdSlotFrame` for footer integration.
-- [ ] 2.8 Create `src/components/ads/CompetitionSponsorBadge.jsx` — inline badge for calendar/results pages using `AdSlotFrame`.
-- [ ] 2.9 Create `src/pages/PublicidadDemoPage.jsx` — internal demo detail page: fictional explanation, sponsor name from `:slug` param, `useNoindex` hook, back navigation link.
+- [x] 2.7 Create `src/components/ads/PartnerGridSlot.jsx` — 4-cell grid using `AdSlotFrame` for footer integration.
+- [x] 2.8 Create `src/components/ads/CompetitionSponsorBadge.jsx` — inline badge for calendar/results pages using `AdSlotFrame`.
+- [x] 2.9 Create `src/pages/PublicidadDemoPage.jsx` — internal demo detail page: fictional explanation, sponsor name from `:slug` param, `useNoindex` hook, back navigation link.
   - **Verify:** Navigate to `/publicidad/demo/aquaflow-demo` → page renders fictional explanation; `<meta name="robots" content="noindex">` in head; navigate away → meta removed.
-- [ ] 2.10 Register `/publicidad/demo/:slug` route in `src/App.jsx` (additive — route only, no existing component changes).
+- [x] 2.10 Register `/publicidad/demo/:slug` route in `src/App.jsx` (additive — route only, no existing component changes).
   - **Verify:** `npm run build` passes; route accessible at `/publicidad/demo/aquaflow-demo`.
-- [ ] 2.11 Add `?ads=demo` preview support — when query param present, render all 4 slots in an isolated preview layout for PR 1 verification without modifying existing pages.
+- [x] 2.11 Add `?ads=demo` preview support — when query param present, render all 4 slots in an isolated preview layout for PR 1 verification without modifying existing pages.
   - **Verify:** Load `/?ads=demo` → all 4 slot types visible; load `/` without param → no change to existing page.
 
 ## Phase 3: Integration & Wiring (PR 2)
