@@ -1,0 +1,56 @@
+schema: spec-driven
+
+context: |
+  Project: ASANDA Web - Portal de Resultados de Natación Estadal
+  Stack: React 18 + Vite 5 + JavaScript (JSX, no TypeScript)
+  Styling: Tailwind CSS 3 + PostCSS + Autoprefixer
+  Routing: react-router-dom v6 (BrowserRouter)
+  Icons: lucide-react
+  Data: Static JS modules under src/data/ (no backend/API)
+  Media: Cloudinary for image hosting
+  SEO: Schema.org structured data, Open Graph meta tags
+  Architecture: Component-based SPA, functional components, custom hooks
+
+strict_tdd: false
+
+testing:
+  runner: none
+  layers:
+    unit: false
+    integration: false
+    e2e: false
+  coverage: false
+  quality:
+    linter: none
+    type_checker: none
+    formatter: none
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Assess impact on static data files and SEO metadata
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+    - Specify responsive breakpoints when UI changes are involved
+  design:
+    - Include component hierarchy for UI changes
+    - Document data flow from static modules to components
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    guidelines:
+      - Follow existing component patterns (functional components, hooks)
+      - Maintain Tailwind CSS utility-first approach
+      - Preserve Spanish language for user-facing strings
+      - Keep existing dark mode support via useDarkMode hook
+    tdd: false
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: "npm run build"
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas
+    - Verify static data integrity after merge

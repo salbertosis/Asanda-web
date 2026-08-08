@@ -1,0 +1,89 @@
+═══════════════════════════════════════════════════════════════
+  DATOS EXTRAÍDOS DEL PDF - Feveda_CCE.pdf
+═══════════════════════════════════════════════════════════════
+
+CLUB: CCE
+TIPO: Federado
+
+═══════════════════════════════════════════════════════════════
+ATLETAS EXTRAÍDOS:
+═══════════════════════════════════════════════════════════════
+
+Name              | Gender | Age | Birthdate  | ID#
+------------------|--------|-----|------------|----------
+Dylan Aguilera    | M      | 14  | 8/2/2011   | 33895827
+Ian Aguilera      | M      | 14  | 8/2/2011   | 33895840
+Valentina Camacaro| F      | 14  | 5/4/2011   | 35003581
+
+═══════════════════════════════════════════════════════════════
+✅ DATOS PROCESADOS Y AGREGADOS AL CÓDIGO
+═══════════════════════════════════════════════════════════════
+
+✓ Club CCE agregado a clubes.js (ID: 14)
+✓ 3 atletas agregados a atletas.js (IDs: 31, 32, 33)
+
+═══════════════════════════════════════════════════════════════
+ATLETAS AGREGADOS:
+═══════════════════════════════════════════════════════════════
+
+1. Dylan Aguilera
+   - ID en código: 31
+   - Cédula: 33895827
+   - Género: Masculino
+   - Fecha Nacimiento: 02/08/2011
+   - Categoría: Infantil A
+   - Foto: /fotos/atletas/cce/33895827.jpg
+   - Tipo: Federado
+
+2. Ian Aguilera
+   - ID en código: 32
+   - Cédula: 33895840
+   - Género: Masculino
+   - Fecha Nacimiento: 02/08/2011
+   - Categoría: Infantil A
+   - Foto: /fotos/atletas/cce/33895840.jpg
+   - Tipo: Federado
+
+3. Valentina Camacaro
+   - ID en código: 33
+   - Cédula: 35003581
+   - Género: Femenino
+   - Fecha Nacimiento: 04/05/2011
+   - Categoría: Infantil A
+   - Foto: /fotos/atletas/cce/35003581.jpg
+   - Tipo: Federado
+
+═══════════════════════════════════════════════════════════════
+ARCHIVOS MODIFICADOS:
+═══════════════════════════════════════════════════════════════
+
+✓ src/data/clubes.js - Club CCE agregado
+✓ src/data/atletas.js - 3 atletas agregados
+
+═══════════════════════════════════════════════════════════════
+PRÓXIMOS PASOS:
+═══════════════════════════════════════════════════════════════
+
+1. Configurar Cloudinary:
+   - Crear cuenta en https://cloudinary.com (gratis)
+   - Obtener Cloud Name
+   - Actualizar src/config/cloudinary.js con tu Cloud Name
+
+2. Subir fotos a Cloudinary:
+   - Crear carpeta: asanda/atletas/cce/
+   - Subir fotos:
+     * 33895827.jpg
+     * 33895840.jpg
+     * 35003581.jpg
+
+3. Actualizar URLs en código:
+   - Reemplazar 'tu-cloud-name' con tu Cloud Name real
+   - Las URLs ya están preparadas en formato Cloudinary
+
+4. Los atletas aparecerán automáticamente en:
+   - Página "Atletas Federados" → Pestaña "CCE"
+   - Página "Atletas" → Sección correspondiente
+
+═══════════════════════════════════════════════════════════════
+NOTA: Las fotos se almacenan en Cloudinary (CDN), no en el repositorio
+═══════════════════════════════════════════════════════════════

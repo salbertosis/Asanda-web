@@ -382,3 +382,4 @@ Si tienes dudas sobre cómo editar algún archivo específico, puedes:
 
 **Última actualización**: Enero 2026
 
+

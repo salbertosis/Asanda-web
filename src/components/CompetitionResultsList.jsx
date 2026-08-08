@@ -101,3 +101,4 @@ const CompetitionResultsList = ({ competencias, mes, año }) => {
 
 export default CompetitionResultsList;
 
+

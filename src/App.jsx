@@ -21,6 +21,9 @@ import CalendarioPage from './pages/CalendarioPage';
 import ResultadosPage from './pages/ResultadosPage';
 import AtletasPage from './pages/AtletasPage';
 import RecordEstadalPage from './pages/RecordEstadalPage';
+import AtletasAsociadosPage from './pages/AtletasAsociadosPage';
+import AtletasFederadosPage from './pages/AtletasFederadosPage';
+import ClubesPage from './pages/ClubesPage';
 
 function HomePage() {
   const [atletaSeleccionado, setAtletaSeleccionado] = useState(null);
@@ -110,6 +113,9 @@ function App() {
       <Route path="/calendario" element={<CalendarioPage />} />
       <Route path="/resultados" element={<ResultadosPage />} />
       <Route path="/atletas" element={<AtletasPage />} />
+      <Route path="/atletas-asociados" element={<AtletasAsociadosPage />} />
+      <Route path="/atletas-federados" element={<AtletasFederadosPage />} />
+      <Route path="/clubes" element={<ClubesPage />} />
       <Route path="/record-estadal" element={<RecordEstadalPage />} />
     </Routes>
   );

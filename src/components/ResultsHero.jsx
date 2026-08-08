@@ -78,3 +78,4 @@ const ResultsHero = ({ año, mes, onAñoChange, onMesChange, onReset }) => {
 
 export default ResultsHero;
 
+

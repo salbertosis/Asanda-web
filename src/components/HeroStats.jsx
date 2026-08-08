@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Users, Building2, Award } from 'lucide-react';
 
 const HeroStats = ({ atletas, clubs, categorias }) => {
@@ -33,12 +34,17 @@ const HeroStats = ({ atletas, clubs, categorias }) => {
     // Verificar preferencias de movimiento reducido
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     
+    // Calcular valores reales
+    const asociados = atletas.filter(a => a.tipo === 'asociado').length;
+    const federados = atletas.filter(a => a.tipo === 'federado').length;
+    const totalClubs = clubs.length - 1; // Excluir "Todos"
+    
     if (prefersReducedMotion) {
       // Si el usuario prefiere movimiento reducido, mostrar valores directamente
       setCounters({
-        asociados: atletas.length,
-        clubs: clubs.length - 1,
-        federados: atletas.length
+        asociados: asociados,
+        clubs: totalClubs,
+        federados: federados
       });
       return;
     }
@@ -48,9 +54,9 @@ const HeroStats = ({ atletas, clubs, categorias }) => {
     const stepDuration = duration / steps;
     
     const targetValues = {
-      asociados: atletas.length,
-      clubs: clubs.length - 1,
-      federados: atletas.length
+      asociados: asociados,
+      clubs: totalClubs,
+      federados: federados
     };
 
     let currentStep = 0;
@@ -81,19 +87,22 @@ const HeroStats = ({ atletas, clubs, categorias }) => {
       value: counters.asociados,
       label: 'Asociados',
       icon: Users,
-      ariaLabel: `${counters.asociados} atletas asociados`
+      ariaLabel: `${counters.asociados} atletas asociados`,
+      link: '/atletas-asociados'
     },
     {
       value: counters.clubs,
       label: 'Clubes',
       icon: Building2,
-      ariaLabel: `${counters.clubs} clubs activos`
+      ariaLabel: `${counters.clubs} clubs activos`,
+      link: '/clubes'
     },
     {
       value: counters.federados,
       label: 'Federados',
       icon: Award,
-      ariaLabel: `${counters.federados} atletas federados`
+      ariaLabel: `${counters.federados} atletas federados`,
+      link: '/atletas-federados'
     }
   ];
 
@@ -111,9 +120,10 @@ const HeroStats = ({ atletas, clubs, categorias }) => {
           {stats.map((stat, index) => {
             const Icon = stat.icon;
             return (
-              <div
+              <Link
                 key={stat.label}
-                className={`bg-white/20 backdrop-blur-lg border border-white/30 px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-5 lg:px-8 lg:py-6 rounded-xl sm:rounded-2xl shadow-2xl hover:bg-white/25 transition-all duration-300 flex-shrink-0 w-[calc(33.333%-0.5rem)] sm:w-auto min-w-[90px] sm:min-w-[110px] md:min-w-[130px] lg:min-w-[150px] xl:min-w-[170px] transform hover:scale-105 ${
+                to={stat.link}
+                className={`bg-white/20 backdrop-blur-lg border border-white/30 px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-5 lg:px-8 lg:py-6 rounded-xl sm:rounded-2xl shadow-2xl hover:bg-white/25 transition-all duration-300 flex-shrink-0 w-[calc(33.333%-0.5rem)] sm:w-auto min-w-[90px] sm:min-w-[110px] md:min-w-[130px] lg:min-w-[150px] xl:min-w-[170px] transform hover:scale-105 cursor-pointer ${
                   isVisible 
                     ? 'opacity-100 translate-y-0' 
                     : 'opacity-0 translate-y-8'
@@ -149,7 +159,7 @@ const HeroStats = ({ atletas, clubs, categorias }) => {
                   {stat.label}
                 </div>
                 <meta itemProp="unitText" content="unidades" />
-              </div>
+              </Link>
             );
           })}
         </div>
