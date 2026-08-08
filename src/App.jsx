@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useSearchParams } from 'react-router-dom';
 import { atletas } from './data/atletas';
 import Header from './components/Header';
 import BannerAd from './components/BannerAd';
@@ -24,6 +24,8 @@ import RecordEstadalPage from './pages/RecordEstadalPage';
 import AtletasAsociadosPage from './pages/AtletasAsociadosPage';
 import AtletasFederadosPage from './pages/AtletasFederadosPage';
 import ClubesPage from './pages/ClubesPage';
+import PublicidadDemoPage from './pages/PublicidadDemoPage';
+import AdsDemoPreview from './components/ads/AdsDemoPreview';
 
 function HomePage() {
   const [atletaSeleccionado, setAtletaSeleccionado] = useState(null);
@@ -102,10 +104,21 @@ function HomePage() {
   );
 }
 
+// Gate aislado de PR 1: solo con ?ads=demo muestra la vista previa de slots;
+// sin el parámetro, la página visible actual queda intacta.
+function HomeGate() {
+  const [searchParams] = useSearchParams();
+  if (searchParams.get('ads') === 'demo') {
+    return <AdsDemoPreview />;
+  }
+  return <HomePage />;
+}
+
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<HomePage />} />
+      <Route path="/" element={<HomeGate />} />
+      <Route path="/publicidad/demo/:slug" element={<PublicidadDemoPage />} />
       <Route path="/noticias" element={<NoticiasPage />} />
       <Route path="/videos" element={<VideosPage />} />
       <Route path="/fotos" element={<FotosPage />} />
