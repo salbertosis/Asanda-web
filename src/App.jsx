@@ -3,14 +3,13 @@ import { Link, Routes, Route, useSearchParams } from 'react-router-dom';
 import { ArrowRight, CalendarDays, Trophy } from 'lucide-react';
 import { atletas } from './data/atletas';
 import Header from './components/Header';
-import BannerAd from './components/BannerAd';
-import SidebarAd from './components/SidebarAd';
 import AthleteModal from './components/AthleteModal';
 import NewsSection from './components/NewsSection';
 import VideoSection from './components/VideoSection';
 import PhotoGallery from './components/PhotoGallery';
 import AthletesSection from './components/AthletesSection';
-import HeroSponsor from './components/HeroSponsor';
+import HeroSponsorSlot from './components/ads/HeroSponsorSlot';
+import LeaderboardSlot from './components/ads/LeaderboardSlot';
 import HeroBackground from './components/HeroBackground';
 import HeroStats from './components/HeroStats';
 import Footer from './components/Footer';
@@ -90,7 +89,7 @@ function HomePage() {
             </div>
 
             <div className="min-w-0 self-end pb-6 lg:col-span-4 lg:pb-10">
-              <HeroSponsor />
+              <HeroSponsorSlot />
             </div>
 
             <div className="lg:col-span-12">
@@ -107,7 +106,7 @@ function HomePage() {
 
         {/* Banner Ad Principal */}
         <div className="container mx-auto px-4 py-3 sm:py-4">
-          <BannerAd />
+          <LeaderboardSlot />
         </div>
 
         {/* Sección de Atletas Destacados */}
@@ -115,7 +114,7 @@ function HomePage() {
 
         {/* Banner Ad Principal */}
         <div className="container mx-auto px-4 py-3 sm:py-4">
-          <BannerAd />
+          <LeaderboardSlot />
         </div>
 
         {/* Sección de Videos */}

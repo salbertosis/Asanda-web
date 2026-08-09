@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Trophy, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Youtube } from 'lucide-react';
+import PartnerGridSlot from './ads/PartnerGridSlot';
 
 const Footer = () => {
   return (
@@ -83,12 +84,7 @@ const Footer = () => {
         {/* Partners Section */}
         <div className="mt-12 pt-8 border-t border-gray-800">
           <h4 className="text-sm font-semibold text-gray-400 mb-4 text-center">PATROCINADORES GLOBALES</h4>
-          <div className="flex flex-wrap justify-center items-center gap-8 opacity-60">
-            <div className="bg-white/10 px-6 py-3 rounded text-sm">Patrocinador 1</div>
-            <div className="bg-white/10 px-6 py-3 rounded text-sm">Patrocinador 2</div>
-            <div className="bg-white/10 px-6 py-3 rounded text-sm">Patrocinador 3</div>
-            <div className="bg-white/10 px-6 py-3 rounded text-sm">Patrocinador 4</div>
-          </div>
+          <PartnerGridSlot />
         </div>
 
         {/* Copyright */}

@@ -3,6 +3,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import PageHero from '../components/PageHero';
 import CompetitionsCalendar from '../components/CompetitionsCalendar';
+import CompetitionSponsorBadge from '../components/ads/CompetitionSponsorBadge';
 import { getCalendarioPorAño } from '../data/calendario';
 
 const CalendarioPage = () => {
@@ -22,6 +23,11 @@ const CalendarioPage = () => {
         title="Calendario"
         backgroundImage="https://images.unsplash.com/photo-1530549387789-4c1017266635?w=1920&h=1080&fit=crop&q=80"
       />
+
+      {/* Patrocinador de competencias: inventario rotatorio global */}
+      <div className="container mx-auto px-4 py-4">
+        <CompetitionSponsorBadge />
+      </div>
 
       {/* Contenido de Calendario */}
       <CompetitionsCalendar 
