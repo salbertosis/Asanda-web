@@ -59,20 +59,20 @@ Chain strategy: stacked-to-main
 
 ## Phase 3: Integration & Wiring (PR 2)
 
-- [ ] 3.1 Replace `<HeroSponsor>` with `<HeroSponsorSlot>` and `<BannerAd>` instances with `<LeaderboardSlot>` in `src/App.jsx`.
+- [x] 3.1 Replace `<HeroSponsor>` with `<HeroSponsorSlot>` and `<BannerAd>` instances with `<LeaderboardSlot>` in `src/App.jsx`.
   - **Verify:** Home page renders hero slot + leaderboard with disclosure labels + demo badges; creative click → internal demo page.
-- [ ] 3.2 Replace footer ad placeholders with `<PartnerGridSlot>` in `src/components/Footer.jsx`.
+- [x] 3.2 Replace footer ad placeholders with `<PartnerGridSlot>` in `src/components/Footer.jsx`.
   - **Verify:** Footer shows partner grid with 4 cells, each with disclosure label.
-- [ ] 3.3 Add `<CompetitionSponsorBadge>` to `src/pages/CalendarioPage.jsx` — global rotating inventory, no per-event exclusivity.
+- [x] 3.3 Add `<CompetitionSponsorBadge>` to `src/pages/CalendarioPage.jsx` — global rotating inventory, no per-event exclusivity.
   - **Verify:** Calendar page shows inline sponsor badge; same badge across different events.
-- [ ] 3.4 Add `<CompetitionSponsorBadge>` to `src/pages/ResultadosPage.jsx`.
+- [x] 3.4 Add `<CompetitionSponsorBadge>` to `src/pages/ResultadosPage.jsx`.
   - **Verify:** Results page shows inline sponsor badge.
 
 ## Phase 4: Cleanup & Final Verification (PR 2)
 
-- [ ] 4.1 Delete `src/components/HeroSponsor.jsx` (Speedo), `src/components/BannerAd.jsx`, `src/components/SidebarAd.jsx` (dead code). Remove all imports referencing these files.
-  - **Verify:** `grep -ri speedo src` → 0 hits; `grep -ri "SidebarAd\|BannerAd\|HeroSponsor" src` → 0 hits.
-- [ ] 4.2 Final verification checklist (manual + DOM + DevTools):
+- [x] 4.1 Delete `src/components/HeroSponsor.jsx` (Speedo), `src/components/BannerAd.jsx`, `src/components/SidebarAd.jsx` (dead code). Remove all imports referencing these files.
+  - **Verify:** `git grep -ni -E '(^|[^[:alnum:]_])(speedo|SidebarAd|BannerAd|HeroSponsor)([^[:alnum:]_]|$)' -- src` → 0 hits; the required `HeroSponsorSlot` name is intentionally allowed.
+- [x] 4.2 Final verification checklist (manual + DOM + DevTools):
   - `npm run build` passes clean — no warnings or errors.
   - **No external ad-network calls:** DevTools Network tab → 0 requests to ad-network domains.
   - **No timers for rotation:** `grep -rE "setInterval|setTimeout" src/components/ads src/services/ads.js` → 0 hits.
@@ -84,4 +84,11 @@ Chain strategy: stacked-to-main
   - **Responsive:** Viewport <768px → leaderboard compact card; ≥768px → full banner; no CLS (DevTools Layout Shift = 0 for ad slots).
   - **noindex scope:** Demo pages have `<meta name="robots" content="noindex">`; root `index.html` and all non-demo pages have no `noindex` addition.
   - **Empty state:** Temporarily empty campaigns fixture → "Espacio disponible" tile with reserved dimensions, no badge/link.
-  - **Source-mutating normalization:** None — no formatter configured or introduced in this change.
+   - **Source-mutating normalization:** None — no formatter configured or introduced in this change.
+
+## Phase 5: Bounded Remediation — Approved Sponsor Catalog (PR 2 correction)
+
+- [x] 5.1 Replace marker-only sponsor admission with a closed, versioned exact-identity authority for the four fictional fixtures; add permanent dependency-free Node regressions for adversarial identities and preserved resolver contracts.
+  - **Verify:** `npm run test:ads` passes with all four approved fixtures, `Speedo Demo`, altered identities, unknown copied identities, malformed warnings/no-throw, stability, variation, empty/expired, internal destination, and no-timer/no-storage checks; `npm run build` and `git diff --check` pass.
+- [x] 5.2 Add a minimal Chromium Playwright harness for the four missing browser-runtime scenarios: intercepted empty inventory, reduced motion, keyboard Enter activation, and dark-mode WCAG AA contrast.
+  - **Verify:** `npm run test:e2e` passes all four deterministic scenarios and cleans up its Vite server.

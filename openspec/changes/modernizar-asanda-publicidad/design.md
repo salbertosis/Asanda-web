@@ -12,7 +12,7 @@ Fixtures-only with one `resolveAd(placementId, context)` seam. Two chained PRs u
 | D2 | Rotation | `pick = hash(placementId + routeKey + loadCounter) % active.length`; `loadCounter` is module-level, resets on reload, increments on first `resolveAd` per placement per load. Deterministic, stable during page lifecycle, changes on nav/reload, no timers | `setInterval`; `localStorage` cap |
 | D3 | Slot primitive | `AdSlotFrame` wraps disclosure + demo badge + reserved dimensions + reduced motion + a11y | Bespoke per slot (CLS drift) |
 | D4 | `noindex` | `useNoindex` mutates `document.head`; captures prior `<meta name="robots">`, restores on unmount | `react-helmet-async` |
-| D5 | Real-brand guard | `validateSponsors()` filters at module load; `console.warn('[ads]', 'Skipping malformed', { index, missing })`, never throws | Hard fail at import |
+| D5 | Sponsor authority | `validateSponsors()` requires exact membership in the versioned closed authority (`id`, `slug`, `name`, `category`) plus structural checks; it warns and skips without throwing | Marker-only demo checks or a universal brand-text blacklist |
 | D6 | Reduced motion | Tailwind `motion-safe:` + existing `index.css` global rule | Per-component queries |
 | D7 | Dark mode | Tailwind `dark:`; reuse `dark.surface` token | Custom CSS |
 | D8 | Expired campaigns | `isActive(campaign, today)`; empty → `EmptySlotTile` | Cron purging |
@@ -42,7 +42,7 @@ export const adPlacements = [
 // services/ads.js: resolveAd(placementId, { routeKey }) → ResolvedAd | { isEmpty: true, reason }
 ```
 
-Validation: `validateSponsors()` requires `name`, `slug` matching `/^[a-z0-9-]+$/`, `creative.url`, `category` in known set. `validateCampaigns()` requires resolvable ids, parseable dates, `endDate >= startDate`. Failures `console.warn('[ads]', 'Skipping malformed entry', { index, missing })` — never throw.
+Validation: `validateSponsors()` requires `name`, `slug` matching `/^[a-z0-9-]+$/`, `creative.url`, `category` in the known set, and exact membership in the versioned closed authority by `id`, `slug`, `name`, and `category`. `validateCampaigns()` requires resolvable ids, parseable dates, `endDate >= startDate`. Failures `console.warn('[ads]', 'Skipping malformed entry', { index, missing })` — never throw.
 
 ## File Changes
 
@@ -61,7 +61,7 @@ Validation: `validateSponsors()` requires `name`, `slug` matching `/^[a-z0-9-]+$
 | Static | `npm run build` passes | Manual |
 | Visual | Reserved dimensions; leaderboard <768px; dark AA; reduced-motion no slide-in | Checklist in `verify-report.md` |
 | Behavioral | Click → `/publicidad/demo/:slug` with `noindex`; nav/reload may rotate; empty → `Espacio disponible` | Manual + DOM |
-| Data | Malformed sponsor skipped + warn; expired filtered; no Speedo (`grep -ri speedo src`) | Devtools + grep |
+| Data | Closed-authority identity admission; malformed sponsor skipped + warn; expired filtered; no real-brand fixture (`grep -ri speedo src`) | Node regression script + grep |
 
 `openspec/config.yaml` `strict_tdd: false`; no new test infrastructure.
 

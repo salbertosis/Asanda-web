@@ -4,7 +4,7 @@
 
 ### Requirement: Fictional Sponsor Catalog
 
-The system MUST maintain a catalog of exactly four fictional brands representing aquatic equipment, sports health, hydration, and training. All sponsors hold equal hierarchy — no tiers, no priority ordering. The system MUST NOT reference real brands (including Speedo) and MUST NOT make external ad-network calls (AdSense, GAM, Prebid, or any SSP).
+The system MUST maintain a catalog of exactly four fictional brands representing aquatic equipment, sports health, hydration, and training. All sponsors hold equal hierarchy — no tiers, no priority ordering. The catalog MUST expose a closed, versioned approval authority, and sponsor admission MUST require exact equality of `id`, `slug`, `name`, and `category` with one approved identity in addition to structural validation. The system MUST NOT reference real brands in production fixtures and MUST NOT make external ad-network calls (AdSense, GAM, Prebid, or any SSP).
 
 #### Scenario: Catalog contains four fictional sponsors
 
@@ -13,9 +13,9 @@ The system MUST maintain a catalog of exactly four fictional brands representing
 - THEN exactly four sponsors are returned, each with a name, category, creative asset, and destination URL
 - AND no sponsor name matches a real-world brand
 
-#### Scenario: Real brand references are rejected
+#### Scenario: Unapproved or altered sponsor identities are rejected
 
-- GIVEN a fixture file contains a real brand name
+- GIVEN a structurally valid fixture contains a real-brand identity such as `Speedo Demo`, an altered approved field, or an unknown id copying approved fields
 - WHEN the catalog is validated at load time
 - THEN the entry is excluded and a console warning is logged
 
