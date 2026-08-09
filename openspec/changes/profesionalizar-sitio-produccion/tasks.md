@@ -26,9 +26,9 @@ Chain strategy: feature-branch-chain
 
 ## Phase 1: Delivery and routing (PR 1)
 
-- [ ] 1.1 RED: add `tests/e2e/{readiness,production}.spec.js` coverage for direct/reload public routes and every Applicable routing-matrix case: dotted/missing asset stays 404/non-HTML; robots, sitemap, manifest, favicon, and hashed chunk resolve independently.
-- [ ] 1.2 GREEN: add filesystem-first SPA fallback and defensive Report-Only headers in `vercel.json`; implement `scripts/production-check.mjs` HTTP/content-type checks for those scenarios.
-- [ ] 1.3 REFACTOR: consolidate routing fixtures/selectors without changing preserved ads, dark mode, mobile menu, responsive layout, or lazy-image coverage.
+- [x] 1.1 RED: add `tests/e2e/{readiness,production}.spec.js` coverage for direct/reload public routes and every Applicable routing-matrix case: dotted/missing asset stays 404/non-HTML; robots, sitemap, manifest, favicon, and hashed chunk resolve independently.
+- [x] 1.2 GREEN: add filesystem-first SPA fallback and defensive Report-Only headers in `vercel.json`; implement `scripts/production-check.mjs` HTTP/content-type checks for those scenarios.
+- [x] 1.3 REFACTOR: consolidate routing fixtures/selectors without changing preserved ads, dark mode, mobile menu, responsive layout, or lazy-image coverage.
 
 ## Phase 2: Approved identity and accessible shell (PR 2)
 
