@@ -4,9 +4,27 @@
 
 body {
   margin: 0;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  min-width: 320px;
+  color: #061a2e;
+  background: #f4f9fb;
+  font-family: 'Aptos', 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  color: #ffffff;
+  background: #075f9d;
+}
+
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 3px solid #14b8d4;
+  outline-offset: 3px;
+}
+
+.font-display {
+  font-family: 'Bahnschrift Condensed', 'DIN Condensed', 'Aptos Narrow', sans-serif;
+  font-stretch: condensed;
 }
 
 @layer utilities {
