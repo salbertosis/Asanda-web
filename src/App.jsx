@@ -3,6 +3,7 @@ import { Link, Routes, Route, useSearchParams } from 'react-router-dom';
 import { ArrowRight, CalendarDays, Trophy } from 'lucide-react';
 import { atletas } from './data/atletas';
 import Header from './components/Header';
+import DarkModeToggle from './components/DarkModeToggle';
 import AthleteModal from './components/AthleteModal';
 import NewsSection from './components/NewsSection';
 import VideoSection from './components/VideoSection';
@@ -149,21 +150,24 @@ function HomeGate() {
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<HomeGate />} />
-      <Route path="/publicidad/demo/:slug" element={<PublicidadDemoPage />} />
-      <Route path="/noticias" element={<NoticiasPage />} />
-      <Route path="/videos" element={<VideosPage />} />
-      <Route path="/fotos" element={<FotosPage />} />
-      <Route path="/fotos/album/:id" element={<AlbumPage />} />
-      <Route path="/calendario" element={<CalendarioPage />} />
-      <Route path="/resultados" element={<ResultadosPage />} />
-      <Route path="/atletas" element={<AtletasPage />} />
-      <Route path="/atletas-asociados" element={<AtletasAsociadosPage />} />
-      <Route path="/atletas-federados" element={<AtletasFederadosPage />} />
-      <Route path="/clubes" element={<ClubesPage />} />
-      <Route path="/record-estadal" element={<RecordEstadalPage />} />
-    </Routes>
+    <>
+      <DarkModeToggle />
+      <Routes>
+        <Route path="/" element={<HomeGate />} />
+        <Route path="/publicidad/demo/:slug" element={<PublicidadDemoPage />} />
+        <Route path="/noticias" element={<NoticiasPage />} />
+        <Route path="/videos" element={<VideosPage />} />
+        <Route path="/fotos" element={<FotosPage />} />
+        <Route path="/fotos/album/:id" element={<AlbumPage />} />
+        <Route path="/calendario" element={<CalendarioPage />} />
+        <Route path="/resultados" element={<ResultadosPage />} />
+        <Route path="/atletas" element={<AtletasPage />} />
+        <Route path="/atletas-asociados" element={<AtletasAsociadosPage />} />
+        <Route path="/atletas-federados" element={<AtletasFederadosPage />} />
+        <Route path="/clubes" element={<ClubesPage />} />
+        <Route path="/record-estadal" element={<RecordEstadalPage />} />
+      </Routes>
+    </>
   );
 }
 
