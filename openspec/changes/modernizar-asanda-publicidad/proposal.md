@@ -2,7 +2,7 @@
 
 ## Intent
 
-Hardcoded real-brand sponsorship ("Speedo") can be mistaken for a real partnership; ad placeholders are not data-driven. Ship a demo-only advertising system — four fictional sponsors, four essential placements, explicit disclosure — reviewable under the `Autoridad acuática regional` direction.
+Hardcoded real-brand sponsorship ("Speedo") can be mistaken for a real partnership; ad placeholders are not data-driven. Ship a demo-only advertising system — four fictional sponsors admitted through a closed, versioned exact-identity authority, four essential placements, and explicit disclosure — reviewable under the `Autoridad acuática regional` direction.
 
 ## Scope
 
@@ -57,6 +57,6 @@ Additive, frontend-only; no data/schema/SEO mutations. Revert both slices; rever
 
 ## Success Criteria
 
-- [ ] No real-brand references remain; all creatives carry `Demo`/`Ejemplo` badge + disclosure label.
+- [ ] No real-brand fixtures are admitted; sponsor identities must match the closed versioned authority, and all creatives carry a `Demo`/`Ejemplo` badge + disclosure label.
 - [ ] Four placements live (mobile leaderboard = compact card); rotation only on navigation/reload; empty inventory shows `Espacio disponible`.
 - [ ] No CLS regression; `npm run build` passes; demo pages are `noindex`.
