@@ -4,6 +4,7 @@ import Footer from '../components/Footer';
 import ResultsHero from '../components/ResultsHero';
 import SportsNavBar from '../components/SportsNavBar';
 import CompetitionResultsList from '../components/CompetitionResultsList';
+import CompetitionSponsorBadge from '../components/ads/CompetitionSponsorBadge';
 import { getResultadosPorAño } from '../data/resultados';
 
 const ResultadosPage = () => {
@@ -47,6 +48,11 @@ const ResultadosPage = () => {
         deporteSeleccionado={deporteSeleccionado}
         onDeporteChange={setDeporteSeleccionado}
       />
+
+      {/* Patrocinador de competencias: inventario rotatorio global */}
+      <div className="container mx-auto px-4 py-4">
+        <CompetitionSponsorBadge />
+      </div>
 
       {/* Lista de resultados */}
       <CompetitionResultsList

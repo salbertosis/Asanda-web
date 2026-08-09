@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "test:ads": "node scripts/ads-regression.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
