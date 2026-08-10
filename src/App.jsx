@@ -27,6 +27,8 @@ import AtletasFederadosPage from './pages/AtletasFederadosPage';
 import ClubesPage from './pages/ClubesPage';
 import PublicidadDemoPage from './pages/PublicidadDemoPage';
 import AdsDemoPreview from './components/ads/AdsDemoPreview';
+import LegalPage from './pages/LegalPage';
+import PrivacyPage from './pages/PrivacyPage';
 
 function HomePage() {
   const [atletaSeleccionado, setAtletaSeleccionado] = useState(null);
@@ -155,6 +157,8 @@ function App() {
       <Routes>
         <Route path="/" element={<HomeGate />} />
         <Route path="/publicidad/demo/:slug" element={<PublicidadDemoPage />} />
+        <Route path="/legal" element={<LegalPage />} />
+        <Route path="/privacidad" element={<PrivacyPage />} />
         <Route path="/noticias" element={<NoticiasPage />} />
         <Route path="/videos" element={<VideosPage />} />
         <Route path="/fotos" element={<FotosPage />} />

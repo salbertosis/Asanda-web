@@ -1,60 +1,85 @@
 # Apply Progress: Professionalize ASANDA for Production
 
+## Structured Status
+
+- Artifact store: OpenSpec (`openspec/changes/...`).
+- Apply state: ready; PR2a is complete, but task 2.2 remains partial and unchecked.
+- Assigned boundary: PR2a — safe trust validators, unavailable legal/privacy routes, approval-filtered footer, and focused tests.
+- Correction: two maintainer-authorized Codex hook fixes applied in place — canonical-origin normalization in `src/config/publicSite.js` with focused coverage, and footer section headings `<h4>` → `<h2>` in `src/components/Footer.jsx` without class changes.
+- Delivery: auto-chain with `feature-branch-chain`.
+- Child branch: `codex/profesionalizar-sitio-produccion-02-trust-shell`.
+- Target branch: `codex/profesionalizar-sitio-produccion`.
+- Testing mode: Standard (`strict_tdd: false`; no strict-TDD runner is configured).
+- Native attempt/review: parent owns settlement; this executor ran no `sdd-attempt` operation and no native review. The previous RDD receipt remains invalidated by this correction.
+
 ## Cumulative Status
 
-- Completed: 1.1, 1.2, 1.3
-- Remaining: 2.1–2.5, 3.1–3.3, 4.1–4.2
-- Previous apply progress: none
-- PR slice: 1 — Delivery and routing
+- Checked: 1.1, 1.2, 1.3, and 2.1.
+- Partial and unchecked: 2.2 (PR2a delivered the trust/content subset only).
+- Pending: the remainder of 2.2, 2.3–2.5, 3.1–3.3, and 4.1–4.2.
+- PR1 history is retained below; no task after 2.1 is reported complete.
 
 ## Completed Tasks
 
-- [x] **1.1** Added direct-load/reload Playwright coverage for public routes, independent crawl resources, and a missing dotted asset. `production.spec.js` also asserts the Vercel filesystem-first declaration.
-- [x] **1.2** Added Vercel Report-Only defensive headers, minimal independent crawl resources, and HTTP/content-type verification plus a built-file runtime preview harness.
-- [x] **1.3** Consolidated the missing-static-asset development guard and preserved routing assertions without changing advertising behavior, dark mode, mobile navigation, responsive layout, or lazy-image coverage.
+- [x] **1.1–1.3** PR1 routing, independent crawl resources, defensive headers, and regression coverage remain complete.
+- [x] **2.1** Added focused approval, placeholder, URL, malformed-config, and legal-content validation coverage.
+- [ ] **2.2 (partial)** Added the validated public-site/content modules, safe `RouteHead`, unavailable Spanish legal/privacy pages, and approval-filtered footer. `AppShell` and `SkipLink` were removed from this candidate; shell integration belongs to PR2b.
 
-## TDD Cycle Evidence
+## Historical PR1 Evidence
 
-| Task | RED (test first) | GREEN | REFACTOR |
+Strict TDD was not active. These results preserve the completed PR1 evidence:
+
+| Task | RED | GREEN | REFACTOR |
 |---|---|---|---|
-| 1.1 | `npm run test:e2e -- readiness` failed: public rendering exposed the existing blank `/atletas` route and `/robots.txt` was served as HTML. | Same focused command passed: 2/2. | Shared route/resource fixtures and independent-resource assertion keep cases concise. |
-| 1.2 | The initial readiness run failed 2/2 before `vercel.json` and crawl resources existed; `/robots.txt` returned the SPA document. | `npm run test:e2e -- production` passed 1/1; production preview check passed. | Kept deployment assertion in its own focused spec and HTTP checks in a dependency-free script. |
-| 1.3 | N/A — behavior-preserving refactor; existing focused coverage was green before and after the extraction. | `npm run test:e2e -- readiness` passed 2/2 after refactor. | One Vite middleware function guards missing `/assets/` requests during local routing tests. |
+| 1.1 | Readiness initially failed 2/2 because `/atletas` was blank and `/robots.txt` was HTML. | `npm run test:e2e -- readiness` passed 2/2. | Shared route/resource fixtures kept routing cases focused. |
+| 1.2 | Initial production checks failed before Vercel rules and crawl resources existed. | `npm run test:e2e -- production` passed 1/1; preview check passed. | Deployment assertions and HTTP checks stayed separate. |
+| 1.3 | N/A — behavior-preserving refactor. | Readiness passed 2/2 after refactor. | Missing `/assets/` requests remain guarded in local routing tests. |
+
+## PR2a Evidence
+
+| Task | Truthful evidence |
+|---|---|
+| 2.1 | `tests/e2e/trust-shell.spec.js` injects an approved config fixture through Vite and proves its copyright/legal controls render in the footer; it also proves a cross-origin critical asset is rejected while the valid canonical origin and local asset remain accepted. Malformed containers, placeholder/credential URLs, literal approval, and structural legal-content validation remain covered. |
+| 2.2 | Partial only: the focused suite renders unavailable `/legal` and `/privacidad`, confirms semantic mains and hidden unapproved footer values, and verifies `RouteHead` restoration. Shell primitives and integration are deferred. |
+
+## Codex Hook Fix Evidence
+
+Maintainer-authorized corrections applied to the PR2a candidate; no task checkbox changed.
+
+| Fix | Evidence |
+|---|---|
+| Canonical-origin normalization | `validatePublicSite` now normalizes an accepted canonical origin through `normalizeCanonicalOrigin` (`URL.origin`), so `https://asanda.org.ve` and `https://asanda.org.ve/` compare identically for same-origin critical assets. Fail-closed checks (HTTPS-only, no credentials, no path/query/hash, placeholder rejection) are unchanged; unaccepted origins still normalize to `null`. |
+| Focused coverage | New `trust-shell` test proves a trailing-slash canonical origin yields zero issues, normalizes to the slashless origin, and preserves all valid same-origin `criticalAssets`. |
+| Footer heading semantics | The three footer section headings (`Deportes`, `Enlaces`, `PATROCINADORES GLOBALES`) changed from `<h4>` to `<h2>` with identical Tailwind classes — no visual regression. |
 
 ## Work Unit Evidence
 
-| Evidence | Result |
+| Evidence | Exact result |
 |---|---|
-| Focused test | `npm run test:e2e -- readiness` — passed, 2/2. |
-| Deployment declaration test | `npm run test:e2e -- production` — passed, 1/1. |
-| Advertising regression | `npm run test:ads` — passed, 12/12; `npm run test:e2e -- ads` — passed, 4/4. |
-| Build | `npm run build` — passed; 1,416 modules transformed. |
-| Runtime harness | `node scripts/production-preview.mjs 4174` + `node scripts/production-check.mjs http://127.0.0.1:4174` — passed; direct routes returned HTML 200, crawl resources and hashed assets returned non-HTML 200, and the missing dotted asset returned non-HTML 404. |
-| Cleanup | Preview was stopped: `PREVIEW_STOPPED=True`, `PORT_4174_LISTENERS=0`. |
-| Diff check | `git diff --check` — passed. |
+| Focused test command | `npm run test:e2e -- trust-shell` — passed, 8/8. |
+| Runtime harness command/scenario | The same Playwright command passed 8/8 through Vite, including approved-config injection and footer rendering, both unavailable routes, and client-side `RouteHead` title/robots cleanup. |
+| Relevant regression suites | `npm run test:e2e -- readiness` — 2/2; `npm run test:e2e -- production` — 1/1; `npm run test:e2e -- ads` — 4/4; `npm run test:ads` — 12/12. |
+| Build | `npm run build` — passed; 1,421 modules transformed. |
+| Production preview/check | `$preview = Start-Process -FilePath node -ArgumentList @('scripts/production-preview.mjs','4174') -PassThru; node scripts/production-check.mjs http://127.0.0.1:4174` — passed (`CHECK_EXIT=0`); direct routes and independent resources verified. |
+| Diff and cleanup | `git diff --check HEAD` — passed; `PREVIEW_STOPPED=True`; `PORT_4174_LISTENERS=0`. |
+| Complete authored line count | 359 additions/deletions vs `HEAD` (`56eebc0`) including this evidence update; `.gga` excluded; under 400. |
+| Rollback boundary | Revert `src/config/publicSite.js`, `src/content/legalContent.js`, `src/components/layout/RouteHead.jsx`, `src/pages/{Legal,Privacy}Page.jsx`, the legal/privacy routes in `src/App.jsx`, approval filtering and `<h2>` headings in `src/components/Footer.jsx`, `tests/e2e/trust-shell.spec.js`, and these OpenSpec updates. PR1 routing remains intact. |
 
-## Implementation Notes
+## PR2a Files
 
-- `vercel.json` uses a filesystem handler before a dotted-path 404 rule and SPA fallback. Headers remain Report-Only for CSP as designed.
-- Minimal `robots.txt`, `sitemap.xml`, manifest, and SVG favicon deliberately avoid canonical-origin or metadata work reserved for later tasks.
-- The direct `/atletas` check revealed three records with no `tiempo`; those known records are normalized to the explicit unavailable value `N/D`, without inventing a result.
+- Added: `src/components/layout/RouteHead.jsx`, `src/config/publicSite.js`, `src/content/legalContent.js`, `src/pages/LegalPage.jsx`, `src/pages/PrivacyPage.jsx`, `tests/e2e/trust-shell.spec.js`.
+- Modified: `src/App.jsx`, `src/components/Footer.jsx`, `openspec/changes/profesionalizar-sitio-produccion/tasks.md`, and this progress file.
+- Deleted from candidate and absent from the final worktree/index: `src/components/layout/AppShell.jsx`, `src/components/layout/SkipLink.jsx`.
 
-## Scope and Rollback
+## Deferred Boundary
 
-- **Rollback boundary:** revert `vercel.json`, the four independent public resources, routing tests/scripts, Vite local test guard, and the targeted athlete-data privacy/availability normalizations (one removed `cedula`, three `N/D` values, and three local-photo fallbacks). This leaves later identity, legal, metadata, shell, asset, and performance work intact.
-- **Deviation:** none from the PR 1 design. Commit-hook corrections restore `AtletasPage.jsx` to tracker content and normalize only the identified unavailable/private athlete data needed to keep direct-route coverage and public privacy safety within this slice.
-- **Authored change count:** 253 additions plus deletions (245 additions, 8 deletions), below the 400-line PR slice limit.
+- PR2b owns `src/components/layout/AppShell.jsx`, `src/components/layout/SkipLink.jsx`, shell integration in `src/App.jsx`, and migration of the remaining views.
+- 2.3 remains pending: no completion proof is recorded for every-view main/H1 structure, skip focus, 44px footer targets, legal-link integrity, or demo disclosure/noindex.
+- 2.4–2.5, phases 3–4, substantive approved legal text, and final release evidence remain pending.
 
 ## PR Boundary
 
-- Strategy: feature-branch-chain
-- Child branch: `codex/profesionalizar-sitio-produccion-01-routing`
-- Target branch: `codex/profesionalizar-sitio-produccion`
-- This slice does not commit, push, or create a pull request.
-
-## Commit-Hook Correction
-
-- The first GGA commit attempt reported pre-existing file-wide concerns in `AtletasPage.jsx` (semantics, labels, motion, theme, contrast, category/duration parsing, and remote imagery).
-- This correction does not expand PR 1 for those concerns; it restores the page file and moves only the candidate-causal missing-time normalization into static data.
-- The second GGA commit attempt found one public `cedula` field and three CCE photo filenames with plausible personal identifiers in the touched static-data file. The field is removed and only those three photo values now use the existing neutral `/asanda.png` asset; broader identity work remains out of scope.
-- Privacy-correction verification: `npm run test:e2e -- readiness` passed 2/2; `npm run test:ads` passed 12/12; `npm run test:e2e -- production` passed 1/1; `npm run build`, `git diff --check HEAD`, and the built-file production preview/check passed with port 4174 cleaned up.
+- Strategy: auto-chain, `feature-branch-chain`.
+- Starts from: PR1 routing state at `56eebc0` plus the prior uncommitted trust-foundation candidate.
+- Ends with: an autonomous under-400-line PR2a trust/content slice without shell primitives or shell integration.
+- Out of scope: PR2b shell work, 2.3+, commit/staging, push, PR creation, native review, and native attempt settlement.
