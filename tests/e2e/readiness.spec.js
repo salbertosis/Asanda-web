@@ -11,12 +11,12 @@ const expectIndependentResource = async (request, path) => {
 
 test('loads and reloads public routes directly', async ({ page }) => {
   for (const path of publicRoutes) {
-    const directResponse = await page.goto(path);
+    const directResponse = await page.goto(path, { waitUntil: 'domcontentloaded' });
     expect(directResponse?.status(), path).toBe(200);
     expect(directResponse?.headers()['content-type'], path).toContain('text/html');
     await expect(page.locator('#root')).not.toBeEmpty();
 
-    const reloadResponse = await page.reload();
+    const reloadResponse = await page.reload({ waitUntil: 'domcontentloaded' });
     expect(reloadResponse?.status(), `${path} reload`).toBe(200);
     expect(reloadResponse?.headers()['content-type'], `${path} reload`).toContain('text/html');
     await expect(page.locator('#root')).not.toBeEmpty();
