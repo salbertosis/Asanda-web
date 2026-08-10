@@ -2,7 +2,6 @@ export const atletas = [
   {
     id: 1,
     nombre: "Carlos Mendoza",
-    cedula: "V-12345678", // Campo para cédula
     club: "Club Deportivo Acuático",
     categoria: "Juvenil A",
     sexo: "Masculino",
@@ -521,7 +520,8 @@ export const atletas = [
     genero: "Masculino",
     fechaNacimiento: "2011",
     disciplina: ["Nadar"],
-    foto: "https://res.cloudinary.com/tu-cloud-name/image/upload/w_400,h_400,c_fill,q_auto,f_auto/asanda/atletas/cce/33895827.jpg",
+    tiempo: "N/D",
+    foto: "/asanda.png",
     tipo: "federado"
   },
   {
@@ -533,7 +533,8 @@ export const atletas = [
     genero: "Masculino",
     fechaNacimiento: "2011",
     disciplina: ["Nadar"],
-    foto: "https://res.cloudinary.com/tu-cloud-name/image/upload/w_400,h_400,c_fill,q_auto,f_auto/asanda/atletas/cce/33895840.jpg",
+    tiempo: "N/D",
+    foto: "/asanda.png",
     tipo: "federado"
   },
   {
@@ -545,7 +546,8 @@ export const atletas = [
     genero: "Femenino",
     fechaNacimiento: "2011",
     disciplina: ["Nadar"],
-    foto: "https://res.cloudinary.com/tu-cloud-name/image/upload/w_400,h_400,c_fill,q_auto,f_auto/asanda/atletas/cce/35003581.jpg",
+    tiempo: "N/D",
+    foto: "/asanda.png",
     tipo: "federado"
   }
 ];
