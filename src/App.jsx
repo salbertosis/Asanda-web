@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, Routes, Route, useSearchParams } from 'react-router-dom';
 import { ArrowRight, CalendarDays, Trophy } from 'lucide-react';
 import { atletas } from './data/atletas';
-import Header from './components/Header';
+import AppShell from './components/layout/AppShell';
 import DarkModeToggle from './components/DarkModeToggle';
 import AthleteModal from './components/AthleteModal';
 import NewsSection from './components/NewsSection';
@@ -13,7 +13,6 @@ import HeroSponsorSlot from './components/ads/HeroSponsorSlot';
 import LeaderboardSlot from './components/ads/LeaderboardSlot';
 import HeroBackground from './components/HeroBackground';
 import HeroStats from './components/HeroStats';
-import Footer from './components/Footer';
 import NoticiasPage from './pages/NoticiasPage';
 import VideosPage from './pages/VideosPage';
 import FotosPage from './pages/FotosPage';
@@ -46,10 +45,7 @@ function HomePage() {
 
   return (
     <>
-      <Header />
-
-      <main>
-        <section
+      <section
           className="relative isolate overflow-hidden text-white"
           aria-labelledby="home-title"
           itemScope
@@ -123,12 +119,8 @@ function HomePage() {
         {/* Sección de Videos */}
         <VideoSection />
 
-        {/* Galería de Fotos */}
-        <PhotoGallery />
-      </main>
-
-      {/* Footer */}
-      <Footer />
+      {/* Galería de Fotos */}
+      <PhotoGallery />
 
       {/* Modal de Detalles del Atleta */}
       <AthleteModal
@@ -153,7 +145,7 @@ function HomeGate() {
 function App() {
   return (
     <>
-      <DarkModeToggle />
+      <AppShell>
       <Routes>
         <Route path="/" element={<HomeGate />} />
         <Route path="/publicidad/demo/:slug" element={<PublicidadDemoPage />} />
@@ -171,6 +163,8 @@ function App() {
         <Route path="/clubes" element={<ClubesPage />} />
         <Route path="/record-estadal" element={<RecordEstadalPage />} />
       </Routes>
+      </AppShell>
+      <DarkModeToggle />
     </>
   );
 }

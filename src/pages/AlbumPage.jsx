@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
 import PageHero from '../components/PageHero';
 import { X, ChevronLeft, ChevronRight, Camera, ArrowLeft } from 'lucide-react';
 import { getAlbumById } from '../data/albumes';
@@ -14,14 +12,12 @@ const AlbumPage = () => {
   if (!album) {
     return (
       <div className="min-h-screen bg-white">
-        <Header />
         <div className="container mx-auto px-4 py-20 text-center">
           <h1 className="text-3xl font-bold text-gray-900 mb-4">Álbum no encontrado</h1>
           <Link to="/fotos" className="text-blue-600 hover:underline">
             Volver a Galerías
           </Link>
         </div>
-        <Footer />
       </div>
     );
   }
@@ -48,8 +44,6 @@ const AlbumPage = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      <Header />
-      
       {/* Hero con título del álbum */}
       <PageHero 
         title={album.titulo}
@@ -177,8 +171,6 @@ const AlbumPage = () => {
           </div>
         </div>
       )}
-
-      <Footer />
     </div>
   );
 };

@@ -33,6 +33,8 @@ const RecordEstadal = () => {
   // Simular récords estatales (mejores tiempos)
   const recordsEstadales = useMemo(() => {
     return atletas
+      // Fallback estable: atletas sin tiempo registrado no se muestran como récord.
+      .filter(atleta => typeof atleta.recordPersonal === 'string')
       .map(atleta => ({
         ...atleta,
         recordEstadal: atleta.recordPersonal, // En producción vendría de una base de datos

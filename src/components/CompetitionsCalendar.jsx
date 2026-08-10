@@ -97,10 +97,10 @@ const CompetitionsCalendar = ({ competencias: competenciasProp, año: añoProp, 
       </div>
 
       <div className="relative z-10 container mx-auto px-4 py-12">
-        {/* Título */}
-        <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-12 text-center">
+        {/* Título de sección: el h1 de la vista vive en PageHero (D3) */}
+        <h2 className="text-5xl md:text-6xl font-bold text-gray-900 mb-12 text-center">
           Competiciones
-        </h1>
+        </h2>
 
         {/* Filtros */}
         <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-xl p-6 mb-8 border border-gray-200">

@@ -1,6 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
 import PageHero from '../components/PageHero';
 import AthleteModal from '../components/AthleteModal';
 import { atletas } from '../data/atletas';
@@ -55,8 +53,6 @@ const AtletasPage = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      <Header />
-      
       {/* Hero con título Atletas */}
       <PageHero 
         title="Atletas"
@@ -336,8 +332,6 @@ const AtletasPage = () => {
         isOpen={modalAbierto}
         onClose={cerrarModal}
       />
-
-      <Footer />
     </div>
   );
 };

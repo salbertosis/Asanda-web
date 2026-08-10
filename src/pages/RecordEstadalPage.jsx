@@ -1,14 +1,10 @@
 import React from 'react';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
 import PageHero from '../components/PageHero';
 import RecordEstadal from '../components/RecordEstadal';
 
 const RecordEstadalPage = () => {
   return (
     <div className="min-h-screen bg-white">
-      <Header />
-      
       {/* Hero con título Récord Estadal */}
       <PageHero 
         title="Récord Estadal"
@@ -17,8 +13,6 @@ const RecordEstadalPage = () => {
 
       {/* Contenido de Récord Estadal */}
       <RecordEstadal />
-
-      <Footer />
     </div>
   );
 };

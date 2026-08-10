@@ -12,9 +12,9 @@ const Footer = () => {
           <div>
             <h2 className="text-lg font-semibold mb-4">Deportes</h2>
             <ul className="space-y-2 text-sm text-gray-400">
-              <li><Link to="/resultados?deporte=natacion" className="hover:text-white transition-colors">Natación</Link></li>
-              <li><Link to="/resultados?deporte=waterpolo" className="hover:text-white transition-colors">Waterpolo</Link></li>
-              <li><Link to="/resultados?deporte=aguas-abiertas" className="hover:text-white transition-colors">Aguas Abiertas</Link></li>
+              <li><Link to="/resultados?deporte=natacion" className="inline-flex min-h-11 min-w-11 items-center hover:text-white transition-colors">Natación</Link></li>
+              <li><Link to="/resultados?deporte=waterpolo" className="inline-flex min-h-11 min-w-11 items-center hover:text-white transition-colors">Waterpolo</Link></li>
+              <li><Link to="/resultados?deporte=aguas-abiertas" className="inline-flex min-h-11 min-w-11 items-center hover:text-white transition-colors">Aguas Abiertas</Link></li>
             </ul>
           </div>
 
@@ -22,13 +22,13 @@ const Footer = () => {
           <div>
             <h2 className="text-lg font-semibold mb-4">Enlaces</h2>
             <ul className="space-y-2 text-sm text-gray-400">
-              <li><Link to="/resultados" className="hover:text-white transition-colors">Resultados</Link></li>
-              <li><Link to="/atletas" className="hover:text-white transition-colors">Atletas</Link></li>
-              <li><Link to="/calendario" className="hover:text-white transition-colors">Calendario</Link></li>
-              <li><Link to="/noticias" className="hover:text-white transition-colors">Noticias</Link></li>
-              <li><Link to="/videos" className="hover:text-white transition-colors">Videos</Link></li>
-              <li><Link to="/fotos" className="hover:text-white transition-colors">Fotos</Link></li>
-              <li><Link to="/record-estadal" className="hover:text-white transition-colors">Récord Estadal</Link></li>
+              <li><Link to="/resultados" className="inline-flex min-h-11 min-w-11 items-center hover:text-white transition-colors">Resultados</Link></li>
+              <li><Link to="/atletas" className="inline-flex min-h-11 min-w-11 items-center hover:text-white transition-colors">Atletas</Link></li>
+              <li><Link to="/calendario" className="inline-flex min-h-11 min-w-11 items-center hover:text-white transition-colors">Calendario</Link></li>
+              <li><Link to="/noticias" className="inline-flex min-h-11 min-w-11 items-center hover:text-white transition-colors">Noticias</Link></li>
+              <li><Link to="/videos" className="inline-flex min-h-11 min-w-11 items-center hover:text-white transition-colors">Videos</Link></li>
+              <li><Link to="/fotos" className="inline-flex min-h-11 min-w-11 items-center hover:text-white transition-colors">Fotos</Link></li>
+              <li><Link to="/record-estadal" className="inline-flex min-h-11 min-w-11 items-center hover:text-white transition-colors">Récord Estadal</Link></li>
             </ul>
           </div>
 
@@ -40,7 +40,7 @@ const Footer = () => {
           <PartnerGridSlot />
         </div>
 
-        {approvedPublicSite.copyright && <div className="mt-8 border-t border-gray-800 pt-8 text-center text-sm text-gray-400"><p>{approvedPublicSite.copyright.notice}</p>{approvedPublicSite.legal.legalApproved && approvedPublicSite.legal.privacyApproved && <div className="mt-2 flex justify-center gap-4"><Link to="/legal">Legal</Link><Link to="/privacidad">Privacidad</Link></div>}</div>}
+        {approvedPublicSite.copyright && <div className="mt-8 border-t border-gray-800 pt-8 text-center text-sm text-gray-400"><p>{approvedPublicSite.copyright.notice}</p>{approvedPublicSite.legal.legalApproved && approvedPublicSite.legal.privacyApproved && <div className="mt-2 flex justify-center gap-4"><Link to="/legal" className="inline-flex min-h-11 min-w-11 items-center justify-center">Legal</Link><Link to="/privacidad" className="inline-flex min-h-11 min-w-11 items-center justify-center">Privacidad</Link></div>}</div>}
       </div>
     </footer>
   );

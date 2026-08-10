@@ -22,8 +22,9 @@ test('renders the reserved empty-inventory fallback without creative affordances
   );
   await page.goto('/?ads=demo');
 
+  // 7 slots de la vista previa + 4 celdas del partner grid del Footer (AppShell, PR2b).
   const slots = page.getByRole('complementary', { name: 'Espacio publicitario disponible' });
-  await expect(slots).toHaveCount(7);
+  await expect(slots).toHaveCount(11);
   for (const slot of await slots.all()) {
     await expect(slot.getByText('Espacio disponible', { exact: true })).toBeVisible();
     await expect(slot.locator('a')).toHaveCount(0);
@@ -37,7 +38,8 @@ test('renders the reserved empty-inventory fallback without creative affordances
 test('honors reduced motion at runtime', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/?ads=demo');
-  await expect(page.locator('[role="complementary"]')).toHaveCount(7);
+  // 7 slots de la vista previa + 4 celdas del partner grid del Footer (AppShell, PR2b).
+  await expect(page.locator('[role="complementary"]')).toHaveCount(11);
   await expect
     .poll(() => page.locator('[role="complementary"]').evaluateAll((slots) =>
       slots.every((slot) => getComputedStyle(slot).animationName === 'none')

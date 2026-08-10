@@ -1,6 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
 import ResultsHero from '../components/ResultsHero';
 import SportsNavBar from '../components/SportsNavBar';
 import CompetitionResultsList from '../components/CompetitionResultsList';
@@ -32,8 +30,6 @@ const ResultadosPage = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      <Header />
-      
       {/* Hero con filtros */}
       <ResultsHero
         año={año}
@@ -60,8 +56,6 @@ const ResultadosPage = () => {
         mes={mes}
         año={año}
       />
-
-      <Footer />
     </div>
   );
 };

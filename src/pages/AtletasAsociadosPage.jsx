@@ -1,6 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
 import PageHero from '../components/PageHero';
 import { atletas } from '../data/atletas';
 import { Users } from 'lucide-react';
@@ -31,8 +29,6 @@ const AtletasAsociadosPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
-      
       <PageHero 
         title="Atletas Asociados"
         backgroundImage="https://images.unsplash.com/photo-1530549387789-4c1017266635?w=1920&h=1080&fit=crop&q=80"
@@ -165,8 +161,6 @@ const AtletasAsociadosPage = () => {
           </div>
         </div>
       </section>
-
-      <Footer />
     </div>
   );
 };
