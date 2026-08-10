@@ -26,14 +26,14 @@ Chain strategy: feature-branch-chain
 
 ## Phase 1: Delivery and routing (PR 1)
 
-- [ ] 1.1 RED: add `tests/e2e/{readiness,production}.spec.js` coverage for direct/reload public routes and every Applicable routing-matrix case: dotted/missing asset stays 404/non-HTML; robots, sitemap, manifest, favicon, and hashed chunk resolve independently.
-- [ ] 1.2 GREEN: add filesystem-first SPA fallback and defensive Report-Only headers in `vercel.json`; implement `scripts/production-check.mjs` HTTP/content-type checks for those scenarios.
-- [ ] 1.3 REFACTOR: consolidate routing fixtures/selectors without changing preserved ads, dark mode, mobile menu, responsive layout, or lazy-image coverage.
+- [x] 1.1 RED: add `tests/e2e/{readiness,production}.spec.js` coverage for direct/reload public routes and every Applicable routing-matrix case: dotted/missing asset stays 404/non-HTML; robots, sitemap, manifest, favicon, and hashed chunk resolve independently.
+- [x] 1.2 GREEN: add filesystem-first SPA fallback and defensive Report-Only headers in `vercel.json`; implement `scripts/production-check.mjs` HTTP/content-type checks for those scenarios.
+- [x] 1.3 REFACTOR: consolidate routing fixtures/selectors without changing preserved ads, dark mode, mobile menu, responsive layout, or lazy-image coverage.
 
 ## Phase 2: Approved identity and accessible shell (PR 2)
 
-- [ ] 2.1 RED: test `publicSite`/content rejection or hiding of non-HTTPS, cross-origin, placeholder, or unapproved identity/legal/social/copyright values; test approved fixture rendering.
-- [ ] 2.2 GREEN: create `src/config/publicSite.js`, `src/content/legalContent.js`, `src/components/layout/{AppShell,SkipLink,RouteHead}.jsx`, and Spanish `src/pages/{Legal,Privacy}Page.jsx`; hide fields until origin, legal/privacy, institutional, copyright, and brand approval.
+- [x] 2.1 RED: test `publicSite`/content rejection or hiding of non-HTTPS, cross-origin, placeholder, or unapproved identity/legal/social/copyright values; test approved fixture rendering.
+- [ ] 2.2 GREEN (partial in PR2a): add approval-filtered config/content, safe `RouteHead`, and Spanish unavailable `Legal`/`Privacy` pages; defer `AppShell`, `SkipLink`, and shell integration to PR2b.
 - [ ] 2.3 RED: cover every view's single `main`/H1, skip focus, 44px footer targets, legal-link integrity, and accessible demo disclosure/noindex.
 - [ ] 2.4 GREEN: refactor `src/App.jsx`, `src/main.jsx`, `src/components/{Footer,HeaderModern}.jsx`, and listed route pages to the shell while preserving ads, dark mode, menu, responsive layout, and lazy images.
 - [ ] 2.5 REFACTOR: centralize headings and approval filtering; render substantive legal routes only from approved text.
