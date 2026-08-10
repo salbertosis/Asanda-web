@@ -1,6 +1,4 @@
 import React from 'react';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
 import PageHero from '../components/PageHero';
 import { Play, Clock, ArrowRight } from 'lucide-react';
 import { videos } from '../data/videos';
@@ -9,8 +7,6 @@ const VideosPage = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      <Header />
-      
       {/* Hero con título Videos */}
       <PageHero 
         title="Videos"
@@ -64,8 +60,6 @@ const VideosPage = () => {
           </div>
         </div>
       </section>
-
-      <Footer />
     </div>
   );
 };

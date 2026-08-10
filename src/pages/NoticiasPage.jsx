@@ -1,6 +1,4 @@
 import React from 'react';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
 import PageHero from '../components/PageHero';
 import { Calendar, ArrowRight } from 'lucide-react';
 import { noticias } from '../data/noticias';
@@ -9,8 +7,6 @@ const NoticiasPage = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      <Header />
-      
       {/* Hero con título Noticias */}
       <PageHero 
         title="Noticias"
@@ -61,8 +57,6 @@ const NoticiasPage = () => {
           </div>
         </div>
       </section>
-
-      <Footer />
     </div>
   );
 };

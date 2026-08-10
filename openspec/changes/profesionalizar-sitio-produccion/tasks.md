@@ -33,10 +33,10 @@ Chain strategy: feature-branch-chain
 ## Phase 2: Approved identity and accessible shell (PR 2)
 
 - [x] 2.1 RED: test `publicSite`/content rejection or hiding of non-HTTPS, cross-origin, placeholder, or unapproved identity/legal/social/copyright values; test approved fixture rendering.
-- [ ] 2.2 GREEN (partial in PR2a): add approval-filtered config/content, safe `RouteHead`, and Spanish unavailable `Legal`/`Privacy` pages; defer `AppShell`, `SkipLink`, and shell integration to PR2b.
-- [ ] 2.3 RED: cover every view's single `main`/H1, skip focus, 44px footer targets, legal-link integrity, and accessible demo disclosure/noindex.
-- [ ] 2.4 GREEN: refactor `src/App.jsx`, `src/main.jsx`, `src/components/{Footer,HeaderModern}.jsx`, and listed route pages to the shell while preserving ads, dark mode, menu, responsive layout, and lazy images.
-- [ ] 2.5 REFACTOR: centralize headings and approval filtering; render substantive legal routes only from approved text.
+- [x] 2.2 GREEN: approval-filtered config/content, safe `RouteHead`, and Spanish unavailable `Legal`/`Privacy` pages landed in PR2a; `AppShell`, `SkipLink`, and shell integration landed in PR2b.
+- [x] 2.3 RED: cover every view's single `main`/H1, skip focus, 44px footer targets, legal-link integrity, and accessible demo disclosure/noindex.
+- [x] 2.4 GREEN: refactor `src/App.jsx`, `src/main.jsx`, `src/components/{Footer,HeaderModern}.jsx`, and listed route pages to the shell while preserving ads, dark mode, menu, responsive layout, and lazy images.
+- [x] 2.5 REFACTOR: centralize headings and approval filtering; render substantive legal routes only from approved text.
 
 ## Phase 3: Metadata, resources, and evidence (PR 3)
 

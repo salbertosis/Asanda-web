@@ -1,6 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
 import PageHero from '../components/PageHero';
 import CompetitionsCalendar from '../components/CompetitionsCalendar';
 import CompetitionSponsorBadge from '../components/ads/CompetitionSponsorBadge';
@@ -16,8 +14,6 @@ const CalendarioPage = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      <Header />
-      
       {/* Hero con título Calendario */}
       <PageHero 
         title="Calendario"
@@ -35,8 +31,6 @@ const CalendarioPage = () => {
         año={año}
         onAñoChange={setAño}
       />
-
-      <Footer />
     </div>
   );
 };

@@ -1,7 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
 import PageHero from '../components/PageHero';
 import { Camera } from 'lucide-react';
 import { albumes } from '../data/albumes';
@@ -10,8 +8,6 @@ const FotosPage = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      <Header />
-      
       {/* Hero con título Fotos */}
       <PageHero 
         title="Galerías de Fotos"
@@ -105,8 +101,6 @@ const FotosPage = () => {
           </div>
         </div>
       </section>
-
-      <Footer />
     </div>
   );
 };

@@ -13,7 +13,7 @@ const PublicidadDemoPage = () => {
     const sponsor = getSponsorBySlug(slug);
 
     return (
-        <main className="min-h-screen bg-gray-50 py-12 dark:bg-dark-bg">
+        <div className="min-h-screen bg-gray-50 py-12 dark:bg-dark-bg">
             <div className="container mx-auto max-w-2xl px-4">
                 <Link
                     to="/"
@@ -69,7 +69,7 @@ const PublicidadDemoPage = () => {
                     </article>
                 )}
             </div>
-        </main>
+        </div>
     );
 };
 

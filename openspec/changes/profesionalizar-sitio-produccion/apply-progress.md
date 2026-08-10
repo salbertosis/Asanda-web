@@ -3,27 +3,28 @@
 ## Structured Status
 
 - Artifact store: OpenSpec (`openspec/changes/...`).
-- Apply state: ready; PR2a is complete, but task 2.2 remains partial and unchecked.
-- Assigned boundary: PR2a — safe trust validators, unavailable legal/privacy routes, approval-filtered footer, and focused tests.
-- Correction: two maintainer-authorized Codex hook fixes applied in place — canonical-origin normalization in `src/config/publicSite.js` with focused coverage, and footer section headings `<h4>` → `<h2>` in `src/components/Footer.jsx` without class changes.
+- Apply state: ready; PR2b is complete. Tasks 2.2 (shell portion), 2.3, 2.4, and 2.5 are proven and checked.
+- Assigned boundary: PR2b — accessible shell (`AppShell`, `SkipLink`), shell migration of every view, 44px footer targets, heading centralization, and focused coverage.
 - Delivery: auto-chain with `feature-branch-chain`.
-- Child branch: `codex/profesionalizar-sitio-produccion-02-trust-shell`.
-- Target branch: `codex/profesionalizar-sitio-produccion`.
+- Child branch: `feat/profesionalizar-sitio-produccion-03-accessible-shell`.
+- Target branch: `feat/profesionalizar-sitio-produccion` (tracker).
 - Testing mode: Standard (`strict_tdd: false`; no strict-TDD runner is configured).
-- Native attempt/review: parent owns settlement; this executor ran no `sdd-attempt` operation and no native review. The previous RDD receipt remains invalidated by this correction.
+- Native attempt/review: parent owns settlement; this executor ran no `sdd-attempt` operation and no native review. The previous RDD receipt remains invalidated by the PR2a correction.
 
 ## Cumulative Status
 
-- Checked: 1.1, 1.2, 1.3, and 2.1.
-- Partial and unchecked: 2.2 (PR2a delivered the trust/content subset only).
-- Pending: the remainder of 2.2, 2.3–2.5, 3.1–3.3, and 4.1–4.2.
-- PR1 history is retained below; no task after 2.1 is reported complete.
+- Checked: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 2.4, and 2.5.
+- Pending: 3.1–3.3 and 4.1–4.2.
+- PR1 and PR2a history is retained below; no task after 2.5 is reported complete.
 
 ## Completed Tasks
 
 - [x] **1.1–1.3** PR1 routing, independent crawl resources, defensive headers, and regression coverage remain complete.
 - [x] **2.1** Added focused approval, placeholder, URL, malformed-config, and legal-content validation coverage.
-- [ ] **2.2 (partial)** Added the validated public-site/content modules, safe `RouteHead`, unavailable Spanish legal/privacy pages, and approval-filtered footer. `AppShell` and `SkipLink` were removed from this candidate; shell integration belongs to PR2b.
+- [x] **2.2** PR2a delivered the validated public-site/content modules, safe `RouteHead`, unavailable Spanish legal/privacy pages, and approval-filtered footer. PR2b delivered the remaining shell portion: `AppShell`, `SkipLink`, and shell integration in `src/App.jsx`.
+- [x] **2.3** `tests/e2e/accessible-shell.spec.js` covers one `main`/H1 per view (16 routes), keyboard skip focus, 44px footer targets, approved legal-link integrity, accessible demo disclosure/noindex with scoped lifecycle, and mobile-menu preservation.
+- [x] **2.4** Shell migration: `App.jsx` rewires routes through `AppShell`; 12 route pages plus `PublicidadDemoPage` return content only; `Footer` links meet 44×44 px; ads, dark mode, menu, responsive layout, and lazy images preserved.
+- [x] **2.5** `LegalContentPage` centralizes legal/privacy approval filtering and headings; duplicate calendar `<h1>` demoted to `<h2>`; substantive legal content renders only from approved text.
 
 ## Historical PR1 Evidence
 
@@ -40,46 +41,61 @@ Strict TDD was not active. These results preserve the completed PR1 evidence:
 | Task | Truthful evidence |
 |---|---|
 | 2.1 | `tests/e2e/trust-shell.spec.js` injects an approved config fixture through Vite and proves its copyright/legal controls render in the footer; it also proves a cross-origin critical asset is rejected while the valid canonical origin and local asset remain accepted. Malformed containers, placeholder/credential URLs, literal approval, and structural legal-content validation remain covered. |
-| 2.2 | Partial only: the focused suite renders unavailable `/legal` and `/privacidad`, confirms semantic mains and hidden unapproved footer values, and verifies `RouteHead` restoration. Shell primitives and integration are deferred. |
+| 2.2 (PR2a portion) | The focused suite renders unavailable `/legal` and `/privacidad`, confirms semantic mains and hidden unapproved footer values, and verifies `RouteHead` restoration. |
 
 ## Codex Hook Fix Evidence
 
-Maintainer-authorized corrections applied to the PR2a candidate; no task checkbox changed.
+Maintainer-authorized corrections applied to the PR2a candidate; no task checkbox changed at that time.
 
 | Fix | Evidence |
 |---|---|
 | Canonical-origin normalization | `validatePublicSite` now normalizes an accepted canonical origin through `normalizeCanonicalOrigin` (`URL.origin`), so `https://asanda.org.ve` and `https://asanda.org.ve/` compare identically for same-origin critical assets. Fail-closed checks (HTTPS-only, no credentials, no path/query/hash, placeholder rejection) are unchanged; unaccepted origins still normalize to `null`. |
-| Focused coverage | New `trust-shell` test proves a trailing-slash canonical origin yields zero issues, normalizes to the slashless origin, and preserves all valid same-origin `criticalAssets`. |
+| Focused coverage | `trust-shell` test proves a trailing-slash canonical origin yields zero issues, normalizes to the slashless origin, and preserves all valid same-origin `criticalAssets`. |
 | Footer heading semantics | The three footer section headings (`Deportes`, `Enlaces`, `PATROCINADORES GLOBALES`) changed from `<h4>` to `<h2>` with identical Tailwind classes — no visual regression. |
+
+## PR2b Evidence
+
+Standard Mode (`strict_tdd: false`); RED/GREEN/REFACTOR intent executed truthfully:
+
+| Task | RED | GREEN | REFACTOR |
+|---|---|---|---|
+| 2.3 | `npm run test:e2e -- accessible-shell` initially failed 4/6: zero `main` landmarks on most views, no skip link, footer targets under 44px, and the mobile-menu main assertion. Legal-link integrity and demo disclosure/noindex passed at RED because PR2a delivered those foundations. | After the shell migration the focused suite passed 6/6. | Assertion messages carry route/link context; the route table drives every-view coverage without per-route test duplication. |
+| 2.4 | N/A — implementation task gated by the 2.3 RED failures. | `AppShell`/`SkipLink` created; `App.jsx` rewires all routes through the shell with the skip link as first tab stop; 12 route pages plus `PublicidadDemoPage` return content only; footer links are 44×44 px. Full suite passed 21/21. | N/A |
+| 2.5 | N/A — behavior-preserving refactor. | `LegalContentPage` centralizes approval filtering/headings; `CompetitionsCalendar` duplicate `<h1>` demoted to `<h2>`; focused and full suites re-passed (6/6 and 21/21). | Legal/privacy pages are now thin `kind` wrappers; duplication removed. |
+
+### PR2b Deviations and Findings
+
+- `src/main.jsx` and `src/components/HeaderModern.jsx` required no functional change for shell integration; skip link, landmark, and focus behavior live in `AppShell`/`SkipLink`/`App.jsx`. No behavior was skipped.
+- Pre-existing crash fixed: `RecordEstadal` threw `TypeError` on 3 athletes without `recordPersonal`, blanking `/record-estadal` before this slice. A defensive filter now skips them per the repository malformed-static-data standard; task 2.3's every-view proof was impossible without it.
+- `tests/e2e/ads.spec.js` empty-slot counts updated 7 → 11: the shell footer renders the 4-cell partner grid on `/?ads=demo` as well. Comments record the reason; slot assertions unchanged.
+- Minimal-diff migration: pages keep background wrapper `div`s and inner indentation; only header/footer ownership moved to the shell.
 
 ## Work Unit Evidence
 
 | Evidence | Exact result |
 |---|---|
-| Focused test command | `npm run test:e2e -- trust-shell` — passed, 8/8. |
-| Runtime harness command/scenario | The same Playwright command passed 8/8 through Vite, including approved-config injection and footer rendering, both unavailable routes, and client-side `RouteHead` title/robots cleanup. |
-| Relevant regression suites | `npm run test:e2e -- readiness` — 2/2; `npm run test:e2e -- production` — 1/1; `npm run test:e2e -- ads` — 4/4; `npm run test:ads` — 12/12. |
-| Build | `npm run build` — passed; 1,421 modules transformed. |
-| Production preview/check | `$preview = Start-Process -FilePath node -ArgumentList @('scripts/production-preview.mjs','4174') -PassThru; node scripts/production-check.mjs http://127.0.0.1:4174` — passed (`CHECK_EXIT=0`); direct routes and independent resources verified. |
-| Diff and cleanup | `git diff --check HEAD` — passed; `PREVIEW_STOPPED=True`; `PORT_4174_LISTENERS=0`. |
-| Complete authored line count | 359 additions/deletions vs `HEAD` (`56eebc0`) including this evidence update; `.gga` excluded; under 400. |
-| Rollback boundary | Revert `src/config/publicSite.js`, `src/content/legalContent.js`, `src/components/layout/RouteHead.jsx`, `src/pages/{Legal,Privacy}Page.jsx`, the legal/privacy routes in `src/App.jsx`, approval filtering and `<h2>` headings in `src/components/Footer.jsx`, `tests/e2e/trust-shell.spec.js`, and these OpenSpec updates. PR1 routing remains intact. |
+| Focused test command | `npm run test:e2e -- accessible-shell` — passed, 6/6 in 28.8s (`PORT_4173_BEFORE=0`). |
+| Runtime harness command/scenario | Final full Playwright run `npm run test:e2e` through Vite — passed 21/21 in 34.2s, including keyboard skip focus, 44px footer measurement, client-side legal navigation, demo noindex lifecycle, mobile menu at 390px, dark-mode toggle, and ads disclosure contrast. |
+| Relevant regression suites | `npm run test:ads` — 12/12; trust-shell, readiness, production, and ads specs all included in the 21/21 full run. |
+| Build | `npm run build` — passed; 1,424 modules transformed. |
+| Diff check | `git diff --check` — passed (exit 0). |
+| Runtime cleanup | One-off Vite probe on port 4199 was terminated: `PORT_4199_LISTENERS_AFTER=0`; resumed focused/full Playwright runs recorded `PORT_4173_BEFORE=0`, `PORT_4173_AFTER=0`. |
+| Authored line count | Exactly 400 changed lines (232 tracked +/- + 168 new-file lines) including source, tests, and these OpenSpec updates; at budget, not exceeding. `.atl` local tooling state excluded and untouched. Evidence revision: `sha256:dd3437861e784279168f800caee1de5c7c74f0f99ae66a1f5404e7274dabcc56` (canonical path/blob manifest excludes this self-referential file and `.atl` state). |
+| Rollback boundary | Revert `src/components/layout/{AppShell,SkipLink}.jsx`, `src/pages/LegalContentPage.jsx`, shell wiring in `src/App.jsx`, header/footer removal in the route pages and `PublicidadDemoPage.jsx`, 44px classes in `src/components/Footer.jsx`, the `<h2>` demotion in `src/components/CompetitionsCalendar.jsx`, the defensive filter in `src/components/RecordEstadal.jsx`, `tests/e2e/accessible-shell.spec.js`, the count update in `tests/e2e/ads.spec.js`, and these OpenSpec updates. PR1 routing and PR2a trust foundation remain intact. |
 
-## PR2a Files
+## PR2b Files
 
-- Added: `src/components/layout/RouteHead.jsx`, `src/config/publicSite.js`, `src/content/legalContent.js`, `src/pages/LegalPage.jsx`, `src/pages/PrivacyPage.jsx`, `tests/e2e/trust-shell.spec.js`.
-- Modified: `src/App.jsx`, `src/components/Footer.jsx`, `openspec/changes/profesionalizar-sitio-produccion/tasks.md`, and this progress file.
-- Deleted from candidate and absent from the final worktree/index: `src/components/layout/AppShell.jsx`, `src/components/layout/SkipLink.jsx`.
+- Created: `src/components/layout/AppShell.jsx`, `src/components/layout/SkipLink.jsx`, `src/pages/LegalContentPage.jsx`, `tests/e2e/accessible-shell.spec.js`.
+- Modified: `src/App.jsx`, `src/components/{Footer,CompetitionsCalendar,RecordEstadal}.jsx`, all 14 route pages under `src/pages/`, `tests/e2e/ads.spec.js`, `tasks.md`, and this progress file.
 
 ## Deferred Boundary
 
-- PR2b owns `src/components/layout/AppShell.jsx`, `src/components/layout/SkipLink.jsx`, shell integration in `src/App.jsx`, and migration of the remaining views.
-- 2.3 remains pending: no completion proof is recorded for every-view main/H1 structure, skip focus, 44px footer targets, legal-link integrity, or demo disclosure/noindex.
-- 2.4–2.5, phases 3–4, substantive approved legal text, and final release evidence remain pending.
+- PR3 owns `src/seo/routeMetadata.js`, `scripts/generate-public-assets.mjs`, `public/{robots.txt,sitemap.xml,manifest.webmanifest,assets/*}`, lazy routes, `src/metrics/webVitals.js`, `lighthouserc.cjs`, build hooks, and Google Fonts removal (tasks 3.1–3.3).
+- Phase 4 release proof (4.1–4.2), substantive approved legal text, and final release evidence remain pending.
 
 ## PR Boundary
 
 - Strategy: auto-chain, `feature-branch-chain`.
-- Starts from: PR1 routing state at `56eebc0` plus the prior uncommitted trust-foundation candidate.
-- Ends with: an autonomous under-400-line PR2a trust/content slice without shell primitives or shell integration.
-- Out of scope: PR2b shell work, 2.3+, commit/staging, push, PR creation, native review, and native attempt settlement.
+- Starts from: merged PR2a trust foundation (PR #18) on the tracker branch.
+- Ends with: an autonomous under-400-line PR2b accessible-shell slice with every view on one `main`/H1, keyboard skip access, 44px footer targets, and centralized legal rendering.
+- Out of scope: PR3 metadata/resources/evidence, phase 4, commit/staging, push, PR creation, native review, and native attempt settlement.
