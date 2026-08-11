@@ -3,19 +3,19 @@
 ## Structured Status
 
 - Artifact store: OpenSpec (`openspec/changes/...`).
-- Apply state: ready; PR2b is complete. Tasks 2.2 (shell portion), 2.3, 2.4, and 2.5 are proven and checked.
-- Assigned boundary: PR2b — accessible shell (`AppShell`, `SkipLink`), shell migration of every view, 44px footer targets, heading centralization, and focused coverage.
+- Apply state: ready; PR3 is complete. Tasks 3.1–3.3 are proven and checked; Phase 4 remains pending.
+- Assigned boundary: PR3 — metadata, canonical/JSON-LD, local resources, lazy routes, Web Vitals/Lighthouse evidence, and origin/font cleanup.
 - Delivery: auto-chain with `feature-branch-chain`.
-- Child branch: `feat/profesionalizar-sitio-produccion-03-accessible-shell`.
+- Child branch: `feat/profesionalizar-sitio-produccion-04-metadata-resources`.
 - Target branch: `feat/profesionalizar-sitio-produccion` (tracker).
 - Testing mode: Standard (`strict_tdd: false`; no strict-TDD runner is configured).
 - Native attempt/review: parent owns settlement; this executor ran no `sdd-attempt` operation and no native review. The previous RDD receipt remains invalidated by the PR2a correction.
 
 ## Cumulative Status
 
-- Checked: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 2.4, and 2.5.
-- Pending: 3.1–3.3 and 4.1–4.2.
-- PR1 and PR2a history is retained below; no task after 2.5 is reported complete.
+- Checked: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 2.4, 2.5, 3.1, 3.2, and 3.3.
+- Pending: 4.1–4.2.
+- PR1 and PR2 history is retained below; no Phase 4 task is reported complete.
 
 ## Completed Tasks
 
@@ -90,12 +90,21 @@ Standard Mode (`strict_tdd: false`); RED/GREEN/REFACTOR intent executed truthful
 
 ## Deferred Boundary
 
-- PR3 owns `src/seo/routeMetadata.js`, `scripts/generate-public-assets.mjs`, `public/{robots.txt,sitemap.xml,manifest.webmanifest,assets/*}`, lazy routes, `src/metrics/webVitals.js`, `lighthouserc.cjs`, build hooks, and Google Fonts removal (tasks 3.1–3.3).
 - Phase 4 release proof (4.1–4.2), substantive approved legal text, and final release evidence remain pending.
 
 ## PR Boundary
 
 - Strategy: auto-chain, `feature-branch-chain`.
-- Starts from: merged PR2a trust foundation (PR #18) on the tracker branch.
-- Ends with: an autonomous under-400-line PR2b accessible-shell slice with every view on one `main`/H1, keyboard skip access, 44px footer targets, and centralized legal rendering.
-- Out of scope: PR3 metadata/resources/evidence, phase 4, commit/staging, push, PR creation, native review, and native attempt settlement.
+- Starts from: the completed PR2b accessible-shell slice on the tracker branch.
+- Ends with: an autonomous under-400-line PR3 slice with centralized metadata, local critical resources, lazy route chunks, fail-closed evidence helpers, and preserved Report-Only CSP.
+- Out of scope: Phase 4 release proof, substantive approved legal text, commit/staging, push, PR creation, native review, and native attempt settlement.
+
+## PR3 Work Unit Evidence
+
+| Evidence | Exact result |
+|---|---|
+| Focused tests | `npm run test:metadata` passed; `npm run test:e2e -- trust-shell` passed 9/9; `npm run test:e2e -- accessible-shell` passed 6/6. Runtime `npm run test:e2e` passed 22/22. |
+| Runtime and Web Vitals harness | `node scripts/production-check.mjs http://127.0.0.1:4174` passed against the built preview. Exact native harness: `node --input-type=module -e "import { loadWebVitals } from './src/metrics/webVitals.js'; const seen = []; class Observer { static supportedEntryTypes = ['layout-shift', 'largest-contentful-paint', 'event']; constructor(callback) { this.callback = callback; } observe({ type }) { const entries = type === 'layout-shift' ? [{ value: 0.1, hadRecentInput: false }] : type === 'largest-contentful-paint' ? [{ startTime: 123 }] : [{ duration: 45 }]; this.callback({ getEntries: () => entries }); } } globalThis.PerformanceObserver = Observer; const registered = await loadWebVitals((metric) => seen.push(metric)); if (!registered || seen.map(({ name }) => name).join(',') !== 'CLS,LCP,INP') throw new Error('native Web Vitals fallback failed'); console.log('Native Web Vitals fallback passed: ' + seen.map(({ name }) => name).join(',') + '.');"` → `Native Web Vitals fallback passed: CLS,LCP,INP.` |
+| Build, baseline, and asset-path deviation | `npm run build` passed with 1,426 modules; `npm run test:ads` passed 12/12. Design names `public/assets/hero.webp`, `public/assets/favicon.svg`, and `public/assets/social-card.webp`; implementation uses `public/assets/hero.svg`, root `public/favicon.svg`, and `public/assets/social-card.svg`. This is an explicit, unapproved deviation: existing checks and code use dependency-free SVGs, and no evidence authorizes inventing or converting WebP brand assets. |
+| Diff, budget, and risks | `git diff --check` passed (exit 0; line-ending warnings only). Exact PR3 budget: **400/400 authored changed lines**, excluding unrelated `.atl` state. Risks: production generation fails closed because approved canonical/identity/legal values are unavailable; Lighthouse CLI/script evidence remains unavailable and task 4.2 is pending. |
+| Rollback boundary | Revert PR3 hunks in `index.html`, `package.json`, `vercel.json`, `vite.config.js`, `src/App.jsx`, `src/main.jsx`, `src/config/publicSite.js`, `src/metrics/webVitals.js`, `src/seo/routeMetadata.js`, `src/components/{HeroBackground,PageHero}.jsx`, `src/components/layout/{AppShell,RouteHead}.jsx`, `scripts/{generate-public-assets,performance-regression,production-check}.mjs`, `lighthouserc.cjs`, `public/{robots.txt,manifest.webmanifest,sitemap.xml,assets/{hero.svg,social-card.svg}}`, PR3 assertions in `tests/{metadata-regression.mjs,e2e/{accessible-shell,production,readiness,trust-shell}.spec.js}`, and PR3 checkbox/evidence rows in `openspec/changes/profesionalizar-sitio-produccion/{tasks,apply-progress}.md`; this removes metadata, local-resource, lazy-chunk, and evidence behavior while preserving PR1 routing and PR2 trust/shell behavior. |

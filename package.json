@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/generate-public-assets.mjs",
     "build": "vite build",
     "test:ads": "node scripts/ads-regression.mjs",
+    "test:metadata": "node tests/metadata-regression.mjs",
     "test:e2e": "playwright test",
     "preview": "vite preview"
   },

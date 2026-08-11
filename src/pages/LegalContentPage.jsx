@@ -1,5 +1,4 @@
 import React from 'react';
-import RouteHead from '../components/layout/RouteHead';
 import { getApprovedLegalContent } from '../content/legalContent';
 
 // Página legal centralizada (D5): el contenido sustantivo solo se renderiza
@@ -23,7 +22,6 @@ const LegalContentPage = ({ kind }) => {
 
   return (
     <>
-      <RouteHead title={title} noindex={!content} />
       <div className="mx-auto max-w-3xl px-4 py-16">
         <h1 className="text-3xl font-bold">{title}</h1>
         {content ? (

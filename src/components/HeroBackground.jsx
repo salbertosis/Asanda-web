@@ -1,6 +1,6 @@
 import React from 'react';
 
-const HERO_IMAGE = 'https://images.unsplash.com/photo-1530549387789-4c1017266635?w=1920&h=1080&fit=crop&q=82';
+const HERO_IMAGE = '/assets/hero.svg';
 
 const HeroBackground = () => (
   <div className="absolute inset-0 overflow-hidden bg-asanda-ink" aria-hidden="true">

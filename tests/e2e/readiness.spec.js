@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 const publicRoutes = ['/', '/noticias', '/resultados', '/atletas', '/clubes'];
-const crawlResources = ['/robots.txt', '/sitemap.xml', '/manifest.webmanifest', '/favicon.svg'];
+const crawlResources = ['/robots.txt', '/sitemap.xml', '/manifest.webmanifest', '/favicon.svg', '/assets/hero.svg', '/assets/social-card.svg'];
 
 const expectIndependentResource = async (request, path) => {
   const response = await request.get(path);

@@ -1,7 +1,7 @@
 import React from 'react';
 
 const PageHero = ({ title, backgroundImage }) => {
-  const defaultImage = 'https://images.unsplash.com/photo-1530549387789-4c1017266635?w=1920&h=1080&fit=crop&q=80';
+  const defaultImage = '/assets/hero.svg';
 
   return (
     <section className="relative min-h-[400px] md:min-h-[500px] flex items-center justify-center overflow-hidden">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import { Link, Routes, Route, useSearchParams } from 'react-router-dom';
 import { ArrowRight, CalendarDays, Trophy } from 'lucide-react';
 import { atletas } from './data/atletas';
@@ -13,21 +13,23 @@ import HeroSponsorSlot from './components/ads/HeroSponsorSlot';
 import LeaderboardSlot from './components/ads/LeaderboardSlot';
 import HeroBackground from './components/HeroBackground';
 import HeroStats from './components/HeroStats';
-import NoticiasPage from './pages/NoticiasPage';
-import VideosPage from './pages/VideosPage';
-import FotosPage from './pages/FotosPage';
-import AlbumPage from './pages/AlbumPage';
-import CalendarioPage from './pages/CalendarioPage';
-import ResultadosPage from './pages/ResultadosPage';
-import AtletasPage from './pages/AtletasPage';
-import RecordEstadalPage from './pages/RecordEstadalPage';
-import AtletasAsociadosPage from './pages/AtletasAsociadosPage';
-import AtletasFederadosPage from './pages/AtletasFederadosPage';
-import ClubesPage from './pages/ClubesPage';
-import PublicidadDemoPage from './pages/PublicidadDemoPage';
 import AdsDemoPreview from './components/ads/AdsDemoPreview';
-import LegalPage from './pages/LegalPage';
-import PrivacyPage from './pages/PrivacyPage';
+
+const NoticiasPage = lazy(() => import('./pages/NoticiasPage.jsx'));
+const VideosPage = lazy(() => import('./pages/VideosPage.jsx'));
+const FotosPage = lazy(() => import('./pages/FotosPage.jsx'));
+const AlbumPage = lazy(() => import('./pages/AlbumPage.jsx'));
+const CalendarioPage = lazy(() => import('./pages/CalendarioPage.jsx'));
+const ResultadosPage = lazy(() => import('./pages/ResultadosPage.jsx'));
+const AtletasPage = lazy(() => import('./pages/AtletasPage.jsx'));
+const RecordEstadalPage = lazy(() => import('./pages/RecordEstadalPage.jsx'));
+const AtletasAsociadosPage = lazy(() => import('./pages/AtletasAsociadosPage.jsx'));
+const AtletasFederadosPage = lazy(() => import('./pages/AtletasFederadosPage.jsx'));
+const ClubesPage = lazy(() => import('./pages/ClubesPage.jsx'));
+const PublicidadDemoPage = lazy(() => import('./pages/PublicidadDemoPage.jsx'));
+const LegalPage = lazy(() => import('./pages/LegalPage.jsx'));
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage.jsx'));
+const LoadingPage = () => <div className="min-h-48 p-8 text-center" role="status">Cargando…</div>;
 
 function HomePage() {
   const [atletaSeleccionado, setAtletaSeleccionado] = useState(null);
@@ -146,6 +148,7 @@ function App() {
   return (
     <>
       <AppShell>
+      <Suspense fallback={<LoadingPage />}>
       <Routes>
         <Route path="/" element={<HomeGate />} />
         <Route path="/publicidad/demo/:slug" element={<PublicidadDemoPage />} />
@@ -163,6 +166,7 @@ function App() {
         <Route path="/clubes" element={<ClubesPage />} />
         <Route path="/record-estadal" element={<RecordEstadalPage />} />
       </Routes>
+      </Suspense>
       </AppShell>
       <DarkModeToggle />
     </>

@@ -89,3 +89,15 @@ test('restores prior title and robots metadata, removing only owned metadata', a
   await navigateClientSide(page, '/legal'); await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow');
   await navigateClientSide(page, '/'); await expect(page).toHaveTitle('Another title'); await expect(page.locator('meta[name="robots"]')).toHaveCount(0);
 });
+
+test('uses one approved origin for route metadata and scopes demo noindex', async ({ page }) => {
+  await injectApprovedPublicSite(page);
+  await page.goto('/resultados');
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://asanda.org.ve/resultados');
+  for (const selector of ['meta[property="og:url"]', 'meta[property="og:image"]', 'meta[name="twitter:image"]']) await expect(page.locator(selector)).toHaveAttribute('content', /^(https:\/\/asanda\.org\.ve)/);
+  const jsonLd = JSON.parse(await page.locator('script[data-route-jsonld]').textContent());
+  expect(jsonLd.url).toBe('https://asanda.org.ve/resultados');
+  expect(jsonLd.image).toBe('https://asanda.org.ve/assets/social-card.svg');
+  for (const url of ['/?ads=demo', '/publicidad/demo/aquaflow-demo']) { await page.goto(url); await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow'); }
+  await page.goto('/'); await expect(page.locator('meta[name="robots"]')).toHaveCount(0);
+});

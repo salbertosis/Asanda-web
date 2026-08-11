@@ -5,7 +5,7 @@ if (!baseUrl) {
 }
 
 const origin = new URL(baseUrl).origin;
-const crawlResources = ['/robots.txt', '/sitemap.xml', '/manifest.webmanifest', '/favicon.svg'];
+const crawlResources = ['/robots.txt', '/sitemap.xml', '/manifest.webmanifest', '/favicon.svg', '/assets/hero.svg', '/assets/social-card.svg'];
 const publicRoutes = ['/', '/noticias', '/resultados', '/atletas', '/clubes'];
 
 const request = async (path) => {
@@ -34,6 +34,11 @@ assert(hashedAsset, 'Could not find a hashed build asset in the home document');
 
 const asset = await request(hashedAsset);
 assert(asset.response.status === 200 && !asset.type.includes('text/html'), `${hashedAsset}: expected non-HTML 200, received ${asset.response.status} ${asset.type}`);
+
+const buildManifest = await request('/build-manifest.json');
+assert(buildManifest.response.status === 200 && buildManifest.type.includes('application/json'), `build manifest: expected JSON 200, received ${buildManifest.response.status} ${buildManifest.type}`);
+const manifestEntries = Object.values(await buildManifest.response.json());
+assert(manifestEntries.some((entry) => entry.dynamicImports?.length), 'build manifest has no independent lazy route chunks');
 
 const missing = await request('/assets/missing-route-proof.12345678.js');
 assert(missing.response.status === 404 && !missing.type.includes('text/html'), `missing asset: expected non-HTML 404, received ${missing.response.status} ${missing.type}`);
