@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { access } from 'node:fs/promises';
+import { approvedPublicSite } from '../src/config/publicSite.js';
 import { buildRouteMetadata, isDemoRoute, routeMetadata } from '../src/seo/routeMetadata.js';
 import { createPublicAssets } from '../scripts/generate-public-assets.mjs';
 import { comparePerformance } from '../scripts/performance-regression.mjs';
@@ -7,6 +8,9 @@ import { registerWebVitals } from '../src/metrics/webVitals.js';
 
 const origin = 'https://asanda.org.ve';
 const site = { canonicalOrigin: origin, canonicalOriginApproved: true, identity: { value: 'ASANDA', approved: true }, copyright: { notice: 'ASANDA 2026', approved: true }, social: [{ label: 'Instagram', href: 'https://instagram.com/asanda', approved: true }], legal: { legalApproved: true, privacyApproved: true }, criticalAssets: ['/assets/hero.svg', '/favicon.svg', '/assets/social-card.svg'] };
+assert.equal(approvedPublicSite.canonicalOrigin, 'https://asanda-web.vercel.app');
+assert.equal(approvedPublicSite.identity.value, 'ASANDA'); assert.deepEqual(approvedPublicSite.social, []);
+assert.deepEqual(approvedPublicSite.criticalAssets, ['/favicon.svg', '/assets/hero.svg', '/assets/social-card.svg']);
 
 const paths = routeMetadata.map((route) => route.path);
 assert.equal(new Set(paths).size, paths.length, 'route metadata paths must be unique');

@@ -10,9 +10,11 @@ export const isSameOriginAsset = (asset, origin) => { if (typeof asset !== 'stri
 export const toPublicUrl = (pathname, origin) => { const safeOrigin = normalizeCanonicalOrigin(origin); return safeOrigin && typeof pathname === 'string' ? `${safeOrigin}/${pathname.replace(/^\//, '')}` : null; };
 
 export const publicSite = {
-  canonicalOrigin: '', canonicalOriginApproved: false,
-  identity: { value: '', approved: false }, copyright: { notice: '', approved: false },
-  social: [], legal: { legalApproved: false, privacyApproved: false }, criticalAssets: [],
+  canonicalOrigin: 'https://asanda-web.vercel.app', canonicalOriginApproved: true,
+  identity: { value: 'ASANDA', approved: true },
+  copyright: { notice: '© 2026 Asociación de Deportes Acuáticos del Estado Anzoátegui (ASANDA). Todos los derechos reservados', approved: true },
+  social: [], legal: { legalApproved: true, privacyApproved: true },
+  criticalAssets: ['/favicon.svg', '/assets/hero.svg', '/assets/social-card.svg'],
 };
 
 export function validatePublicSite(site = publicSite) {
