@@ -29,6 +29,7 @@ export default defineConfig({
     react(),
     missingStaticAssetsAreNotSpaRoutes(),
   ],
+  build: { manifest: 'build-manifest.json' },
 })
 
 

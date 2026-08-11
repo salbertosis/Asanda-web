@@ -3,10 +3,11 @@ const isRecord = (value) => value !== null && typeof value === 'object' && !Arra
 const isApproved = (value) => value === true;
 const parseUrl = (value) => { if (typeof value !== 'string') return null; try { return new URL(value); } catch { return null; } };
 const isHttpsUrl = (value) => { const url = parseUrl(value); return Boolean(url && url.protocol === 'https:' && !url.username && !url.password); };
-const isCanonicalOrigin = (value) => { const url = parseUrl(value); return Boolean(url && isHttpsUrl(value) && url.pathname === '/' && !url.search && !url.hash && !placeholderPattern.test(value)); };
-const normalizeCanonicalOrigin = (value) => (isCanonicalOrigin(value) ? parseUrl(value).origin : null);
+export const isCanonicalOrigin = (value) => { const url = parseUrl(value); return Boolean(url && isHttpsUrl(value) && url.pathname === '/' && !url.search && !url.hash && !placeholderPattern.test(value)); };
+export const normalizeCanonicalOrigin = (value) => (isCanonicalOrigin(value) ? parseUrl(value).origin : null);
 const isApprovedText = (entry) => isRecord(entry) && isApproved(entry.approved) && typeof entry.value === 'string' && entry.value.trim().length > 0 && !placeholderPattern.test(entry.value);
-const isSameOriginAsset = (asset, origin) => { if (typeof asset !== 'string') return false; try { const url = new URL(asset, origin); const localPath = asset.startsWith('/') && !asset.startsWith('//'); return url.origin === origin && !url.username && !url.password && (localPath || url.protocol === 'https:'); } catch { return false; } };
+export const isSameOriginAsset = (asset, origin) => { if (typeof asset !== 'string') return false; try { const url = new URL(asset, origin); const localPath = asset.startsWith('/') && !asset.startsWith('//'); return url.origin === origin && !url.username && !url.password && (localPath || url.protocol === 'https:'); } catch { return false; } };
+export const toPublicUrl = (pathname, origin) => { const safeOrigin = normalizeCanonicalOrigin(origin); return safeOrigin && typeof pathname === 'string' ? `${safeOrigin}/${pathname.replace(/^\//, '')}` : null; };
 
 export const publicSite = {
   canonicalOrigin: '', canonicalOriginApproved: false,

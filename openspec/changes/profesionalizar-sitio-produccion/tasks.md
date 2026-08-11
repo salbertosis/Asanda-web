@@ -40,9 +40,9 @@ Chain strategy: feature-branch-chain
 
 ## Phase 3: Metadata, resources, and evidence (PR 3)
 
-- [ ] 3.1 RED: test route-manifest completeness, one-origin metadata/JSON-LD/social URLs, demo query/path noindex, crawl generation, local critical resources, independent chunks, and baseline-regression reporting.
-- [ ] 3.2 GREEN: add `src/seo/routeMetadata.js`, `scripts/generate-public-assets.mjs`, `public/{robots.txt,sitemap.xml,manifest.webmanifest,assets/*}`, lazy routes, `src/metrics/webVitals.js`, `lighthouserc.cjs`, and build hooks; remote editorial images stay approved and lazy.
-- [ ] 3.3 REFACTOR: remove unused Google Fonts and centralize origin validation; keep CSP Report-Only until clean preview inventory.
+- [x] 3.1 RED: test route-manifest completeness, one-origin metadata/JSON-LD/social URLs, demo query/path noindex, crawl generation, local critical resources, independent chunks, and baseline-regression reporting.
+- [x] 3.2 GREEN: add `src/seo/routeMetadata.js`, `scripts/generate-public-assets.mjs`, `public/{robots.txt,sitemap.xml,manifest.webmanifest,assets/*}`, lazy routes, `src/metrics/webVitals.js`, `lighthouserc.cjs`, and build hooks; remote editorial images stay approved and lazy.
+- [x] 3.3 REFACTOR: remove unused Google Fonts and centralize origin validation; keep CSP Report-Only until clean preview inventory.
 
 ## Phase 4: Release proof
 

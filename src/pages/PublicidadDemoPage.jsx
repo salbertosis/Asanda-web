@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import { useNoindex } from '../hooks/useNoindex';
 import { getSponsorBySlug } from '../services/ads';
 import { CATEGORY_LABELS } from '../data/sponsors';
 
@@ -9,7 +8,6 @@ import { CATEGORY_LABELS } from '../data/sponsors';
 // la campaña son ficticios. Nunca enlaza a destinos externos.
 const PublicidadDemoPage = () => {
     const { slug } = useParams();
-    useNoindex();
     const sponsor = getSponsorBySlug(slug);
 
     return (

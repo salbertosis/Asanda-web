@@ -64,7 +64,7 @@ test('keeps approved legal links navigating to coherent legal routes', async ({ 
 
 test('discloses demo status accessibly and scopes noindex to the demo route', async ({ page }) => {
   await page.goto('/publicidad/demo/aquaflow-demo');
-  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex');
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow');
   const main = page.getByRole('main');
   await expect(main.getByText('Demo', { exact: true })).toBeVisible();
   await expect(main.getByText(/es una marca ficticia/)).toBeVisible();
