@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState } from 'react';
+import React, { lazy, useState } from 'react';
 import { Link, Routes, Route, useSearchParams } from 'react-router-dom';
 import { ArrowRight, CalendarDays, Trophy } from 'lucide-react';
 import { atletas } from './data/atletas';
@@ -29,8 +29,6 @@ const ClubesPage = lazy(() => import('./pages/ClubesPage.jsx'));
 const PublicidadDemoPage = lazy(() => import('./pages/PublicidadDemoPage.jsx'));
 const LegalPage = lazy(() => import('./pages/LegalPage.jsx'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage.jsx'));
-const LoadingPage = () => <div className="min-h-48 p-8 text-center" role="status">Cargando…</div>;
-
 function HomePage() {
   const [atletaSeleccionado, setAtletaSeleccionado] = useState(null);
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -148,7 +146,6 @@ function App() {
   return (
     <>
       <AppShell>
-      <Suspense fallback={<LoadingPage />}>
       <Routes>
         <Route path="/" element={<HomeGate />} />
         <Route path="/publicidad/demo/:slug" element={<PublicidadDemoPage />} />
@@ -166,7 +163,6 @@ function App() {
         <Route path="/clubes" element={<ClubesPage />} />
         <Route path="/record-estadal" element={<RecordEstadalPage />} />
       </Routes>
-      </Suspense>
       </AppShell>
       <DarkModeToggle />
     </>

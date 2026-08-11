@@ -46,5 +46,5 @@ Chain strategy: feature-branch-chain
 
 ## Phase 4: Release proof
 
-- [ ] 4.1 Run `npm run test:ads`, `npm run test:e2e`, `npm run build`, and `git diff --check`; record exact results.
+- [x] 4.1 Run `npm run test:ads`, `npm run test:e2e`, `npm run build`, and `git diff --check`; record exact results.
 - [ ] 4.2 Run preview/deployed `scripts/production-check.mjs`, Lighthouse, and Web Vitals baseline/regression checks; fail release closed for missing approvals or regression.

@@ -61,12 +61,14 @@ test('requires literal approval and structurally valid legal content', () => {
   for (const content of [null, { ...valid, approved: 'true' }, { ...valid, title: ' ' }, { ...valid, sections: [] }, { ...valid, sections: {} }, { ...valid, sections: [{ heading: '', body: 'Texto' }] }, { ...valid, sections: [null] }]) expect(isValidLegalContent(content)).toBe(false);
 });
 
-test('renders unavailable legal and privacy states without unapproved institutional values', async ({ page }) => {
-  expect(getApprovedLegalContent('legal')).toBeNull(); expect(getApprovedLegalContent('privacy')).toBeNull();
-  await page.goto('/legal'); await expect(page.getByRole('main')).toHaveCount(1); await expect(page.getByRole('heading', { name: 'Información legal no disponible' })).toBeVisible();
-  await expect(page.getByText('La información legal institucional se publicará cuando cuente con aprobación.')).toBeVisible();
-  await page.goto('/privacidad'); await expect(page.getByRole('main')).toHaveCount(1); await expect(page.getByRole('heading', { name: 'Información de privacidad no disponible' })).toBeVisible();
-  await expect(page.getByText('La información de privacidad institucional se publicará cuando cuente con aprobación.')).toBeVisible(); await page.goto('/');
+test('renders approved legal and privacy content without placeholder institutional values', async ({ page }) => {
+  const approvedLegal = getApprovedLegalContent('legal'); const approvedPrivacy = getApprovedLegalContent('privacy');
+  expect(approvedLegal?.approved).toBe(true); expect(approvedPrivacy?.approved).toBe(true);
+  await page.goto('/legal'); await expect(page.getByRole('main')).toHaveCount(1); await expect(page.getByRole('heading', { name: 'Información legal' })).toBeVisible();
+  await expect(page.getByText(approvedLegal.sections[0].body, { exact: true })).toBeVisible();
+  await page.goto('/privacidad'); await expect(page.getByRole('main')).toHaveCount(1); await expect(page.getByRole('heading', { name: 'Privacidad' })).toBeVisible();
+  await expect(page.getByText(approvedPrivacy.sections[0].body, { exact: true })).toBeVisible(); await page.goto('/');
+  await expect(page.getByText('© 2026 Asociación de Deportes Acuáticos del Estado Anzoátegui (ASANDA). Todos los derechos reservados')).toBeVisible();
   for (const value of ['Copyright 2025 - Natación Estadal. Todos los derechos reservados.', 'info@natacionestadal.com', '+58 212 123 4567']) await expect(page.getByText(value)).toHaveCount(0);
 });
 
@@ -83,7 +85,7 @@ const navigateClientSide = (page, path) => page.evaluate((nextPath) => { window.
 test('restores prior title and robots metadata, removing only owned metadata', async ({ page }) => {
   await page.goto('/');
   await page.evaluate(() => { document.title = 'Previous title'; const robots = document.createElement('meta'); robots.id = 'pre-existing-robots'; robots.name = 'robots'; robots.content = 'index,follow'; document.head.appendChild(robots); });
-  await navigateClientSide(page, '/legal'); await expect(page).toHaveTitle('Información legal no disponible | ASANDA'); await expect(page.locator('#pre-existing-robots')).toHaveAttribute('content', 'noindex,nofollow');
+  await navigateClientSide(page, '/legal'); await expect(page).toHaveTitle('Información legal | ASANDA'); await expect(page.locator('#pre-existing-robots')).toHaveAttribute('content', 'noindex,nofollow');
   await navigateClientSide(page, '/'); await expect(page).toHaveTitle('Previous title'); await expect(page.locator('#pre-existing-robots')).toHaveAttribute('content', 'index,follow');
   await page.evaluate(() => { document.querySelector('meta[name="robots"]')?.remove(); document.title = 'Another title'; });
   await navigateClientSide(page, '/legal'); await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow');

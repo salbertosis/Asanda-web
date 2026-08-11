@@ -13,8 +13,8 @@ export const routeMetadata = Object.freeze([
   { path: '/atletas-federados', title: 'Atletas federados', description: 'Atletas federados de ASANDA.', indexable: true },
   { path: '/clubes', title: 'Clubes', description: 'Clubes asociados a ASANDA.', indexable: true },
   { path: '/record-estadal', title: 'Récord estadal', description: 'Récords estadales de natación.', indexable: true },
-  { path: '/legal', title: 'Información legal no disponible', description: 'Información legal institucional de ASANDA.', indexable: false },
-  { path: '/privacidad', title: 'Información de privacidad no disponible', description: 'Información de privacidad institucional de ASANDA.', indexable: false },
+  { path: '/legal', title: 'Información legal', description: 'Información legal institucional de ASANDA.', indexable: false },
+  { path: '/privacidad', title: 'Privacidad', description: 'Información de privacidad institucional de ASANDA.', indexable: false },
   { path: '/publicidad/demo/:slug', title: 'Demostración publicitaria', description: 'Demostración de publicidad ficticia de ASANDA.', indexable: false },
 ]);
 

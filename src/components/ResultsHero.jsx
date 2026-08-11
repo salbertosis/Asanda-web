@@ -11,16 +11,8 @@ const ResultsHero = ({ año, mes, onAñoChange, onMesChange, onReset }) => {
 
   return (
     <section className="relative min-h-[400px] md:min-h-[500px] flex flex-col items-center justify-center overflow-hidden">
-      {/* Imagen de fondo */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: 'url(https://images.unsplash.com/photo-1530549387789-4c1017266635?w=1920&h=1080&fit=crop&q=80)'
-        }}
-      >
-        {/* Overlay oscuro para mejorar legibilidad */}
-        <div className="absolute inset-0 bg-gradient-to-b from-blue-900/80 via-blue-800/70 to-blue-900/80"></div>
-      </div>
+      <img src="/assets/hero.svg" alt="" aria-hidden="true" fetchPriority="high" className="absolute inset-0 h-full w-full object-cover object-center" />
+      <div className="absolute inset-0 bg-gradient-to-b from-blue-900/80 via-blue-800/70 to-blue-900/80"></div>
       
       {/* Título centrado */}
       <div className="relative z-10 text-center px-4 mb-8">

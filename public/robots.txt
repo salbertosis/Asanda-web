@@ -1,2 +1,3 @@
 User-agent: *
 Allow: /
+Sitemap: https://asanda-web.vercel.app/sitemap.xml
