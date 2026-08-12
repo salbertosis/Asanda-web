@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Award, Building2, Calendar, Instagram, Mail, MapPin, Phone, Users } from 'lucide-react';
+import { Building2, Calendar, Instagram, Mail, MapPin, Phone, Users } from 'lucide-react';
 import PageHero from '../components/PageHero';
 import { getClubTotals, getPublishedClubs } from '../services/clubs';
 
@@ -13,8 +13,8 @@ const ContactRow = ({ contact, icon: Icon }) => {
   ) : contact.value;
 
   return (
-    <div className="flex items-start gap-2 text-gray-600">
-      <Icon size={16} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
+    <div className="flex items-start gap-3 text-gray-600 dark:text-slate-300">
+      <Icon size={17} className="mt-0.5 flex-shrink-0 text-blue-600 dark:text-cyan-400" aria-hidden="true" />
       <span className="min-w-0 break-words">{content}</span>
     </div>
   );
@@ -47,17 +47,19 @@ const ClubesPage = () => {
   const totals = getClubTotals(clubs);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <PageHero
         title="Clubes Activos"
+        subtitle="Instituciones afiliadas que impulsan los deportes acuáticos en Anzoátegui"
+        compact
         backgroundImage="https://images.unsplash.com/photo-1530549387789-4c1017266635?w=1920&h=1080&fit=crop&q=80"
       />
 
-      <section className="min-h-96 bg-gray-50 py-12" aria-label="Directorio de clubes">
-        <div className="container mx-auto px-4">
+      <section className="min-h-96 bg-slate-50 py-10 dark:bg-slate-950 md:py-14" aria-label="Directorio de clubes">
+        <div className="container mx-auto max-w-6xl px-4">
           {status === 'loading' && (
             <div className="flex min-h-64 items-center justify-center" role="status">
-              <p className="text-lg font-medium text-gray-700">Cargando clubes…</p>
+              <p className="text-lg font-medium text-slate-700 dark:text-slate-200">Cargando clubes…</p>
             </div>
           )}
 
@@ -68,78 +70,78 @@ const ClubesPage = () => {
           )}
 
           {status === 'ready' && clubs.length === 0 && (
-            <div className="mx-auto max-w-2xl rounded-lg border border-gray-200 bg-white p-6 text-center text-gray-700" role="status">
+            <div className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 text-center text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200" role="status">
               No hay clubes publicados en este momento.
             </div>
           )}
 
           {status === 'ready' && clubs.length > 0 && (
             <>
-              <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
-                <div className="rounded-lg bg-white p-6 shadow-md">
-                  <div className="mb-2 flex items-center gap-3">
-                    <Building2 className="text-blue-600" size={24} aria-hidden="true" />
-                    <h2 className="text-lg font-semibold text-gray-900">Total de Clubes</h2>
-                  </div>
-                  <div className="text-3xl font-bold text-blue-600">{totals.clubs}</div>
+              <div className="mb-8 flex flex-col gap-4 border-b border-slate-200 pb-7 dark:border-slate-800 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-blue-700 dark:text-cyan-400">Directorio afiliado</p>
+                  <h2 className="text-2xl font-bold text-slate-950 dark:text-white md:text-3xl">Instituciones que forman comunidad</h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+                    Conocé los clubes activos, su trayectoria y el plantel registrado ante ASANDA.
+                  </p>
                 </div>
-                <div className="rounded-lg bg-white p-6 shadow-md">
-                  <div className="mb-2 flex items-center gap-3">
-                    <Users className="text-green-600" size={24} aria-hidden="true" />
-                    <h2 className="text-lg font-semibold text-gray-900">Atletas Asociados</h2>
-                  </div>
-                  <div className="text-3xl font-bold text-green-600">{totals.associatedAthletes}</div>
-                </div>
-                <div className="rounded-lg bg-white p-6 shadow-md">
-                  <div className="mb-2 flex items-center gap-3">
-                    <Award className="text-yellow-600" size={24} aria-hidden="true" />
-                    <h2 className="text-lg font-semibold text-gray-900">Atletas Federados</h2>
-                  </div>
-                  <div className="text-3xl font-bold text-yellow-600">{totals.federatedAthletes}</div>
+                <div className="flex shrink-0 gap-2" aria-label="Resumen del directorio">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
+                    <Building2 size={17} aria-hidden="true" />
+                    {totals.clubs} {totals.clubs === 1 ? 'club' : 'clubes'}
+                  </span>
+                  <span className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-bold text-cyan-800 dark:border-cyan-800 dark:bg-cyan-950 dark:text-cyan-200">
+                    <Users size={17} aria-hidden="true" />
+                    {totals.athletes} {totals.athletes === 1 ? 'atleta' : 'atletas'}
+                  </span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <div className="space-y-6">
                 {clubs.map((club) => (
-                  <article key={club.id} className="overflow-hidden rounded-lg bg-white shadow-md transition-shadow hover:shadow-xl">
-                    <div className="relative h-48 overflow-hidden bg-gradient-to-br from-blue-500 to-cyan-500">
+                  <article key={club.id} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_50px_-28px_rgba(15,23,42,0.35)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_60px_-28px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900 md:grid md:grid-cols-[280px_1fr]">
+                    <div className="relative flex min-h-64 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top,_#eff6ff,_#dbeafe_45%,_#bfdbfe)] p-8 dark:bg-[radial-gradient(circle_at_top,_#1e3a5f,_#0f2744_55%,_#0f172a)] md:min-h-full">
                       {club.logoUrl && (
                         <img
                           src={club.logoUrl}
                           alt={club.logoAlt}
-                          className="h-full w-full bg-white object-contain"
+                          className="h-52 w-52 rounded-full object-contain drop-shadow-xl md:h-56 md:w-56"
                           onError={(event) => { event.currentTarget.style.display = 'none'; }}
                         />
                       )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                      <div className="absolute bottom-4 left-4 right-4">
-                        <h2 className="text-xl font-bold text-white">{club.name}</h2>
-                        {club.shortName && <p className="text-sm font-semibold text-white/90">{club.shortName}</p>}
-                      </div>
                     </div>
 
-                    <div className="p-6">
-                      {club.description && <p className="mb-4 text-sm text-gray-600">{club.description}</p>}
+                    <div className="flex flex-col p-6 md:p-8">
+                      <div className="mb-5">
+                        {club.shortName && <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-blue-700 dark:text-cyan-400">{club.shortName}</p>}
+                        <h2 className="text-2xl font-bold text-slate-950 dark:text-white md:text-3xl">{club.name}</h2>
+                        {club.description && <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600 dark:text-slate-300 md:text-base">{club.description}</p>}
+                      </div>
 
-                      <div className="mb-4 grid grid-cols-2 gap-3">
-                        <div className="rounded-lg bg-blue-50 p-3">
-                          <div className="mb-1 text-xs text-gray-600">Asociados</div>
-                          <div className="text-lg font-bold text-blue-600">{club.associatedAthletes}</div>
-                        </div>
-                        <div className="rounded-lg bg-yellow-50 p-3">
-                          <div className="mb-1 text-xs text-gray-600">Federados</div>
-                          <div className="text-lg font-bold text-yellow-600">{club.federatedAthletes}</div>
+                      <div className="mb-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/70">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <span className="rounded-xl bg-blue-700 p-2.5 text-white"><Users size={20} aria-hidden="true" /></span>
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Plantel registrado</p>
+                              <p className="text-xl font-bold text-slate-950 dark:text-white">{club.associatedAthletes + club.federatedAthletes} atletas</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2 text-sm">
+                            <span className="rounded-full bg-blue-100 px-3 py-1.5 font-semibold text-blue-800 dark:bg-blue-950 dark:text-blue-200">{club.associatedAthletes} asociados</span>
+                            <span className="rounded-full bg-amber-100 px-3 py-1.5 font-semibold text-amber-800 dark:bg-amber-950 dark:text-amber-200">{club.federatedAthletes} federados</span>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="space-y-2 text-sm">
+                      <div className="mt-auto grid gap-3 border-t border-slate-200 pt-5 text-sm dark:border-slate-700 sm:grid-cols-2">
                         <ContactRow contact={club.address} icon={MapPin} />
                         <ContactRow contact={club.phone} icon={Phone} />
                         <ContactRow contact={club.email} icon={Mail} />
                         <ContactRow contact={club.social} icon={Instagram} />
                         {club.foundedYear && (
-                          <div className="flex items-center gap-2 text-gray-600">
-                            <Calendar size={16} className="flex-shrink-0" aria-hidden="true" />
+                          <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
+                            <Calendar size={17} className="flex-shrink-0 text-blue-600 dark:text-cyan-400" aria-hidden="true" />
                             <span>Fundado en {club.foundedYear}</span>
                           </div>
                         )}

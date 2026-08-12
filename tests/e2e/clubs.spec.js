@@ -47,8 +47,12 @@ test('renders published clubs from Supabase with distinct athlete totals', async
   );
   await expect(page.getByText('Av. Peñalver')).toHaveCount(0);
   await expect(page.getByText('0283-2410404')).toHaveCount(0);
-  await expect(page.getByText('Atletas Asociados').locator('..').locator('..')).toContainText('1');
-  await expect(page.getByText('Atletas Federados').locator('..').locator('..')).toContainText('1');
+  await expect(page.getByLabel('Resumen del directorio')).toContainText('1 club');
+  await expect(page.getByLabel('Resumen del directorio')).toContainText('2 atletas');
+  const clubCard = page.getByRole('article').filter({ hasText: 'Centro Cultural Español' });
+  await expect(clubCard.getByText('Plantel registrado')).toBeVisible();
+  await expect(clubCard.getByText('1 asociados')).toBeVisible();
+  await expect(clubCard.getByText('1 federados')).toBeVisible();
   await expect(page.getByAltText('Emblema de CCE')).toHaveAttribute('src', /c_fit.*\/cce$/);
 });
 
@@ -71,5 +75,19 @@ test('renders an accessible error without misleading totals', async ({ page }) =
   await page.goto('/clubes');
 
   await expect(page.getByRole('alert')).toContainText('No pudimos cargar los clubes');
-  await expect(page.getByText('Total de Clubes')).toHaveCount(0);
+  await expect(page.getByLabel('Resumen del directorio')).toHaveCount(0);
+});
+
+test('keeps the club profile readable on mobile and in dark mode', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await routeClubs(page, clubResponse);
+  await page.goto('/clubes');
+
+  const clubCard = page.getByRole('article').filter({ hasText: 'Centro Cultural Español' });
+  await expect(clubCard).toBeVisible();
+  await expect(clubCard.getByText('Plantel registrado')).toBeVisible();
+  await expect(page.getByLabel('Resumen del directorio')).toBeVisible();
+  const pageWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+  expect(pageWidth).toBeLessThanOrEqual(390);
 });

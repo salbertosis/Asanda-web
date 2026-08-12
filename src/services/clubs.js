@@ -87,7 +87,6 @@ export const getClubTotals = (clubs) => {
 
   return {
     clubs: clubs.length,
-    associatedAthletes: associated.size,
-    federatedAthletes: federated.size,
+    athletes: new Set([...associated, ...federated]).size,
   };
 };
