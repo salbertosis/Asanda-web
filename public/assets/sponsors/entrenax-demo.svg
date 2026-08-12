@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="200" viewBox="0 0 800 200" role="img" aria-labelledby="title description">
+  <title id="title">ENTRENAX Demo</title>
+  <desc id="description">Creative for a fictional sports training sponsor.</desc>
+  <defs><linearGradient id="background" x1="0" x2="1"><stop stop-color="#312e81"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs>
+  <rect width="800" height="200" rx="24" fill="url(#background)"/>
+  <path d="m83 129 58-58 34 34 60-60M196 45h39v39" fill="none" stroke="#ede9fe" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="159" cy="108" r="66" fill="none" stroke="#fff" stroke-width="5" opacity=".2"/>
+  <text x="330" y="100" fill="#fff" font-family="Arial, sans-serif" font-size="49" font-weight="700" letter-spacing="4">ENTRENAX</text>
+  <text x="334" y="137" fill="#ede9fe" font-family="Arial, sans-serif" font-size="20" letter-spacing="7">ENTRENAMIENTO</text>
+</svg>

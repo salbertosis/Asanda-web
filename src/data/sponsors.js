@@ -31,7 +31,7 @@ export const sponsors = [
         name: 'AQUAFLOW Demo',
         category: 'equipo-acuatico',
         creative: {
-            url: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&h=200&fit=crop&q=80',
+            url: '/assets/sponsors/aquaflow-demo.svg',
             alt: 'AQUAFLOW Demo — marca ficticia de equipo acuático',
             width: 800,
             height: 200,
@@ -45,7 +45,7 @@ export const sponsors = [
         name: 'VITALSPORT Demo',
         category: 'salud-deportiva',
         creative: {
-            url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=200&fit=crop&q=80',
+            url: '/assets/sponsors/vitalsport-demo.svg',
             alt: 'VITALSPORT Demo — marca ficticia de salud deportiva',
             width: 800,
             height: 200,
@@ -59,7 +59,7 @@ export const sponsors = [
         name: 'HIDRAFLUX Demo',
         category: 'hidratacion',
         creative: {
-            url: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&h=200&fit=crop&q=80',
+            url: '/assets/sponsors/hidraflux-demo.svg',
             alt: 'HIDRAFLUX Demo — marca ficticia de hidratación',
             width: 800,
             height: 200,
@@ -73,7 +73,7 @@ export const sponsors = [
         name: 'ENTRENAX Demo',
         category: 'entrenamiento',
         creative: {
-            url: 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=800&h=200&fit=crop&q=80',
+            url: '/assets/sponsors/entrenax-demo.svg',
             alt: 'ENTRENAX Demo — marca ficticia de entrenamiento',
             width: 800,
             height: 200,
