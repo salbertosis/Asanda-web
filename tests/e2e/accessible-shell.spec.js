@@ -22,7 +22,7 @@ const injectApprovedPublicSite = (page) => page.route('**/src/config/publicSite.
 
 test('renders exactly one main landmark and one level-one heading per view', async ({ page }) => {
   for (const path of shellRoutes) {
-    await page.goto(path);
+    await page.goto(path, { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('main'), path).toHaveCount(1);
     await expect(page.getByRole('heading', { level: 1 }), path).toHaveCount(1);
   }
