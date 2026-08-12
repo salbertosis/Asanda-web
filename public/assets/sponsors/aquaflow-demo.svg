@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="200" viewBox="0 0 800 200" role="img" aria-labelledby="title description">
+  <title id="title">AQUAFLOW Demo</title>
+  <desc id="description">Creative for a fictional aquatic equipment sponsor.</desc>
+  <defs><linearGradient id="background" x1="0" x2="1"><stop stop-color="#075985"/><stop offset="1" stop-color="#06b6d4"/></linearGradient></defs>
+  <rect width="800" height="200" rx="24" fill="url(#background)"/>
+  <path d="M85 146c38-54 64-81 78-81 19 0 28 65 50 65 13 0 31-22 54-66" fill="none" stroke="#cffafe" stroke-width="14" stroke-linecap="round"/>
+  <circle cx="159" cy="57" r="15" fill="#fff" opacity=".9"/>
+  <text x="330" y="100" fill="#fff" font-family="Arial, sans-serif" font-size="48" font-weight="700" letter-spacing="4">AQUAFLOW</text>
+  <text x="334" y="137" fill="#cffafe" font-family="Arial, sans-serif" font-size="20" letter-spacing="7">EQUIPO ACUATICO</text>
+</svg>

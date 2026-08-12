@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import * as sponsorCatalog from '../src/data/sponsors.js';
 import { campaigns } from '../src/data/campaigns.js';
 import {
@@ -61,6 +61,13 @@ check('accepts all four versioned approved fixtures', () => {
         validateSponsors(sponsorCatalog.sponsors).map(({ id, slug, name, category }) => ({ id, slug, name, category })),
         sponsorCatalog.APPROVED_SPONSOR_IDENTITIES
     );
+});
+
+check('keeps approved sponsor creatives deployment-controlled', () => {
+    for (const sponsor of sponsorCatalog.sponsors) {
+        assert.match(sponsor.creative.url, /^\/assets\/sponsors\/[a-z0-9-]+\.svg$/);
+        assert.equal(existsSync(new URL(`../public${sponsor.creative.url}`, import.meta.url)), true);
+    }
 });
 
 check('warns and never throws for malformed entries', () => {
