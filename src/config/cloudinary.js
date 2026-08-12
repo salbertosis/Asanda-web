@@ -11,6 +11,7 @@ export const getCloudinaryUrl = (publicId, options = {}) => {
     width = 400,
     height = 400,
     crop = 'fill',
+    gravity,
     quality = 'auto',
     format = 'auto'
   } = options;
@@ -21,7 +22,14 @@ export const getCloudinaryUrl = (publicId, options = {}) => {
   }
 
   // Construir la URL de Cloudinary
-  const transformations = `w_${width},h_${height},c_${crop},q_${quality},f_${format}`;
+  const transformations = [
+    `w_${width}`,
+    `h_${height}`,
+    `c_${crop}`,
+    gravity && `g_${gravity}`,
+    `q_${quality}`,
+    `f_${format}`
+  ].filter(Boolean).join(',');
   return `${baseUrl}/${cloudName}/image/upload/${transformations}/${publicId}`;
 };
 
