@@ -21,7 +21,7 @@ const clubResponse = [{
   }],
   memberships: [
     { athlete_id: 'athlete-1', membership_type: 'associated' },
-    { athlete_id: 'athlete-1', membership_type: 'associated' },
+    { athlete_id: 'athlete-2', membership_type: 'associated' },
     { athlete_id: 'athlete-2', membership_type: 'federated' },
   ],
 }];
@@ -51,7 +51,7 @@ test('renders published clubs from Supabase with distinct athlete totals', async
   await expect(page.getByLabel('Resumen del directorio')).toContainText('2 atletas');
   const clubCard = page.getByRole('article').filter({ hasText: 'Centro Cultural Español' });
   await expect(clubCard.getByText('Plantel registrado')).toBeVisible();
-  await expect(clubCard.getByText('1 asociados')).toBeVisible();
+  await expect(clubCard.getByText('2 asociados')).toBeVisible();
   await expect(clubCard.getByText('1 federados')).toBeVisible();
   await expect(page.getByAltText('Emblema de CCE')).toHaveAttribute('src', /c_fit.*\/cce$/);
 });

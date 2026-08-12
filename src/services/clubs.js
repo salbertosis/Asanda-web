@@ -70,6 +70,7 @@ export const getPublishedClubs = async (signal) => {
     social: selectClubContact(club.contacts, 'social'),
     associatedAthletes: countMembers(club.memberships, 'associated'),
     federatedAthletes: countMembers(club.memberships, 'federated'),
+    totalAthletes: new Set(club.memberships.map((membership) => membership.athlete_id)).size,
     memberships: club.memberships,
   }));
 };

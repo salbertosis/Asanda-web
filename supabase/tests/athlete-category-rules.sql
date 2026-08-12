@@ -21,6 +21,20 @@ begin
   insert into public.athlete_category_assignments (athlete_id, category_id, valid_from)
   values (first_athlete, preinfant_category, current_date);
 
+  insert into public.athlete_memberships (
+    athlete_id,
+    organization_id,
+    membership_type,
+    status,
+    valid_from
+  ) values (
+    first_athlete,
+    test_club,
+    'associated',
+    'active',
+    current_date
+  );
+
   blocked := false;
   begin
     insert into public.athlete_memberships (
@@ -45,6 +59,10 @@ begin
     raise exception 'Expected federated membership to be rejected.';
   end if;
 
+  insert into public.athletes (display_name)
+  values ('Pre-infant rule test 2')
+  returning id into second_athlete;
+
   insert into public.athlete_memberships (
     athlete_id,
     organization_id,
@@ -52,16 +70,12 @@ begin
     status,
     valid_from
   ) values (
-    first_athlete,
+    second_athlete,
     test_club,
     'associated',
     'active',
     current_date
   );
-
-  insert into public.athletes (display_name)
-  values ('Pre-infant rule test 2')
-  returning id into second_athlete;
 
   insert into public.athlete_memberships (
     athlete_id,

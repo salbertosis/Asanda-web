@@ -124,7 +124,7 @@ const ClubesPage = () => {
                             <span className="rounded-xl bg-blue-700 p-2.5 text-white"><Users size={20} aria-hidden="true" /></span>
                             <div>
                               <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Plantel registrado</p>
-                              <p className="text-xl font-bold text-slate-950 dark:text-white">{club.associatedAthletes + club.federatedAthletes} atletas</p>
+                              <p className="text-xl font-bold text-slate-950 dark:text-white">{club.totalAthletes} atletas</p>
                             </div>
                           </div>
                           <div className="flex gap-2 text-sm">
