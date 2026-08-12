@@ -1,0 +1,2 @@
+-- Reference data is created by the initial migration.
+-- Production athlete, club, competition, and editorial data must be validated before import.
