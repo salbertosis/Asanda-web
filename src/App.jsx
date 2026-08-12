@@ -53,18 +53,18 @@ function HomePage() {
         >
           <HeroBackground />
 
-          <div className="relative z-10 mx-auto grid min-h-[620px] min-w-0 max-w-7xl content-between gap-10 px-4 pb-0 pt-16 sm:px-5 sm:pt-20 lg:min-h-[680px] lg:grid-cols-12 lg:gap-8 lg:pt-24">
-            <div className="min-w-0 self-center pb-2 lg:col-span-8 lg:pb-10">
+          <div className="relative z-10 mx-auto grid min-h-[640px] min-w-0 max-w-7xl content-between gap-8 px-4 pb-0 pt-12 sm:px-5 sm:pt-16 lg:min-h-[700px] lg:grid-cols-12 lg:gap-8 lg:pt-20">
+            <div className="min-w-0 self-center rounded-[2rem] border border-white/10 bg-asanda-ink/35 p-5 shadow-[0_28px_80px_-42px_rgba(0,0,0,0.9)] backdrop-blur-[2px] sm:p-8 lg:col-span-8 lg:p-10">
               <div className="mb-5 flex items-center gap-3 text-[10px] font-bold uppercase leading-4 tracking-[0.13em] text-cyan-200 sm:text-[11px] sm:tracking-[0.16em]">
                 <span className="h-px w-10 shrink-0 bg-asanda-cyan" aria-hidden="true" />
                 Asociación de Deportes Acuáticos del Estado Anzoátegui
               </div>
-              <h1 id="home-title" className="font-brand max-w-4xl text-[clamp(1.8rem,8.6vw,5rem)] font-bold uppercase leading-[0.98] tracking-[-0.035em]">
+              <h1 id="home-title" className="font-brand max-w-4xl text-[clamp(2.15rem,8.4vw,5.35rem)] font-bold uppercase leading-[0.94] tracking-[-0.04em]">
                 <span className="block whitespace-nowrap">Donde la pasión</span>
                 {' '}
                 <span className="block whitespace-nowrap">acuática se siente</span>
               </h1>
-              <p className="mt-6 max-w-2xl text-base leading-7 text-blue-50 sm:text-lg sm:leading-8">
+              <p className="mt-6 max-w-2xl text-base leading-7 text-blue-50/95 sm:text-lg sm:leading-8">
                 Resultados, calendario, récords y actualidad de nuestros atletas y clubes, reunidos en el portal oficial de ASANDA.
               </p>
 
@@ -87,15 +87,12 @@ function HomePage() {
               </div>
             </div>
 
-            <div className="min-w-0 self-end pb-6 lg:col-span-4 lg:pb-10">
+            <div className="min-w-0 self-center lg:col-span-4">
               <HeroSponsorSlot />
             </div>
 
             <div className="lg:col-span-12">
-              <HeroStats
-                atletas={atletas}
-                clubs={['Todos', ...new Set(atletas.map((atleta) => atleta.club))]}
-              />
+              <HeroStats />
             </div>
           </div>
         </section>
