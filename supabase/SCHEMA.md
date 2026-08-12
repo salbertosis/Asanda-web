@@ -48,6 +48,7 @@ Do not use an athlete name or national ID in a Cloudinary public ID. Names chang
 ```text
 organizations 1---N athlete_memberships N---1 athletes
 athletes      N---N disciplines through athlete_disciplines
+athletes      1---N athlete_category_assignments N---1 age_categories
 athletes      1---N athlete_consents
 athletes      1---1 private.athlete_details
 
@@ -88,6 +89,16 @@ The service-role key bypasses RLS. It must never appear in React, a `VITE_*` var
 | `viewer` | Authenticated read-only account |
 
 The initial migration intentionally limits writes to administrators and editors. Club-scoped editing needs a reviewed workflow before it receives write policies.
+
+## Athlete classification
+
+Affiliation and competitive category are separate dimensions:
+
+- `athlete_memberships.membership_type` stores `associated` or `federated` for a club and period.
+- `athlete_category_assignments` stores the athlete's age category and effective period.
+- `age_categories` is the controlled catalog: Pre Infantil A/B/C, Infantil A/B, Juvenil A/B, and Máxima.
+
+Category assignments are historical and cannot overlap for the same athlete. Pre-infant categories are marked as not eligible for federation; database triggers reject any overlapping active federated membership regardless of which record is inserted first.
 
 ## Data not migrated blindly
 

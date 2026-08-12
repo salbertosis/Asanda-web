@@ -58,6 +58,8 @@ In **Table Editor**, verify that these tables exist:
 - `organizations`
 - `athlete_memberships`
 - `athlete_consents`
+- `age_categories`
+- `athlete_category_assignments`
 - `competitions`
 - `competition_events`
 - `entries`
