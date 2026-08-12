@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
 import { access } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { approvedPublicSite } from '../src/config/publicSite.js';
 import { buildRouteMetadata, isDemoRoute, routeMetadata } from '../src/seo/routeMetadata.js';
 import { createPublicAssets } from '../scripts/generate-public-assets.mjs';
-import { comparePerformance } from '../scripts/performance-regression.mjs';
+import { comparePerformance, median } from '../scripts/performance-regression.mjs';
 import { registerWebVitals } from '../src/metrics/webVitals.js';
+
+const lighthouse = createRequire(import.meta.url)('../lighthouserc.cjs').ci;
 
 const origin = 'https://asanda.org.ve';
 const site = { canonicalOrigin: origin, canonicalOriginApproved: true, identity: { value: 'ASANDA', approved: true }, copyright: { notice: 'ASANDA 2026', approved: true }, social: [{ label: 'Instagram', href: 'https://instagram.com/asanda', approved: true }], legal: { legalApproved: true, privacyApproved: true }, criticalAssets: ['/assets/hero.svg', '/favicon.svg', '/assets/social-card.svg'] };
@@ -32,6 +35,16 @@ for (const file of ['public/assets/hero.svg', 'public/assets/social-card.svg']) 
 assert.equal(comparePerformance({ scores: { performance: 0.78 }, metrics: { LCP: 2200 } }, { scores: { performance: 0.8 }, metrics: { LCP: 2000 } }).ok, false);
 assert.equal(comparePerformance({ scores: { performance: 0.81 }, metrics: { LCP: 1900 } }, { scores: { performance: 0.8 }, metrics: { LCP: 2000 } }).ok, true);
 assert.equal(comparePerformance({ scores: {}, metrics: {} }, { scores: { performance: 0.8 }, metrics: { LCP: 2000 } }).ok, false, 'missing measurements must fail closed');
+assert.equal(comparePerformance({ metrics: { LCP: 888 } }, { metrics: { LCP: 872 } }, { metrics: { LCP: 100 } }).ok, true, 'small lab jitter is accepted within the documented tolerance');
+assert.equal(comparePerformance({ metrics: { LCP: 973 } }, { metrics: { LCP: 872 } }, { metrics: { LCP: 100 } }).ok, false, 'real lab degradation remains a failure');
+assert.equal(median([1756, 952, 1516, 928, 840]), 952, 'odd samples use their mathematical median');
+assert.equal(median([840, 928, 952, 1516]), 940, 'even samples average their two middle values');
+assert.equal(median([840, null, 952]), null, 'missing samples fail closed');
+assert.equal(lighthouse.collect.numberOfRuns, 3, 'Lighthouse must collect three runs per route');
+assert.deepEqual(lighthouse.assert.assertions['categories:performance'], ['error', { minScore: 0.8, aggregationMethod: 'median' }]);
+assert.deepEqual(lighthouse.assert.assertions['categories:accessibility'], ['error', { minScore: 0.9, aggregationMethod: 'median' }]);
+assert.deepEqual(lighthouse.assert.assertions['largest-contentful-paint'], ['warn', { maxNumericValue: 2500, aggregationMethod: 'median' }]);
+assert.deepEqual(lighthouse.assert.assertions['cumulative-layout-shift'], ['warn', { maxNumericValue: 0.1, aggregationMethod: 'median' }]);
 const registrations = [];
 assert.equal(registerWebVitals(Object.fromEntries(['onCLS', 'onINP', 'onLCP'].map((name) => [name, (...args) => registrations.push(args)])), () => {}), true);
 assert.equal(registrations.length, 3, 'Web Vitals must register CLS, INP, and LCP without a network sink');
