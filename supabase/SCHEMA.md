@@ -77,6 +77,8 @@ Anonymous visitors can read only:
 
 The exact date of birth, national ID, guardian contact, and internal notes live in `private.athlete_details`. That schema is not exposed through the Supabase Data API and is available only to trusted server-side code using the service role.
 
+Every athlete private-detail record requires an exact birth date and a unique SHA-256 fingerprint of the normalized national ID. The fingerprint enforces uniqueness without making the identifier queryable in plaintext; only the last four digits are retained for administrative confirmation.
+
 The service-role key bypasses RLS. It must never appear in React, a `VITE_*` variable, Git, screenshots, or browser requests.
 
 ## Roles
@@ -94,11 +96,19 @@ The initial migration intentionally limits writes to administrators and editors.
 
 Affiliation and competitive category are separate dimensions:
 
-- `athlete_memberships.membership_type` stores `associated` or `federated` for a club and period.
+- `athlete_memberships.membership_type` stores concurrent `associated` and `federated` records for a club and period.
 - `athlete_category_assignments` stores the athlete's age category and effective period.
 - `age_categories` is the controlled catalog: Pre Infantil A/B/C, Infantil A/B, Juvenil A/B, and Máxima.
 
 Category assignments are historical and cannot overlap for the same athlete. Pre-infant categories are marked as not eligible for federation; database triggers reject any overlapping active federated membership regardless of which record is inserted first.
+
+Active category age ranges cannot overlap. The catalog covers ages 4 through 18 in bounded groups, followed by Máxima / Abierta (Open) from age 19 without an upper limit.
+
+Federation is an additional status, not a replacement for association. Every active federated period must be fully covered by an active associated period for the same athlete and club. A federated athlete therefore counts in both associated and federated totals.
+
+## Aquatic disciplines
+
+`disciplines` is the controlled catalog beneath the `aquatics` sport. The active ordered values are Natación, Aguas Abiertas, Water Polo, Nado Sincronizado, and Saltos Ornamentales. Athletes may have at most two simultaneous temporal discipline assignments through `athlete_disciplines`, with at most one marked primary at any time.
 
 ## Data not migrated blindly
 
