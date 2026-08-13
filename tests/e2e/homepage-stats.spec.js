@@ -59,8 +59,32 @@ test('keeps the redesigned homepage within a narrow viewport', async ({ page }) 
 
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await expect(page.getByLabel('Estadísticas principales')).toBeVisible();
-  const pageWidth = await page.evaluate(() => document.documentElement.scrollWidth);
-  expect(pageWidth).toBeLessThanOrEqual(320);
+  const layout = await page.evaluate(() => {
+    const title = document.querySelector('#home-title').getBoundingClientRect();
+    return {
+      pageWidth: document.documentElement.scrollWidth,
+      titleLeft: title.left,
+      titleRight: title.right,
+    };
+  });
+  expect(layout.pageWidth).toBeLessThanOrEqual(320);
+  expect(layout.titleLeft).toBeGreaterThanOrEqual(0);
+  expect(layout.titleRight).toBeLessThanOrEqual(320);
+});
+
+test('keeps the desktop title clear of the sponsor slot', async ({ page }) => {
+  await page.setViewportSize({ width: 1800, height: 900 });
+  await routeStats(page);
+  await page.goto('/');
+
+  const title = page.getByRole('heading', { level: 1 });
+  const sponsor = page.locator('section[aria-labelledby="home-title"]').getByRole('complementary');
+  await expect(title).toBeVisible();
+  await expect(sponsor).toBeVisible();
+
+  const titleBox = await title.boundingBox();
+  const sponsorBox = await sponsor.boundingBox();
+  expect(titleBox.x + titleBox.width).toBeLessThanOrEqual(sponsorBox.x);
 });
 
 test('does not request homepage stats in isolated advertising preview', async ({ page }) => {
