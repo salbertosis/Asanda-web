@@ -93,16 +93,21 @@ const competitionResponse = [
     id: '3d1c7f2a-9b40-4c6e-8f11-000000000005',
     name: 'Copa Pasión Acuática',
     slug: 'copa-pasion-acuatica-2026',
-    starts_on: '2026-07-03',
-    ends_on: '2026-07-05',
-    recognition_status: 'unrecognized',
+    starts_on: '2026-12-07',
+    ends_on: '2026-12-13',
+    recognition_status: 'recognized',
     status: 'scheduled',
     description: null,
-    logo: null,
+    logo: {
+      provider: 'cloudinary',
+      public_id: 'feveda_logo',
+      external_url: null,
+      alt_text: 'Logo de FEVEDA',
+    },
     organizer: {
-      name: 'Asociación de Deportes Acuáticos de Anzoátegui',
-      short_name: 'ASANDA',
-      slug: 'asanda',
+      name: 'Federación Venezolana de Deportes Acuáticos',
+      short_name: 'FEVEDA',
+      slug: 'feveda',
     },
     venue: null,
   },
@@ -128,7 +133,7 @@ test('renders the official agenda with organizer identities', async ({ page }) =
   await expect(page.getByRole('heading', { name: 'Competiciones 2026' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'I Campeonato Municipal de Fondo' })).toBeVisible();
   await expect(page.getByLabel('Resumen del calendario')).toContainText('4');
-  await expect(page.getByAltText('Logo de FEVEDA')).toHaveAttribute('src', /c_pad,b_transparent.*\/feveda_logo$/);
+  await expect(page.getByAltText('Logo de FEVEDA').first()).toHaveAttribute('src', /c_pad,b_transparent.*\/feveda_logo$/);
   await expect(page.getByAltText('Logo de ASANDA')).toHaveAttribute('src', /c_pad,b_transparent.*\/asanda$/);
 
   await page.getByRole('button', { name: 'Ver calendario 2025' }).click();
