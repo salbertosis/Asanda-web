@@ -13,7 +13,10 @@ export const publicSite = {
   canonicalOrigin: 'https://asanda-web.vercel.app', canonicalOriginApproved: true,
   identity: { value: 'ASANDA', approved: true },
   copyright: { notice: '© 2026 Asociación de Deportes Acuáticos del Estado Anzoátegui (ASANDA). Todos los derechos reservados', approved: true },
-  social: [], legal: { legalApproved: true, privacyApproved: true },
+  social: [
+    { label: 'Instagram', href: 'https://www.instagram.com/asandaanzoategui/', approved: true },
+    { label: 'WhatsApp', href: 'https://wa.me/5804124090715', approved: true },
+  ], legal: { legalApproved: true, privacyApproved: true },
   criticalAssets: ['/favicon.svg', '/assets/hero.svg', '/assets/social-card.svg'],
 };
 

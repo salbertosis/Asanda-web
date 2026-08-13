@@ -18,7 +18,7 @@ const PartnerGridSlot = () => {
             {cells.map((ad, index) =>
                 ad ? (
                     <div key={ad.sponsor.id} className="w-[210px] shrink-0 sm:w-[230px] lg:min-w-0 lg:flex-1">
-                        <AdSlotFrame placement={placement} ad={ad} />
+                        <AdSlotFrame placement={placement} ad={ad} imageOnly />
                     </div>
                 ) : (
                     <div key={`empty-${index}`} className="w-[210px] shrink-0 sm:w-[230px] lg:min-w-0 lg:flex-1">

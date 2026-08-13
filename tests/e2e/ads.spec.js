@@ -78,7 +78,9 @@ test('presents footer sponsors as a contained horizontal strip on mobile', async
 
   const footer = page.getByRole('contentinfo');
   await expect(footer.getByRole('heading', { name: 'Patrocinadores globales' })).toBeVisible();
-  await expect(footer.getByLabel('Patrocinadores demo').getByRole('complementary')).toHaveCount(4);
+  const sponsors = footer.getByLabel('Patrocinadores demo');
+  await expect(sponsors.getByRole('complementary')).toHaveCount(4);
+  await expect(sponsors.getByText(/Publicidad|Presentado por|Contenido patrocinado|Demo/)).toHaveCount(0);
   const pageWidth = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(pageWidth).toBeLessThanOrEqual(390);
 });

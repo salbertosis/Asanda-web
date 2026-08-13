@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="800" height="200" viewBox="0 0 800 200" role="img" aria-labelledby="title description">
   <title id="title">VITALSPORT Demo</title>
   <desc id="description">Creative for a fictional sports health sponsor.</desc>
-  <defs><linearGradient id="background" x1="0" x2="1"><stop stop-color="#7f1d1d"/><stop offset="1" stop-color="#f97316"/></linearGradient></defs>
+  <defs><linearGradient id="background" x1="0" x2="1"><stop stop-color="#334155"/><stop offset="1" stop-color="#475569"/></linearGradient></defs>
   <rect width="800" height="200" rx="24" fill="url(#background)"/>
   <path d="M72 104h48l22-47 34 91 28-62 19 18h52" fill="none" stroke="#ffedd5" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
   <circle cx="174" cy="102" r="67" fill="none" stroke="#fff" stroke-width="5" opacity=".28"/>

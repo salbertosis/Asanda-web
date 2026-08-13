@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Info } from 'lucide-react';
 
 const DISCLOSURE_LABELS = {
     'publicidad': 'Publicidad',
@@ -30,7 +31,7 @@ const SLOT_LAYOUT_STYLES = {
 
 // Marco compartido de slot publicitario (D3): landmark complementary,
 // etiqueta de disclosure, badge Demo, link interno sponsored y foco visible.
-const AdSlotFrame = ({ placement, ad, className = '' }) => {
+const AdSlotFrame = ({ placement, ad, className = '', imageOnly = false }) => {
     const { sponsor } = ad;
     const disclosure = DISCLOSURE_LABELS[sponsor.disclosure] ?? DISCLOSURE_LABELS.publicidad;
     const badge = BADGE_LABELS[sponsor.badge] ?? BADGE_LABELS.demo;
@@ -41,14 +42,17 @@ const AdSlotFrame = ({ placement, ad, className = '' }) => {
             aria-label={`Publicidad: ${sponsor.name}`}
             className={`flex flex-col overflow-hidden border border-gray-200 bg-white text-gray-900 motion-safe:animate-fade-in dark:border-gray-700 dark:bg-dark-surface dark:text-dark-text ${SLOT_DIMENSION_STYLES[placement.id] ?? ''} ${SLOT_LAYOUT_STYLES[placement.id] ?? ''} ${className}`}
         >
-            <div className="flex shrink-0 items-center justify-between gap-2 px-3 pt-2">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    {disclosure}
-                </span>
-                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800 dark:bg-amber-900 dark:text-amber-100">
-                    {badge}
-                </span>
-            </div>
+            {!imageOnly && (
+                <div className="flex shrink-0 items-center justify-between gap-2 px-3 pt-2">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                        <Info size={12} aria-hidden="true" className="shrink-0 text-gray-400 dark:text-gray-500" />
+                        {disclosure}
+                    </span>
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800 dark:bg-amber-900 dark:text-amber-100">
+                        {badge}
+                    </span>
+                </div>
+            )}
             <Link
                 to={ad.destination}
                 rel="sponsored noopener"

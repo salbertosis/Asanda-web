@@ -3,7 +3,6 @@ import { Link, Routes, Route, useSearchParams } from 'react-router-dom';
 import { ArrowRight, CalendarDays, Trophy } from 'lucide-react';
 import { atletas } from './data/atletas';
 import AppShell from './components/layout/AppShell';
-import DarkModeToggle from './components/DarkModeToggle';
 import AthleteModal from './components/AthleteModal';
 import NewsSection from './components/NewsSection';
 import VideoSection from './components/VideoSection';
@@ -55,17 +54,17 @@ function HomePage() {
           <HeroBackground />
 
           <div className="relative z-10 mx-auto grid min-h-[640px] min-w-0 max-w-7xl content-between gap-8 px-4 pb-0 pt-6 sm:px-5 sm:pt-8 lg:min-h-[700px] lg:grid-cols-12 lg:gap-8 lg:pt-6">
-            <div className="min-w-0 self-center rounded-[2rem] border border-white/10 bg-asanda-ink/35 p-5 shadow-[0_28px_80px_-42px_rgba(0,0,0,0.9)] backdrop-blur-[2px] sm:p-8 lg:col-span-8 lg:p-10">
+            <div className="min-w-0 self-center rounded-[2rem] border border-white/10 bg-asanda-ink/35 p-5 shadow-[0_28px_80px_-42px_rgba(0,0,0,0.9)] backdrop-blur-[2px] sm:p-8 lg:col-span-12 lg:p-10">
               <div className="mb-5 flex items-center gap-3 text-[10px] font-bold uppercase leading-4 tracking-[0.13em] text-cyan-200 sm:text-[11px] sm:tracking-[0.16em]">
                 <span className="h-px w-10 shrink-0 bg-asanda-cyan" aria-hidden="true" />
                 Asociación de Deportes Acuáticos del Estado Anzoátegui
               </div>
-              <h1 id="home-title" className="font-brand max-w-full text-[clamp(1.85rem,5vw,4.5rem)] font-bold uppercase leading-[0.94] tracking-[-0.04em]">
+              <h1 id="home-title" className="font-brand max-w-full text-[clamp(1.55rem,5vw,4.5rem)] font-bold uppercase leading-[0.94] tracking-[-0.04em]">
                 <span className="block lg:whitespace-nowrap">Donde la pasión</span>
                 {' '}
                 <span className="block lg:whitespace-nowrap">acuática se siente</span>
               </h1>
-              <p className="mt-6 max-w-2xl text-base leading-7 text-blue-50/95 sm:text-lg sm:leading-8">
+              <p className="mt-6 max-w-2xl text-base leading-7 text-blue-50 sm:text-lg sm:leading-8">
                 Resultados, calendario, récords y actualidad de nuestros atletas y clubes, reunidos en el portal oficial de ASANDA.
               </p>
 
@@ -88,10 +87,6 @@ function HomePage() {
               </div>
             </div>
 
-            <div className="min-w-0 self-center lg:col-span-4">
-              <HeroSponsorSlot />
-            </div>
-
             <div className="lg:col-span-12">
               <HeroStats />
             </div>
@@ -101,9 +96,9 @@ function HomePage() {
         {/* Sección de Noticias */}
         <NewsSection />
 
-        {/* Banner Ad Principal */}
+        {/* Contenido patrocinado (demo): detrás de la primera sección de contenido real */}
         <div className="container mx-auto px-4 py-3 sm:py-4">
-          <LeaderboardSlot />
+          <HeroSponsorSlot />
         </div>
 
         {/* Sección de Atletas Destacados */}
@@ -163,7 +158,6 @@ function App() {
         <Route path="/record-estadal" element={<RecordEstadalPage />} />
       </Routes>
       </AppShell>
-      <DarkModeToggle />
     </>
   );
 }

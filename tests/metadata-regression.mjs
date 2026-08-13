@@ -12,7 +12,7 @@ const lighthouse = createRequire(import.meta.url)('../lighthouserc.cjs').ci;
 const origin = 'https://asanda.org.ve';
 const site = { canonicalOrigin: origin, canonicalOriginApproved: true, identity: { value: 'ASANDA', approved: true }, copyright: { notice: 'ASANDA 2026', approved: true }, social: [{ label: 'Instagram', href: 'https://instagram.com/asanda', approved: true }], legal: { legalApproved: true, privacyApproved: true }, criticalAssets: ['/assets/hero.svg', '/favicon.svg', '/assets/social-card.svg'] };
 assert.equal(approvedPublicSite.canonicalOrigin, 'https://asanda-web.vercel.app');
-assert.equal(approvedPublicSite.identity.value, 'ASANDA'); assert.deepEqual(approvedPublicSite.social, []);
+assert.equal(approvedPublicSite.identity.value, 'ASANDA'); assert.deepEqual(approvedPublicSite.social, [{ label: 'Instagram', href: 'https://www.instagram.com/asandaanzoategui/', approved: true }, { label: 'WhatsApp', href: 'https://wa.me/5804124090715', approved: true }]);
 assert.deepEqual(approvedPublicSite.criticalAssets, ['/favicon.svg', '/assets/hero.svg', '/assets/social-card.svg']);
 
 const paths = routeMetadata.map((route) => route.path);

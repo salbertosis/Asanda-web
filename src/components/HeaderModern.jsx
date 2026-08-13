@@ -13,6 +13,7 @@ import {
   Waves,
   X,
 } from 'lucide-react';
+import DarkModeToggle from './DarkModeToggle';
 
 const sports = ['Natación', 'Waterpolo', 'Aguas abiertas'];
 
@@ -214,19 +215,22 @@ const Header = () => {
             ))}
           </nav>
 
-          <button
-            type="button"
-            aria-label={mobileOpen ? 'Cerrar menú principal' : 'Abrir menú principal'}
-            aria-expanded={mobileOpen}
-            aria-controls="mobile-navigation"
-            onClick={() => {
-              setMobileOpen((current) => !current);
-              setOpenMenu(null);
-            }}
-            className="ml-auto inline-flex size-11 shrink-0 items-center justify-center border border-asanda-line bg-asanda-foam text-asanda-ink transition-colors hover:border-asanda-cyan hover:text-asanda-blue xl:hidden"
-          >
-            {mobileOpen ? <X size={23} aria-hidden="true" /> : <Menu size={23} aria-hidden="true" />}
-          </button>
+          <div className="ml-auto flex items-center gap-2 xl:ml-0">
+            <DarkModeToggle />
+            <button
+              type="button"
+              aria-label={mobileOpen ? 'Cerrar menú principal' : 'Abrir menú principal'}
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-navigation"
+              onClick={() => {
+                setMobileOpen((current) => !current);
+                setOpenMenu(null);
+              }}
+              className="inline-flex size-11 shrink-0 items-center justify-center bg-asanda-cyan text-asanda-ink transition-colors hover:bg-cyan-200 xl:hidden"
+            >
+              {mobileOpen ? <X size={23} aria-hidden="true" /> : <Menu size={23} aria-hidden="true" />}
+            </button>
+          </div>
         </div>
       </div>
 

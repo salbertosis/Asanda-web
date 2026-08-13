@@ -72,19 +72,30 @@ test('keeps the redesigned homepage within a narrow viewport', async ({ page }) 
   expect(layout.titleRight).toBeLessThanOrEqual(320);
 });
 
-test('keeps the desktop title clear of the sponsor slot', async ({ page }) => {
+test('keeps the sponsor slot below the first content section', async ({ page }) => {
   await page.setViewportSize({ width: 1800, height: 900 });
   await routeStats(page);
   await page.goto('/');
 
-  const title = page.getByRole('heading', { level: 1 });
-  const sponsor = page.locator('section[aria-labelledby="home-title"]').getByRole('complementary');
-  await expect(title).toBeVisible();
-  await expect(sponsor).toBeVisible();
+  const hero = page.locator('section[aria-labelledby="home-title"]');
+  await expect(hero.getByRole('complementary')).toHaveCount(0);
 
-  const titleBox = await title.boundingBox();
+  const sponsor = page.locator('main').getByRole('complementary').first();
+  await expect(sponsor).toBeVisible();
   const sponsorBox = await sponsor.boundingBox();
-  expect(titleBox.x + titleBox.width).toBeLessThanOrEqual(sponsorBox.x);
+  const newsBox = await page.locator('main').getByRole('heading', { name: /noticias/i }).first().boundingBox();
+  expect(sponsorBox.y).toBeGreaterThan(newsBox.y);
+});
+
+test('keeps the primary CTA above the fold on a standard mobile viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await routeStats(page);
+  await page.goto('/');
+
+  const cta = page.getByRole('link', { name: 'Ver resultados' });
+  await expect(cta).toBeVisible();
+  const box = await cta.boundingBox();
+  expect(box.y + box.height).toBeLessThanOrEqual(844);
 });
 
 test('does not request homepage stats in isolated advertising preview', async ({ page }) => {

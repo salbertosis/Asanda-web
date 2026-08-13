@@ -69,6 +69,9 @@ test('renders approved legal and privacy content without placeholder institution
   await page.goto('/privacidad'); await expect(page.getByRole('main')).toHaveCount(1); await expect(page.getByRole('heading', { name: 'Privacidad' })).toBeVisible();
   await expect(page.getByText(approvedPrivacy.sections[0].body, { exact: true })).toBeVisible(); await page.goto('/');
   await expect(page.getByText('© 2026 Asociación de Deportes Acuáticos del Estado Anzoátegui (ASANDA). Todos los derechos reservados')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Seguir a ASANDA en Instagram' })).toHaveAttribute('href', 'https://www.instagram.com/asandaanzoategui/');
+  await expect(page.getByRole('link', { name: 'Contactar a ASANDA por WhatsApp' })).toHaveAttribute('href', 'https://wa.me/5804124090715');
+  for (const heading of ['Deportes', 'Enlaces']) await expect(page.getByRole('contentinfo').getByRole('heading', { name: heading })).toHaveCount(0);
   for (const value of ['Copyright 2025 - Natación Estadal. Todos los derechos reservados.', 'info@natacionestadal.com', '+58 212 123 4567']) await expect(page.getByText(value)).toHaveCount(0);
 });
 
