@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, CalendarDays, CheckCircle2, MapPin, ShieldCheck, Waves } from 'lucide-react';
 import { getCloudinaryUrl } from '../config/cloudinary';
-import { getCompetenciaBySlug } from '../data/calendario';
+import { getCompetenciaBySlugRemote } from '../services/competitions';
 
 const DISCIPLINE_LABELS = {
   natacion: 'Natación',
@@ -19,7 +19,51 @@ const getLogoUrl = (competition) => {
 
 const CompetenciaPage = () => {
   const { slug } = useParams();
-  const competition = getCompetenciaBySlug(slug);
+  const [competition, setCompetition] = useState(null);
+  const [status, setStatus] = useState('loading');
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+
+    setStatus('loading');
+    setCompetition(null);
+
+    getCompetenciaBySlugRemote(slug, controller.signal)
+      .then((found) => {
+        if (!active) return;
+        setCompetition(found);
+        setStatus('ready');
+      })
+      .catch(() => {
+        if (active) setStatus('error');
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [slug]);
+
+  if (status === 'loading') {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950" role="status">
+        <p className="text-lg font-medium text-slate-700 dark:text-slate-200">Cargando competencia…</p>
+      </div>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <section className="min-h-[60vh] bg-slate-50 px-4 py-20 text-center dark:bg-slate-950" role="alert">
+        <h1 className="text-3xl font-bold text-slate-950 dark:text-white">No pudimos cargar la competencia</h1>
+        <p className="mt-3 text-slate-600 dark:text-slate-300">Intentá nuevamente más tarde.</p>
+        <Link to="/calendario" className="mt-7 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#0F4C5C] px-5 font-bold text-white">
+          <ArrowLeft size={18} aria-hidden="true" /> Volver al calendario
+        </Link>
+      </section>
+    );
+  }
 
   if (!competition) {
     return (

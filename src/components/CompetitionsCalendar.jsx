@@ -1,15 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, MapPin, RefreshCw, ShieldCheck, Waves } from 'lucide-react';
 import { getCloudinaryUrl } from '../config/cloudinary';
 
 const MONTHS = ['Todos', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-const DISCIPLINES = [
-  { value: 'todos', label: 'Todas' },
-  { value: 'natacion', label: 'Natación' },
-  { value: 'waterpolo', label: 'Water Polo' },
-  { value: 'aguas-abiertas', label: 'Aguas Abiertas' },
-];
+const DISCIPLINE_LABELS = {
+  natacion: 'Natación',
+  waterpolo: 'Water Polo',
+  'aguas-abiertas': 'Aguas Abiertas',
+};
 
 const getCompetitionLogo = (competition) => {
   if (competition.logoUrl) return competition.logoUrl;
@@ -22,9 +21,18 @@ const CompetitionsCalendar = ({ competencias, año, onAñoChange }) => {
   const [mes, setMes] = useState('Todos');
   const [disciplina, setDisciplina] = useState('todos');
 
+  const availableDisciplines = [...new Set(competencias.map((competition) => competition.deporte).filter(Boolean))];
+
+  useEffect(() => {
+    setDisciplina('todos');
+  }, [availableDisciplines.length]);
+
+  const disciplineFilter = availableDisciplines.length > 0 ? disciplina : 'todos';
+  const disciplineButtons = availableDisciplines.map((value) => ({ value, label: DISCIPLINE_LABELS[value] || value }));
+
   const filteredCompetitions = competencias.filter((competition) => (
     (mes === 'Todos' || competition.mes === mes)
-    && (disciplina === 'todos' || competition.deporte === disciplina)
+    && (disciplineFilter === 'todos' || competition.deporte === disciplineFilter)
   ));
   const groupedCompetitions = MONTHS.slice(1).flatMap((month) => {
     const items = filteredCompetitions.filter((competition) => competition.mes === month);
@@ -67,16 +75,18 @@ const CompetitionsCalendar = ({ competencias, año, onAñoChange }) => {
                   {MONTHS.map((month) => <option key={month} value={month}>{month === 'Todos' ? 'Todos los meses' : month}</option>)}
                 </select>
               </label>
-              <fieldset className="min-w-0">
-                <legend className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Disciplina</legend>
-                <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Filtrar por disciplina">
-                  {DISCIPLINES.map(({ value, label }) => (
-                    <button key={value} type="button" aria-pressed={disciplina === value} onClick={() => setDisciplina(value)} className={`min-h-12 shrink-0 rounded-xl border px-4 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${disciplina === value ? 'border-blue-700 bg-blue-700 text-white' : 'border-slate-300 bg-white text-slate-700 hover:border-blue-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200'}`}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
+              {availableDisciplines.length > 0 && (
+                <fieldset className="min-w-0">
+                  <legend className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Disciplina</legend>
+                  <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Filtrar por disciplina">
+                    {[{ value: 'todos', label: 'Todas' }, ...disciplineButtons].map(({ value, label }) => (
+                      <button key={value} type="button" aria-pressed={disciplineFilter === value} onClick={() => setDisciplina(value)} className={`min-h-12 shrink-0 rounded-xl border px-4 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${disciplineFilter === value ? 'border-blue-700 bg-blue-700 text-white' : 'border-slate-300 bg-white text-slate-700 hover:border-blue-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200'}`}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+              )}
               <button type="button" onClick={resetFilters} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 text-sm font-bold text-slate-700 transition-colors hover:border-blue-500 hover:text-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:border-slate-700 dark:text-slate-200 dark:hover:text-cyan-300">
                 <RefreshCw size={17} aria-hidden="true" /> Reiniciar
               </button>
@@ -116,7 +126,7 @@ const CompetitionsCalendar = ({ competencias, año, onAñoChange }) => {
                         {logoUrl ? <img src={logoUrl} alt={competition.logoAlt || `Identidad de ${competition.organizador}`} width="160" height="96" loading="lazy" decoding="async" className="aspect-[5/3] w-full max-w-36 object-contain" /> : <div className="text-center text-slate-500 dark:text-slate-300"><ShieldCheck className="mx-auto text-blue-700 dark:text-cyan-400" size={34} aria-hidden="true" /><p className="mt-2 text-xs font-bold uppercase tracking-wider">{competition.organizador || 'Organizador'}</p></div>}
                       </div>
                       <div className="flex min-w-0 flex-col justify-center p-5 sm:p-7">
-                        <div className="flex flex-wrap items-center gap-2"><span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800 dark:bg-blue-950 dark:text-blue-200"><Waves size={14} aria-hidden="true" /> {DISCIPLINES.find(({ value }) => value === competition.deporte)?.label || 'Deporte acuático'}</span>{competition.reconocido && <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"><CheckCircle2 size={14} aria-hidden="true" /> Oficial</span>}</div>
+                        <div className="flex flex-wrap items-center gap-2"><span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800 dark:bg-blue-950 dark:text-blue-200"><Waves size={14} aria-hidden="true" /> {DISCIPLINE_LABELS[competition.deporte] || 'Deporte acuático'}</span>{competition.reconocido && <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"><CheckCircle2 size={14} aria-hidden="true" /> Oficial</span>}</div>
                         <h4 className="mt-4 text-xl font-bold leading-tight text-slate-950 dark:text-white sm:text-2xl">{competition.nombre}</h4>
                         <p className="mt-2 text-sm font-semibold text-slate-500 dark:text-slate-400">Organiza: {competition.organizador}</p>
                         <div className="mt-4 flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300"><MapPin className="mt-0.5 shrink-0 text-blue-700 dark:text-cyan-400" size={17} aria-hidden="true" /><span>{competition.ubicacion}</span></div>
