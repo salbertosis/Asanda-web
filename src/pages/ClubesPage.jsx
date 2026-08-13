@@ -79,8 +79,8 @@ const ClubesPage = () => {
             <>
               <div className="mb-8 flex flex-col gap-4 border-b border-slate-200 pb-7 dark:border-slate-800 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-blue-700 dark:text-cyan-400">Directorio afiliado</p>
-                  <h2 className="text-2xl font-bold text-slate-950 dark:text-white md:text-3xl">Instituciones que forman comunidad</h2>
+                  <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-blue-700 dark:text-cyan-400">Organizaciones afiliadas</p>
+                  <h2 className="text-2xl font-bold text-slate-950 dark:text-white md:text-3xl">Equipos que conforman nuestra comunidad acuática</h2>
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
                     Conocé los clubes activos, su trayectoria y el plantel registrado ante ASANDA.
                   </p>
@@ -101,13 +101,17 @@ const ClubesPage = () => {
                 {clubs.map((club) => (
                   <article key={club.id} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_50px_-28px_rgba(15,23,42,0.35)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_60px_-28px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900 md:grid md:grid-cols-[280px_1fr]">
                     <div className="relative flex min-h-64 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top,_#eff6ff,_#dbeafe_45%,_#bfdbfe)] p-8 dark:bg-[radial-gradient(circle_at_top,_#1e3a5f,_#0f2744_55%,_#0f172a)] md:min-h-full">
-                      {club.logoUrl && (
+                      {club.logoUrl ? (
                         <img
                           src={club.logoUrl}
                           alt={club.logoAlt}
-                          className="h-52 w-52 rounded-full object-contain drop-shadow-xl md:h-56 md:w-56"
+                          className="aspect-[5/3] w-full max-w-60 object-contain drop-shadow-xl"
                           onError={(event) => { event.currentTarget.style.display = 'none'; }}
                         />
+                      ) : (
+                        <span className="font-brand text-5xl font-bold tracking-[0.08em] text-blue-800 dark:text-cyan-300" aria-hidden="true">
+                          {club.shortName || club.name.slice(0, 3).toUpperCase()}
+                        </span>
                       )}
                     </div>
 

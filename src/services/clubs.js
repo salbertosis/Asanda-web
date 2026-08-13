@@ -16,7 +16,12 @@ const countMembers = (memberships, membershipType) => new Set(
 const getLogoUrl = (logo) => {
   if (!logo) return null;
   if (logo.provider === 'cloudinary' && logo.public_id) {
-    return getCloudinaryUrl(logo.public_id, { width: 640, height: 384, crop: 'fit' });
+    return getCloudinaryUrl(logo.public_id, {
+      width: 640,
+      height: 384,
+      crop: 'pad',
+      background: 'transparent',
+    });
   }
   return logo.external_url || null;
 };

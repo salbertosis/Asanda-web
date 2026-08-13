@@ -53,7 +53,10 @@ test('renders published clubs from Supabase with distinct athlete totals', async
   await expect(clubCard.getByText('Plantel registrado')).toBeVisible();
   await expect(clubCard.getByText('2 asociados')).toBeVisible();
   await expect(clubCard.getByText('1 federados')).toBeVisible();
-  await expect(page.getByAltText('Emblema de CCE')).toHaveAttribute('src', /c_fit.*\/cce$/);
+  const logo = page.getByAltText('Emblema de CCE');
+  await expect(logo).toHaveAttribute('src', /w_640,h_384,c_pad,b_transparent.*\/cce$/);
+  const logoBox = await logo.boundingBox();
+  expect(logoBox.width / logoBox.height).toBeCloseTo(5 / 3, 1);
 });
 
 test('exposes a loading status and then an empty state', async ({ page }) => {
@@ -90,4 +93,20 @@ test('keeps the club profile readable on mobile and in dark mode', async ({ page
   await expect(page.getByLabel('Resumen del directorio')).toBeVisible();
   const pageWidth = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(pageWidth).toBeLessThanOrEqual(390);
+});
+
+test('uses the club short name when no logo is published', async ({ page }) => {
+  await routeClubs(page, [{
+    ...clubResponse[0],
+    id: 'club-mansc',
+    name: 'Mantarrayas Swimming Club',
+    short_name: 'MANSC',
+    logo: null,
+    contacts: [],
+    memberships: [],
+  }]);
+  await page.goto('/clubes');
+
+  await expect(page.getByRole('heading', { name: 'Mantarrayas Swimming Club' })).toBeVisible();
+  await expect(page.getByText('MANSC', { exact: true })).toHaveCount(2);
 });

@@ -11,6 +11,7 @@ export const getCloudinaryUrl = (publicId, options = {}) => {
     width = 400,
     height = 400,
     crop = 'fill',
+    background,
     gravity,
     quality = 'auto',
     format = 'auto'
@@ -26,6 +27,7 @@ export const getCloudinaryUrl = (publicId, options = {}) => {
     `w_${width}`,
     `h_${height}`,
     `c_${crop}`,
+    background && `b_${background}`,
     gravity && `g_${gravity}`,
     `q_${quality}`,
     `f_${format}`
