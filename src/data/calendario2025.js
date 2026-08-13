@@ -1,69 +1,7 @@
 export const calendario2025 = [
-  {
-    id: 1,
-    fechaInicio: '15',
-    fechaFin: '17',
-    mes: 'Enero',
-    año: 2025,
-    nombre: 'Campeonato Estadal de Natación',
-    ubicacion: 'VEN, Venezuela, Barcelona',
-    bandera: '🇻🇪',
-    logo: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=100&h=100&fit=crop',
-    reconocido: true,
-    deporte: 'natacion'
-  },
-  {
-    id: 2,
-    fechaInicio: '28',
-    fechaFin: '30',
-    mes: 'Enero',
-    año: 2025,
-    nombre: 'Torneo Regional de Waterpolo',
-    ubicacion: 'VEN, Venezuela, Puerto La Cruz',
-    bandera: '🇻🇪',
-    logo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop',
-    reconocido: true,
-    deporte: 'waterpolo'
-  },
-  {
-    id: 3,
-    fechaInicio: '5',
-    fechaFin: '7',
-    mes: 'Febrero',
-    año: 2025,
-    nombre: 'Competencia de Aguas Abiertas',
-    ubicacion: 'VEN, Venezuela, Lechería',
-    bandera: '🇻🇪',
-    logo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
-    reconocido: false,
-    deporte: 'aguas-abiertas'
-  },
-  {
-    id: 4,
-    fechaInicio: '20',
-    fechaFin: '22',
-    mes: 'Marzo',
-    año: 2025,
-    nombre: 'Copa Nacional de Natación',
-    ubicacion: 'VEN, Venezuela, Caracas',
-    bandera: '🇻🇪',
-    logo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
-    reconocido: true,
-    deporte: 'natacion'
-  },
-  {
-    id: 5,
-    fechaInicio: '10',
-    fechaFin: '12',
-    mes: 'Abril',
-    año: 2025,
-    nombre: 'Torneo de Waterpolo Juvenil',
-    ubicacion: 'VEN, Venezuela, Puerto La Cruz',
-    bandera: '🇻🇪',
-    logo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop',
-    reconocido: true,
-    deporte: 'waterpolo'
-  },
+  { id: 1, slug: 'campeonato-estadal-natacion-2025', fechaInicio: '15', fechaFin: '17', mes: 'Enero', año: 2025, nombre: 'Campeonato Estadal de Natación', ubicacion: 'Barcelona, Anzoátegui', organizador: 'ASANDA', logoUrl: '/asanda.png', logoAlt: 'Logo de ASANDA', reconocido: true, deporte: 'natacion' },
+  { id: 2, slug: 'torneo-regional-water-polo-2025', fechaInicio: '28', fechaFin: '30', mes: 'Enero', año: 2025, nombre: 'Torneo Regional de Water Polo', ubicacion: 'Puerto La Cruz, Anzoátegui', organizador: 'Organización por confirmar', logoPublicId: null, reconocido: true, deporte: 'waterpolo' },
+  { id: 3, slug: 'competencia-aguas-abiertas-2025', fechaInicio: '5', fechaFin: '7', mes: 'Febrero', año: 2025, nombre: 'Competencia de Aguas Abiertas', ubicacion: 'Lechería, Anzoátegui', organizador: 'Organización por confirmar', logoPublicId: null, reconocido: false, deporte: 'aguas-abiertas' },
+  { id: 4, slug: 'copa-nacional-natacion-2025', fechaInicio: '20', fechaFin: '22', mes: 'Marzo', año: 2025, nombre: 'Copa Nacional de Natación', ubicacion: 'Caracas, Distrito Capital', organizador: 'FEVEDA', logoPublicId: 'feveda_logo', logoAlt: 'Logo de FEVEDA', reconocido: true, deporte: 'natacion' },
+  { id: 5, slug: 'torneo-water-polo-juvenil-2025', fechaInicio: '10', fechaFin: '12', mes: 'Abril', año: 2025, nombre: 'Torneo de Water Polo Juvenil', ubicacion: 'Puerto La Cruz, Anzoátegui', organizador: 'Organización por confirmar', logoPublicId: null, reconocido: true, deporte: 'waterpolo' },
 ];
-
-

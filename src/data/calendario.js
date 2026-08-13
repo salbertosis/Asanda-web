@@ -19,4 +19,6 @@ export const todoElCalendario = [
   ...calendario2026,
 ];
 
+export const getCompetenciaBySlug = (slug) => todoElCalendario.find((competencia) => competencia.slug === slug);
+
 

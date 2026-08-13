@@ -20,6 +20,7 @@ const VideosPage = lazy(() => import('./pages/VideosPage.jsx'));
 const FotosPage = lazy(() => import('./pages/FotosPage.jsx'));
 const AlbumPage = lazy(() => import('./pages/AlbumPage.jsx'));
 const CalendarioPage = lazy(() => import('./pages/CalendarioPage.jsx'));
+const CompetenciaPage = lazy(() => import('./pages/CompetenciaPage.jsx'));
 const ResultadosPage = lazy(() => import('./pages/ResultadosPage.jsx'));
 const AtletasPage = lazy(() => import('./pages/AtletasPage.jsx'));
 const RecordEstadalPage = lazy(() => import('./pages/RecordEstadalPage.jsx'));
@@ -153,6 +154,7 @@ function App() {
         <Route path="/fotos" element={<FotosPage />} />
         <Route path="/fotos/album/:id" element={<AlbumPage />} />
         <Route path="/calendario" element={<CalendarioPage />} />
+        <Route path="/calendario/:slug" element={<CompetenciaPage />} />
         <Route path="/resultados" element={<ResultadosPage />} />
         <Route path="/atletas" element={<AtletasPage />} />
         <Route path="/atletas-asociados" element={<AtletasAsociadosPage />} />

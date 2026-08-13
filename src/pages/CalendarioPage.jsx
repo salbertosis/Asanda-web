@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import PageHero from '../components/PageHero';
 import CompetitionsCalendar from '../components/CompetitionsCalendar';
 import CompetitionSponsorBadge from '../components/ads/CompetitionSponsorBadge';
@@ -13,11 +13,11 @@ const CalendarioPage = () => {
   }, [año]);
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Hero con título Calendario */}
-      <PageHero 
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      <PageHero
         title="Calendario"
-        backgroundImage="https://images.unsplash.com/photo-1530549387789-4c1017266635?w=1920&h=1080&fit=crop&q=80"
+        subtitle="La agenda oficial de competencias acuáticas de Anzoátegui, organizada por fecha, disciplina y sede."
+        compact
       />
 
       {/* Patrocinador de competencias: inventario rotatorio global */}
@@ -25,8 +25,7 @@ const CalendarioPage = () => {
         <CompetitionSponsorBadge />
       </div>
 
-      {/* Contenido de Calendario */}
-      <CompetitionsCalendar 
+      <CompetitionsCalendar
         competencias={competencias}
         año={año}
         onAñoChange={setAño}

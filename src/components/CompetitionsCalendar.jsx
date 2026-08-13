@@ -1,266 +1,135 @@
 import React, { useState } from 'react';
-import { Calendar, ChevronLeft, ChevronRight, RefreshCw, Plus, ArrowRight, MapPin, Flag, Waves, UsersRound, Droplet } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, MapPin, RefreshCw, ShieldCheck, Waves } from 'lucide-react';
+import { getCloudinaryUrl } from '../config/cloudinary';
 
-const CompetitionsCalendar = ({ competencias: competenciasProp, año: añoProp, onAñoChange }) => {
-  const [año, setAño] = useState(añoProp || 2026);
+const MONTHS = ['Todos', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const DISCIPLINES = [
+  { value: 'todos', label: 'Todas' },
+  { value: 'natacion', label: 'Natación' },
+  { value: 'waterpolo', label: 'Water Polo' },
+  { value: 'aguas-abiertas', label: 'Aguas Abiertas' },
+];
+
+const getCompetitionLogo = (competition) => {
+  if (competition.logoUrl) return competition.logoUrl;
+  return competition.logoPublicId
+    ? getCloudinaryUrl(competition.logoPublicId, { width: 320, height: 192, crop: 'pad', background: 'transparent' })
+    : null;
+};
+
+const CompetitionsCalendar = ({ competencias, año, onAñoChange }) => {
   const [mes, setMes] = useState('Todos');
-  const [tipoCalendario, setTipoCalendario] = useState('Competencias');
-  const [deporteSeleccionado, setDeporteSeleccionado] = useState('Todos');
+  const [disciplina, setDisciplina] = useState('todos');
 
-  // Usar competencias pasadas como prop o las del componente
-  const competencias = competenciasProp || [
-    {
-      id: 1,
-      fechaInicio: '15',
-      fechaFin: '17',
-      mes: 'Enero',
-      año: 2026,
-      nombre: 'Campeonato Estadal de Natación',
-      ubicacion: 'VEN, Venezuela, Barcelona',
-      bandera: '🇻🇪',
-      logo: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=100&h=100&fit=crop',
-      reconocido: true
-    },
-    {
-      id: 2,
-      fechaInicio: '28',
-      fechaFin: '30',
-      mes: 'Enero',
-      año: 2026,
-      nombre: 'Torneo Regional de Waterpolo',
-      ubicacion: 'VEN, Venezuela, Puerto La Cruz',
-      bandera: '🇻🇪',
-      logo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop',
-      reconocido: true
-    },
-    {
-      id: 3,
-      fechaInicio: '5',
-      fechaFin: '7',
-      mes: 'Febrero',
-      año: 2026,
-      nombre: 'Competencia de Aguas Abiertas',
-      ubicacion: 'VEN, Venezuela, Lechería',
-      bandera: '🇻🇪',
-      logo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
-      reconocido: false
-    },
-    {
-      id: 4,
-      fechaInicio: '20',
-      fechaFin: '22',
-      mes: 'Febrero',
-      año: 2026,
-      nombre: 'Copa Estadal de Natación',
-      ubicacion: 'VEN, Venezuela, Barcelona',
-      bandera: '🇻🇪',
-      logo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
-      reconocido: true
-    },
-  ];
-
-  const meses = ['Todos', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-  const deportes = ['Todos', 'Natación', 'Waterpolo', 'Aguas Abiertas'];
-
-  const competenciasFiltradas = competencias.filter(comp => {
-    const coincideMes = mes === 'Todos' || comp.mes === mes;
-    const coincideDeporte = deporteSeleccionado === 'Todos' || 
-      (deporteSeleccionado === 'Natación' && comp.nombre.toLowerCase().includes('natación')) ||
-      (deporteSeleccionado === 'Waterpolo' && comp.nombre.toLowerCase().includes('waterpolo')) ||
-      (deporteSeleccionado === 'Aguas Abiertas' && comp.nombre.toLowerCase().includes('aguas abiertas'));
-    return coincideMes && coincideDeporte;
+  const filteredCompetitions = competencias.filter((competition) => (
+    (mes === 'Todos' || competition.mes === mes)
+    && (disciplina === 'todos' || competition.deporte === disciplina)
+  ));
+  const groupedCompetitions = MONTHS.slice(1).flatMap((month) => {
+    const items = filteredCompetitions.filter((competition) => competition.mes === month);
+    return items.length > 0 ? [{ month, items }] : [];
   });
+  const recognizedCount = filteredCompetitions.filter((competition) => competition.reconocido).length;
 
-  const competenciasPorMes = competenciasFiltradas.reduce((acc, comp) => {
-    if (!acc[comp.mes]) acc[comp.mes] = [];
-    acc[comp.mes].push(comp);
-    return acc;
-  }, {});
-
-  const reiniciarFiltros = () => {
-    handleAñoChange(2026);
+  const resetFilters = () => {
+    onAñoChange(2026);
     setMes('Todos');
-    setTipoCalendario('Competencias');
-    setDeporteSeleccionado('Todos');
+    setDisciplina('todos');
   };
 
   return (
-    <section id="calendario" className="relative min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      {/* Background Image */}
-      <div className="absolute inset-0 opacity-10">
-        <div 
-          className="w-full h-full bg-cover bg-center"
-          style={{
-            backgroundImage: 'url(https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1920&h=1080&fit=crop)'
-          }}
-        ></div>
-      </div>
-
-      <div className="relative z-10 container mx-auto px-4 py-12">
-        {/* Título de sección: el h1 de la vista vive en PageHero (D3) */}
-        <h2 className="text-5xl md:text-6xl font-bold text-gray-900 mb-12 text-center">
-          Competiciones
-        </h2>
-
-        {/* Filtros */}
-        <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-xl p-6 mb-8 border border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tipo de calendario
-              </label>
-              <select
-                value={tipoCalendario}
-                onChange={(e) => setTipoCalendario(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option>Competencias</option>
-                <option>Entrenamientos</option>
-                <option>Todos</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Año</label>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleAñoChange(año - 1)}
-                  className="p-1 hover:bg-gray-100 rounded"
-                >
-                  <ChevronLeft size={16} />
+    <section id="calendario" className="bg-slate-50 py-10 dark:bg-slate-950 sm:py-14">
+      <div className="mx-auto max-w-7xl px-4 sm:px-5">
+        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_24px_70px_-48px_rgba(15,23,42,0.5)] dark:border-slate-800 dark:bg-slate-900">
+          <div className="border-b border-slate-200 p-5 dark:border-slate-800 sm:p-7">
+            <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-700 dark:text-cyan-400">Agenda oficial ASANDA</p>
+                <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 dark:text-white sm:text-4xl">Competiciones {año}</h2>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300 sm:text-base">Consultá fechas, sedes, disciplinas e identidad organizadora de cada encuentro acuático.</p>
+              </div>
+              <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 p-1.5 dark:border-slate-700 dark:bg-slate-800" aria-label="Seleccionar año">
+                <button type="button" onClick={() => onAñoChange(año - 1)} className="inline-flex size-11 items-center justify-center rounded-xl text-slate-600 transition-colors hover:bg-white hover:text-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-cyan-300" aria-label={`Ver calendario ${año - 1}`}>
+                  <ChevronLeft size={20} aria-hidden="true" />
                 </button>
-                <input
-                  type="number"
-                  value={año}
-                  onChange={(e) => handleAñoChange(parseInt(e.target.value))}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button
-                  onClick={() => handleAñoChange(año + 1)}
-                  className="p-1 hover:bg-gray-100 rounded"
-                >
-                  <ChevronRight size={16} />
+                <output className="min-w-24 px-4 text-center text-xl font-bold tabular-nums text-slate-950 dark:text-white" aria-live="polite">{año}</output>
+                <button type="button" onClick={() => onAñoChange(año + 1)} className="inline-flex size-11 items-center justify-center rounded-xl text-slate-600 transition-colors hover:bg-white hover:text-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-cyan-300" aria-label={`Ver calendario ${año + 1}`}>
+                  <ChevronRight size={20} aria-hidden="true" />
                 </button>
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Mes</label>
-              <select
-                value={mes}
-                onChange={(e) => setMes(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {meses.map(m => (
-                  <option key={m} value={m}>{m === 'Todos' ? 'Todos los meses' : m}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-end">
-              <button
-                onClick={reiniciarFiltros}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
-              >
-                <RefreshCw size={16} />
-                Reiniciar
-              </button>
-            </div>
-          </div>
 
-          {/* Filtro de Deportes */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2">
-            {deportes.map((deporte) => (
-              <button
-                key={deporte}
-                onClick={() => setDeporteSeleccionado(deporte)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all ${
-                  deporteSeleccionado === deporte
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {deporte === 'Natación' && <Waves size={18} />}
-                {deporte === 'Waterpolo' && <UsersRound size={18} />}
-                {deporte === 'Aguas Abiertas' && <Droplet size={18} />}
-                <span>{deporte === 'Todos' ? 'TODOS LOS DEPORTES' : deporte.toUpperCase()}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Botón Añadir al Calendario */}
-        <div className="flex justify-end mb-6">
-          <button className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-blue-600 font-medium transition-colors">
-            <Plus size={18} />
-            Añadir competiciones al calendario
-          </button>
-        </div>
-
-        {/* Lista de Competencias */}
-        <div className="space-y-8">
-          {Object.keys(competenciasPorMes).length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-lg shadow-md">
-              <p className="text-gray-500 text-lg">No hay competencias programadas para los filtros seleccionados</p>
-            </div>
-          ) : (
-            Object.entries(competenciasPorMes).map(([mesNombre, comps]) => (
-              <div key={mesNombre}>
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                  {mesNombre} de {año}
-                </h2>
-                <div className="space-y-4">
-                  {comps.map((comp) => (
-                    <div
-                      key={comp.id}
-                      className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all overflow-hidden border border-gray-200"
-                    >
-                      <div className="flex flex-col md:flex-row items-center gap-4 p-6">
-                        {/* Fechas */}
-                        <div className="text-center md:text-left">
-                          <div className="text-2xl font-bold text-gray-900">
-                            {comp.fechaInicio}
-                            {comp.fechaFin !== comp.fechaInicio && ` - ${comp.fechaFin}`}
-                          </div>
-                          <div className="text-sm text-gray-500">{comp.mes}</div>
-                        </div>
-
-                        {/* Logo */}
-                        <div className="flex-shrink-0">
-                          <div className="relative w-20 h-20 rounded-full overflow-hidden border-4 border-blue-100">
-                            <img
-                              src={comp.logo}
-                              alt={comp.nombre}
-                              className="w-full h-full object-cover"
-                            />
-                            {comp.reconocido && (
-                              <div className="absolute -bottom-1 -right-1 bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full font-semibold">
-                                OFICIAL
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Información */}
-                        <div className="flex-1 text-center md:text-left">
-                          <h3 className="text-xl font-bold text-gray-900 mb-2">{comp.nombre}</h3>
-                          <div className="flex items-center justify-center md:justify-start gap-2 text-gray-600">
-                            <MapPin size={16} />
-                            <span className="text-sm">{comp.ubicacion}</span>
-                          </div>
-                        </div>
-
-                        {/* Botón Ver */}
-                        <div className="flex-shrink-0">
-                          <button className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
-                            Ver Competencia
-                            <ArrowRight size={18} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+            <div className="mt-7 grid gap-4 lg:grid-cols-[minmax(0,240px)_1fr_auto] lg:items-end">
+              <label className="block">
+                <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Mes</span>
+                <select value={mes} onChange={(event) => setMes(event.target.value)} className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-800 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-900">
+                  {MONTHS.map((month) => <option key={month} value={month}>{month === 'Todos' ? 'Todos los meses' : month}</option>)}
+                </select>
+              </label>
+              <fieldset className="min-w-0">
+                <legend className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Disciplina</legend>
+                <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Filtrar por disciplina">
+                  {DISCIPLINES.map(({ value, label }) => (
+                    <button key={value} type="button" aria-pressed={disciplina === value} onClick={() => setDisciplina(value)} className={`min-h-12 shrink-0 rounded-xl border px-4 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${disciplina === value ? 'border-blue-700 bg-blue-700 text-white' : 'border-slate-300 bg-white text-slate-700 hover:border-blue-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200'}`}>
+                      {label}
+                    </button>
                   ))}
                 </div>
+              </fieldset>
+              <button type="button" onClick={resetFilters} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 text-sm font-bold text-slate-700 transition-colors hover:border-blue-500 hover:text-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:border-slate-700 dark:text-slate-200 dark:hover:text-cyan-300">
+                <RefreshCw size={17} aria-hidden="true" /> Reiniciar
+              </button>
+            </div>
+          </div>
+
+          <div className="grid gap-px bg-slate-200 dark:bg-slate-800 sm:grid-cols-3" aria-label="Resumen del calendario">
+            <div className="bg-slate-50 px-5 py-4 dark:bg-slate-900"><p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Programadas</p><p className="mt-1 text-2xl font-bold tabular-nums text-slate-950 dark:text-white">{filteredCompetitions.length}</p></div>
+            <div className="bg-slate-50 px-5 py-4 dark:bg-slate-900"><p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Oficiales</p><p className="mt-1 text-2xl font-bold tabular-nums text-slate-950 dark:text-white">{recognizedCount}</p></div>
+            <div className="bg-slate-50 px-5 py-4 dark:bg-slate-900"><p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Cobertura</p><p className="mt-1 text-base font-bold text-slate-950 dark:text-white">Anzoátegui y región</p></div>
+          </div>
+        </div>
+
+        <div className="mt-10 space-y-10">
+          {groupedCompetitions.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center dark:border-slate-700 dark:bg-slate-900" role="status">
+              <CalendarDays className="mx-auto text-blue-700 dark:text-cyan-400" size={34} aria-hidden="true" />
+              <h3 className="mt-4 text-xl font-bold text-slate-950 dark:text-white">Sin competencias para estos filtros</h3>
+              <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-600 dark:text-slate-300">Probá otro mes, disciplina o año para consultar el resto de la agenda.</p>
+            </div>
+          ) : groupedCompetitions.map(({ month, items }) => (
+            <section key={month} aria-labelledby={`month-${month}`}>
+              <div className="mb-4 flex items-center gap-4">
+                <h3 id={`month-${month}`} className="text-xl font-bold text-slate-950 dark:text-white sm:text-2xl">{month} <span className="text-slate-400">/ {año}</span></h3>
+                <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" aria-hidden="true" />
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{items.length} {items.length === 1 ? 'evento' : 'eventos'}</span>
               </div>
-            ))
-          )}
+              <div className="space-y-4">
+                {items.map((competition) => {
+                  const logoUrl = getCompetitionLogo(competition);
+                  return (
+                    <article key={`${competition.año}-${competition.id}`} className="grid overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_50px_-36px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900 md:grid-cols-[128px_176px_1fr]">
+                      <div className="flex items-center justify-center border-r border-cyan-300/20 bg-[#0F4C5C] px-4 py-6 text-center text-white md:min-h-44">
+                        <div><p className="text-3xl font-bold leading-none tabular-nums">{competition.fechaInicio}{competition.fechaFin !== competition.fechaInicio && <span className="text-xl text-cyan-300">–{competition.fechaFin}</span>}</p><p className="mt-2 text-xs font-bold uppercase tracking-[0.18em] text-blue-200">{competition.mes.slice(0, 3)}</p></div>
+                      </div>
+                      <div className="flex min-h-40 items-center justify-center border-b border-slate-200 bg-slate-50 p-6 dark:border-slate-800 dark:bg-slate-800/60 md:border-b-0 md:border-r">
+                        {logoUrl ? <img src={logoUrl} alt={competition.logoAlt || `Identidad de ${competition.organizador}`} width="160" height="96" loading="lazy" decoding="async" className="aspect-[5/3] w-full max-w-36 object-contain" /> : <div className="text-center text-slate-500 dark:text-slate-300"><ShieldCheck className="mx-auto text-blue-700 dark:text-cyan-400" size={34} aria-hidden="true" /><p className="mt-2 text-xs font-bold uppercase tracking-wider">{competition.organizador || 'Organizador'}</p></div>}
+                      </div>
+                      <div className="flex min-w-0 flex-col justify-center p-5 sm:p-7">
+                        <div className="flex flex-wrap items-center gap-2"><span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800 dark:bg-blue-950 dark:text-blue-200"><Waves size={14} aria-hidden="true" /> {DISCIPLINES.find(({ value }) => value === competition.deporte)?.label || 'Deporte acuático'}</span>{competition.reconocido && <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"><CheckCircle2 size={14} aria-hidden="true" /> Oficial</span>}</div>
+                        <h4 className="mt-4 text-xl font-bold leading-tight text-slate-950 dark:text-white sm:text-2xl">{competition.nombre}</h4>
+                        <p className="mt-2 text-sm font-semibold text-slate-500 dark:text-slate-400">Organiza: {competition.organizador}</p>
+                        <div className="mt-4 flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300"><MapPin className="mt-0.5 shrink-0 text-blue-700 dark:text-cyan-400" size={17} aria-hidden="true" /><span>{competition.ubicacion}</span></div>
+                        <Link to={`/calendario/${competition.slug}`} className="mt-5 inline-flex min-h-11 w-fit items-center gap-2 rounded-xl bg-[#0F4C5C] px-4 text-sm font-bold text-white transition-colors hover:bg-[#0B3D49] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F4C5C]">
+                          Ver competencia <ArrowRight size={17} aria-hidden="true" />
+                        </Link>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
         </div>
       </div>
     </section>
@@ -268,4 +137,3 @@ const CompetitionsCalendar = ({ competencias: competenciasProp, año: añoProp, 
 };
 
 export default CompetitionsCalendar;
-
