@@ -6,6 +6,17 @@ import { approvedPublicSite } from '../config/publicSite';
 const Footer = () => {
   return (
     <footer className="bg-gray-900 text-white">
+      <section className="border-y border-slate-200 bg-white text-slate-950 dark:border-slate-700 dark:bg-slate-100" aria-labelledby="global-sponsors-title">
+        <div className="mx-auto grid max-w-7xl gap-6 px-4 py-10 sm:px-5 lg:grid-cols-[190px_minmax(0,1fr)] lg:items-center lg:py-12">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-700">Aliados ASANDA</p>
+            <h2 id="global-sponsors-title" className="mt-2 text-lg font-bold tracking-wide text-slate-800">Patrocinadores globales</h2>
+            <p className="mt-2 text-xs leading-5 text-slate-500">Identidades ficticias de demostración.</p>
+          </div>
+          <PartnerGridSlot />
+        </div>
+      </section>
+
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Deportes */}
@@ -32,12 +43,6 @@ const Footer = () => {
             </ul>
           </div>
 
-        </div>
-
-        {/* Partners Section */}
-        <div className="mt-12 pt-8 border-t border-gray-800">
-          <h2 className="text-sm font-semibold text-gray-400 mb-4 text-center">PATROCINADORES GLOBALES</h2>
-          <PartnerGridSlot />
         </div>
 
         {approvedPublicSite.copyright && <div className="mt-8 border-t border-gray-800 pt-8 text-center text-sm text-gray-400"><p>{approvedPublicSite.copyright.notice}</p>{approvedPublicSite.legal.legalApproved && approvedPublicSite.legal.privacyApproved && <div className="mt-2 flex justify-center gap-4"><Link to="/legal" className="inline-flex min-h-11 min-w-11 items-center justify-center">Legal</Link><Link to="/privacidad" className="inline-flex min-h-11 min-w-11 items-center justify-center">Privacidad</Link></div>}</div>}

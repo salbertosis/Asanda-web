@@ -17,14 +17,14 @@ const BADGE_LABELS = {
 export const SLOT_DIMENSION_STYLES = {
     'hero-sponsor': 'min-h-[160px] aspect-[2/1] md:aspect-[4/1] md:min-h-[200px]',
     'leaderboard': 'min-h-[120px] aspect-[8/3] md:aspect-[728/90] md:min-h-[90px]',
-    'partner-grid': 'min-h-[160px] aspect-square',
+    'partner-grid': 'min-h-[112px] aspect-[15/8]',
     'competition-sponsor': 'min-h-[64px] aspect-[15/4]',
 };
 
 const SLOT_LAYOUT_STYLES = {
     'hero-sponsor': 'mx-auto w-full max-w-md rounded-2xl shadow-lg',
     'leaderboard': 'mx-auto w-full max-w-sm rounded-xl shadow-md md:max-w-none md:rounded-lg',
-    'partner-grid': 'w-full rounded-xl shadow-sm',
+    'partner-grid': 'w-full rounded-2xl shadow-sm',
     'competition-sponsor': 'mx-auto w-full max-w-xs rounded-lg shadow-sm',
 };
 

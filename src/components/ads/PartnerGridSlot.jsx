@@ -5,8 +5,8 @@ import { useAdPlacements } from '../../hooks/useAdPlacement';
 
 const GRID_CELLS = 4;
 
-// Grilla de aliados para el footer: 4 celdas; los huecos sin campaña
-// activa muestran el fallback "Espacio disponible".
+// Franja de aliados para el footer: los huecos sin campaña activa
+// conservan el espacio reservado con el fallback institucional.
 const PartnerGridSlot = () => {
     const { ads, placement } = useAdPlacements('partner-grid', GRID_CELLS);
     if (!placement) return null;
@@ -14,12 +14,16 @@ const PartnerGridSlot = () => {
     while (cells.length < GRID_CELLS) cells.push(null);
 
     return (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="flex max-w-full gap-4 overflow-x-auto pb-2" aria-label="Patrocinadores demo">
             {cells.map((ad, index) =>
                 ad ? (
-                    <AdSlotFrame key={ad.sponsor.id} placement={placement} ad={ad} />
+                    <div key={ad.sponsor.id} className="w-[210px] shrink-0 sm:w-[230px] lg:min-w-0 lg:flex-1">
+                        <AdSlotFrame placement={placement} ad={ad} />
+                    </div>
                 ) : (
-                    <EmptySlotTile key={`empty-${index}`} placement={placement} />
+                    <div key={`empty-${index}`} className="w-[210px] shrink-0 sm:w-[230px] lg:min-w-0 lg:flex-1">
+                        <EmptySlotTile placement={placement} />
+                    </div>
                 )
             )}
         </div>

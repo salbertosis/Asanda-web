@@ -71,3 +71,14 @@ test('uses the real dark-mode control and keeps disclosure text at WCAG AA contr
   expect(colors).toHaveLength(2);
   for (const color of colors) expect(contrastRatio(parseColor(color.foreground), parseColor(color.background))).toBeGreaterThanOrEqual(4.5);
 });
+
+test('presents footer sponsors as a contained horizontal strip on mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+
+  const footer = page.getByRole('contentinfo');
+  await expect(footer.getByRole('heading', { name: 'Patrocinadores globales' })).toBeVisible();
+  await expect(footer.getByLabel('Patrocinadores demo').getByRole('complementary')).toHaveCount(4);
+  const pageWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+  expect(pageWidth).toBeLessThanOrEqual(390);
+});
