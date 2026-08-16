@@ -14,6 +14,7 @@ playwright-report
 test-results
 .lighthouseci
 *.local
+.atl/.skill-registry.cache.json
 
 # Editor directories and files
 .vscode/*
