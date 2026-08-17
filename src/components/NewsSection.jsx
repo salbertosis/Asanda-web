@@ -7,41 +7,49 @@ const NewsSection = () => {
   const noticias = getUltimasNoticias(3);
 
   return (
-    <section id="noticias" className="py-12 bg-gray-50">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-3xl font-bold text-gray-900">Últimas Noticias</h2>
-          <Link to="/noticias" className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
-            Ver todas <ArrowRight size={18} />
+    <section id="noticias" aria-labelledby="news-title" className="border-t border-asanda-line bg-asanda-foam py-14 sm:py-16">
+      <div className="mx-auto max-w-7xl px-4 sm:px-5">
+        <div className="mb-8 flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="mb-3 flex items-center gap-3 text-[11px] font-bold uppercase tracking-[0.16em] text-asanda-deep">
+              <span className="h-px w-8 bg-asanda-orange" aria-hidden="true" />
+              Actualidad ASANDA
+            </p>
+            <h2 id="news-title" className="font-display text-[2rem] font-bold leading-none tracking-tight text-asanda-ink sm:text-4xl">
+              Últimas noticias
+            </h2>
+          </div>
+          <Link to="/noticias" className="inline-flex min-h-11 items-center gap-2 font-bold text-asanda-deep transition-colors hover:text-asanda-orange">
+            Ver todas <ArrowRight className="text-asanda-orange" size={19} aria-hidden="true" />
           </Link>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           {noticias.map((noticia) => (
             <article
               key={noticia.id}
-              className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow cursor-pointer group"
+              className="group overflow-hidden rounded-[14px] border border-t-4 border-[#d3e9ea] border-t-transparent bg-white shadow-[0_18px_45px_-34px_rgba(8,127,132,0.55)] transition-[transform,box-shadow,border-color] hover:border-t-asanda-orange hover:shadow-[0_24px_55px_-32px_rgba(8,127,132,0.45)] motion-safe:hover:-translate-y-0.5"
             >
               <div className="relative h-48 overflow-hidden">
                 <img
                   src={noticia.imagen}
                   alt={noticia.titulo}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  className="h-full w-full object-cover motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-[1.03]"
                 />
-                <div className="absolute top-4 left-4">
-                  <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                <div className="absolute left-4 top-4">
+                  <span className="rounded-full bg-asanda-deep px-3 py-1 text-xs font-bold text-white shadow-sm">
                     {noticia.categoria}
                   </span>
                 </div>
               </div>
               <div className="p-6">
-                <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-                  <Calendar size={14} />
+                <div className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-500">
+                  <Calendar className="text-asanda-orange" size={15} aria-hidden="true" />
                   <span>{noticia.fecha}</span>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+                <h3 className="mb-2 text-xl font-bold leading-snug text-asanda-ink transition-colors group-hover:text-asanda-deep">
                   {noticia.titulo}
                 </h3>
-                <p className="text-gray-600 text-sm line-clamp-2">
+                <p className="line-clamp-2 text-sm leading-6 text-slate-600">
                   {noticia.resumen}
                 </p>
               </div>
@@ -54,4 +62,3 @@ const NewsSection = () => {
 };
 
 export default NewsSection;
-

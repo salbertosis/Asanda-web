@@ -57,8 +57,13 @@ test('keeps the redesigned homepage within a narrow viewport', async ({ page }) 
   await routeStats(page);
   await page.goto('/');
 
-  await expect(page.getByText('Portal oficial de deportes acuáticos')).toBeVisible();
+  await expect(page.getByText('Portal oficial de los deportes acuáticos')).toBeVisible();
   await expect(page.getByText('Anzoátegui · Venezuela')).toBeHidden();
+  await expect(page.getByRole('button', { name: /Activar modo (oscuro|claro)/ })).toHaveCount(0);
+  const menuButton = page.getByRole('button', { name: 'Abrir menú principal' });
+  await expect(menuButton).toBeVisible();
+  await expect.poll(() => menuButton.evaluate((button) => getComputedStyle(button).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
+  await expect.poll(() => menuButton.evaluate((button) => getComputedStyle(button).color)).toBe('rgb(8, 127, 132)');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await expect(page.getByLabel('Estadísticas principales')).toBeVisible();
   const layout = await page.evaluate(() => {
@@ -98,6 +103,43 @@ test('keeps the primary CTA above the fold on a standard mobile viewport', async
   await expect(cta).toBeVisible();
   const box = await cta.boundingBox();
   expect(box.y + box.height).toBeLessThanOrEqual(844);
+});
+
+test('aligns the news section with the ASANDA landing palette', async ({ page }) => {
+  await routeStats(page);
+  await page.goto('/');
+
+  const news = page.locator('#noticias');
+  await expect(news.getByRole('heading', { name: 'Últimas noticias' })).toBeVisible();
+  const palette = await news.evaluate((section) => {
+    const card = section.querySelector('article');
+    const badge = card.querySelector('.absolute span');
+    return {
+      background: getComputedStyle(section).backgroundColor,
+      border: getComputedStyle(section).borderTopColor,
+      eyebrow: getComputedStyle(section.querySelector('p')).color,
+      title: getComputedStyle(section.querySelector('h2')).color,
+      link: getComputedStyle(section.querySelector('a')).color,
+      cardBackground: getComputedStyle(card).backgroundColor,
+      cardBorder: getComputedStyle(card).borderRightColor,
+      cardRadius: getComputedStyle(card).borderRadius,
+      cardCursor: getComputedStyle(card).cursor,
+      badge: getComputedStyle(badge).backgroundColor,
+    };
+  });
+
+  expect(palette).toEqual({
+    background: 'rgb(244, 251, 248)',
+    border: 'rgb(204, 229, 223)',
+    eyebrow: 'rgb(8, 127, 132)',
+    title: 'rgb(18, 48, 71)',
+    link: 'rgb(8, 127, 132)',
+    cardBackground: 'rgb(255, 255, 255)',
+    cardBorder: 'rgb(211, 233, 234)',
+    cardRadius: '14px',
+    cardCursor: 'auto',
+    badge: 'rgb(8, 127, 132)',
+  });
 });
 
 test('uses the new ASANDA turquoise, green, blue and orange palette', async ({ page }) => {
