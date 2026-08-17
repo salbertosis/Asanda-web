@@ -1,4 +1,4 @@
-import React, { lazy, useState } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import { Link, Routes, Route, useSearchParams } from 'react-router-dom';
 import { ArrowRight, CalendarDays, Trophy } from 'lucide-react';
 import { atletas } from './data/atletas';
@@ -13,6 +13,9 @@ import LeaderboardSlot from './components/ads/LeaderboardSlot';
 import HeroBackground from './components/HeroBackground';
 import HeroStats from './components/HeroStats';
 import AdsDemoPreview from './components/ads/AdsDemoPreview';
+import RouteHead from './components/layout/RouteHead';
+import { AdminSessionProvider } from './admin/AdminSessionContext';
+import AdminGuard from './admin/AdminGuard';
 
 const NoticiasPage = lazy(() => import('./pages/NoticiasPage.jsx'));
 const VideosPage = lazy(() => import('./pages/VideosPage.jsx'));
@@ -29,6 +32,8 @@ const ClubesPage = lazy(() => import('./pages/ClubesPage.jsx'));
 const PublicidadDemoPage = lazy(() => import('./pages/PublicidadDemoPage.jsx'));
 const LegalPage = lazy(() => import('./pages/LegalPage.jsx'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage.jsx'));
+const AdminLoginPage = lazy(() => import('./admin/AdminLoginPage.jsx'));
+const AdminShell = lazy(() => import('./admin/AdminShell.jsx'));
 function HomePage() {
   const [atletaSeleccionado, setAtletaSeleccionado] = useState(null);
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -135,10 +140,9 @@ function HomeGate() {
   return <HomePage />;
 }
 
-function App() {
+function PublicApplication() {
   return (
-    <>
-      <AppShell>
+    <AppShell>
       <Routes>
         <Route path="/" element={<HomeGate />} />
         <Route path="/publicidad/demo/:slug" element={<PublicidadDemoPage />} />
@@ -157,8 +161,30 @@ function App() {
         <Route path="/clubes" element={<ClubesPage />} />
         <Route path="/record-estadal" element={<RecordEstadalPage />} />
       </Routes>
-      </AppShell>
-    </>
+    </AppShell>
+  );
+}
+
+function AdminApplication() {
+  return (
+    <AdminSessionProvider>
+      <RouteHead />
+      <Suspense fallback={<main className="grid min-h-screen place-items-center bg-asanda-foam" role="status">Cargando administración…</main>}>
+        <Routes>
+          <Route path="login" element={<AdminLoginPage />} />
+          <Route path="*" element={<AdminGuard><AdminShell /></AdminGuard>} />
+        </Routes>
+      </Suspense>
+    </AdminSessionProvider>
+  );
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/admin/*" element={<AdminApplication />} />
+      <Route path="*" element={<PublicApplication />} />
+    </Routes>
   );
 }
 

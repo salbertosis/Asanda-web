@@ -17,6 +17,8 @@ export const routeMetadata = Object.freeze([
   { path: '/legal', title: 'Información legal', description: 'Información legal institucional de ASANDA.', indexable: false },
   { path: '/privacidad', title: 'Privacidad', description: 'Información de privacidad institucional de ASANDA.', indexable: false },
   { path: '/publicidad/demo/:slug', title: 'Demostración publicitaria', description: 'Demostración de publicidad ficticia de ASANDA.', indexable: false },
+  { path: '/admin', title: 'Administración', description: 'Acceso administrativo de ASANDA.', indexable: false },
+  { path: '/admin/:path', title: 'Administración', description: 'Acceso administrativo de ASANDA.', indexable: false },
 ]);
 
 const matches = (route, pathname) => route.path === pathname || (route.path.includes('/:') && pathname.startsWith(route.path.split('/:')[0] + '/'));
