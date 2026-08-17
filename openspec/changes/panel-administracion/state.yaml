@@ -14,8 +14,8 @@ artifacts:
 tasks_progress:
   completed:
     - admin-auth-shell
+    - admin-database-audit
   pending:
-    - database-security-foundation
     - editorial-operations
     - athletes-and-clubs
     - calendar-and-hy3-results

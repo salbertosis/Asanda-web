@@ -29,10 +29,11 @@ Chain strategy: stacked-to-main
 
 ## Phase 1: Security Foundation
 
-- [ ] 1.1 Add RED SQL tests for inactive, anonymous, editor-account-management, consent, audit, and admin-route threat cases.
-- [ ] 1.2 Add migrations for featured athletes, immutable audit, revised RLS, publication guards, grants, and atomic RPC contracts.
+- [x] 1.1 Add RED SQL tests for anonymous and inactive writes, editor account escalation, and audit evidence.
+- [x] 1.2 Add immutable audit storage/triggers and lock current active-role RLS behavior.
 - [ ] 1.3 Create `manage-staff` and `sign-media-upload` Edge Functions with repeated active-role checks and secret isolation.
 - [x] 1.4 Create `useAdminSession`, `AdminGuard`, lazy `/admin` routes, noindex lifecycle, login, recovery, sign-out, and responsive shell.
+- [ ] 1.5 Add featured athletes, publication/consent guards, source mappings, grants, and atomic RPC contracts.
 
 ## Phase 2: Editorial Operations
 
