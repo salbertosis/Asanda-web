@@ -1,0 +1,22 @@
+change: panel-administracion
+phase: tasks
+artifact_store: openspec
+delivery_strategy: ask-on-risk
+chain_strategy: stacked-to-main
+artifacts:
+  exploration: true
+  proposal: true
+  specs: true
+  design: true
+  tasks: true
+  apply: false
+  verify: false
+tasks_progress:
+  completed: []
+  pending:
+    - database-security-foundation
+    - editorial-operations
+    - athletes-and-clubs
+    - calendar-and-hy3-results
+    - verification-and-rollout
+last_updated: 2026-08-17

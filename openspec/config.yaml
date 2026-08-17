@@ -6,7 +6,7 @@ context: |
   Styling: Tailwind CSS 3 + PostCSS + Autoprefixer
   Routing: react-router-dom v6 (BrowserRouter)
   Icons: lucide-react
-  Data: Static JS modules under src/data/ (no backend/API)
+  Data: Supabase PostgreSQL for migrated domains; legacy static modules remain under src/data/
   Media: Cloudinary for image hosting
   SEO: Schema.org structured data, Open Graph meta tags
   Architecture: Component-based SPA, functional components, custom hooks
@@ -14,11 +14,11 @@ context: |
 strict_tdd: false
 
 testing:
-  runner: none
+  runner: Playwright Chromium and dependency-free Node regression scripts
   layers:
     unit: false
-    integration: false
-    e2e: false
+    integration: true
+    e2e: true
   coverage: false
   quality:
     linter: none
@@ -46,9 +46,9 @@ rules:
       - Preserve Spanish language for user-facing strings
       - Keep existing dark mode support via useDarkMode hook
     tdd: false
-    test_command: ""
+    test_command: "npm run test:e2e"
   verify:
-    test_command: ""
+    test_command: "npm run test:e2e"
     build_command: "npm run build"
     coverage_threshold: 0
   archive:
