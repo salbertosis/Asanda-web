@@ -89,16 +89,16 @@ const Header = () => {
 
   return (
     <header ref={headerRef} className="sticky top-0 z-50">
-      <div className="hidden border-b border-white/10 bg-asanda-ink text-white sm:block">
-        <div className="mx-auto flex h-8 max-w-7xl items-center justify-between px-5 text-[11px] font-semibold uppercase tracking-[0.18em]">
+      <div className="border-b border-black/10 bg-[#e2612d] text-[#0b2530]">
+        <div className="mx-auto flex h-8 max-w-7xl items-center justify-center px-4 text-center text-[11px] font-bold uppercase tracking-[0.04em] sm:justify-between sm:px-5 sm:text-[13px]">
           <span>Portal oficial de deportes acuáticos</span>
-          <span className="text-cyan-200">Anzoátegui · Venezuela</span>
+          <span className="hidden sm:inline">Anzoátegui · Venezuela</span>
         </div>
       </div>
 
       <div
-        className={`border-b bg-white/95 backdrop-blur-md transition-shadow duration-200 ${
-          scrolled ? 'border-asanda-line shadow-[0_12px_30px_rgba(6,26,46,0.12)]' : 'border-asanda-line/70'
+        className={`border-b-4 border-asanda-orange bg-[#e8f5f1] backdrop-blur-md transition-shadow duration-200 ${
+          scrolled ? 'shadow-[0_12px_30px_rgba(22,70,184,0.14)]' : ''
         }`}
       >
         <div className="mx-auto flex h-[72px] max-w-7xl items-center gap-5 px-4 sm:px-5 lg:h-20">
@@ -132,7 +132,7 @@ const Header = () => {
                 aria-expanded={openMenu === 'sports'}
                 aria-controls="sports-menu"
                 onClick={() => toggleMenu('sports')}
-                className="flex min-h-11 items-center gap-2 rounded-sm px-3 text-sm font-bold text-slate-700 transition-colors hover:bg-asanda-foam hover:text-asanda-blue"
+                className="flex min-h-11 items-center gap-2 rounded-sm px-3 text-sm font-bold text-slate-700 transition-colors hover:bg-[#eef3ff] hover:text-asanda-navy"
               >
                 Deportes
                 <ChevronDown
@@ -165,8 +165,8 @@ const Header = () => {
                 aria-expanded={openMenu === 'latest'}
                 aria-controls="latest-menu"
                 onClick={() => toggleMenu('latest')}
-                className={`flex min-h-11 items-center gap-2 rounded-sm px-3 text-sm font-bold transition-colors hover:bg-asanda-foam hover:text-asanda-blue ${
-                  latestActive ? 'bg-asanda-foam text-asanda-blue' : 'text-slate-700'
+                className={`flex min-h-11 items-center gap-2 rounded-sm px-3 text-sm font-bold transition-colors hover:bg-[#eef3ff] hover:text-asanda-navy ${
+                  latestActive ? 'bg-[#eef3ff] text-asanda-navy' : 'text-slate-700'
                 }`}
               >
                 Actualidad
@@ -203,10 +203,10 @@ const Header = () => {
                 key={href}
                 to={href}
                 aria-current={isActive(href) ? 'page' : undefined}
-                className={`relative flex min-h-11 items-center gap-2 px-3 text-sm font-bold transition-colors after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-asanda-cyan after:transition-transform ${
+                className={`relative flex min-h-11 items-center gap-2 px-3 text-sm font-bold transition-colors after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-asanda-orange after:transition-transform ${
                   isActive(href)
-                    ? 'text-asanda-blue after:scale-x-100'
-                    : 'text-slate-700 after:scale-x-0 hover:text-asanda-blue hover:after:scale-x-100'
+                    ? 'bg-[#eef3ff] text-asanda-navy after:scale-x-100'
+                    : 'text-slate-700 after:scale-x-0 hover:bg-[#eef3ff] hover:text-asanda-navy hover:after:scale-x-100'
                 }`}
               >
                 <Icon size={17} aria-hidden="true" />
@@ -226,7 +226,7 @@ const Header = () => {
                 setMobileOpen((current) => !current);
                 setOpenMenu(null);
               }}
-              className="inline-flex size-11 shrink-0 items-center justify-center bg-asanda-cyan text-asanda-ink transition-colors hover:bg-cyan-200 xl:hidden"
+              className="inline-flex size-11 shrink-0 items-center justify-center bg-asanda-navy text-white transition-colors hover:bg-asanda-orange xl:hidden"
             >
               {mobileOpen ? <X size={23} aria-hidden="true" /> : <Menu size={23} aria-hidden="true" />}
             </button>

@@ -46,7 +46,7 @@ function HomePage() {
   return (
     <>
       <section
-          className="relative isolate overflow-hidden text-white"
+          className="relative isolate overflow-hidden text-asanda-ink"
           aria-labelledby="home-title"
           itemScope
           itemType="https://schema.org/SportsOrganization"
@@ -54,9 +54,9 @@ function HomePage() {
           <HeroBackground />
 
           <div className="relative z-10 mx-auto grid min-h-[640px] min-w-0 max-w-7xl content-between gap-8 px-4 pb-0 pt-6 sm:px-5 sm:pt-8 lg:min-h-[700px] lg:grid-cols-12 lg:gap-8 lg:pt-6">
-            <div className="min-w-0 self-center rounded-[2rem] border border-white/10 bg-asanda-ink/35 p-5 shadow-[0_28px_80px_-42px_rgba(0,0,0,0.9)] backdrop-blur-[2px] sm:p-8 lg:col-span-12 lg:p-10">
-              <div className="mb-5 flex items-center gap-3 text-[10px] font-bold uppercase leading-4 tracking-[0.13em] text-cyan-200 sm:text-[11px] sm:tracking-[0.16em]">
-                <span className="h-px w-10 shrink-0 bg-asanda-cyan" aria-hidden="true" />
+            <div className="min-w-0 self-center rounded-[2rem] border border-white/25 bg-asanda-deep p-5 text-white shadow-[0_28px_80px_-42px_rgba(8,127,132,0.55)] sm:p-8 lg:col-span-12 lg:p-10">
+              <div className="mb-5 flex items-center gap-3 text-[10px] font-bold uppercase leading-4 tracking-[0.13em] text-cyan-100 sm:text-[11px] sm:tracking-[0.16em]">
+                <span className="h-px w-10 shrink-0 bg-asanda-orange" aria-hidden="true" />
                 Asociación de Deportes Acuáticos del Estado Anzoátegui
               </div>
               <h1 id="home-title" className="font-brand max-w-full text-[clamp(1.55rem,5vw,4.5rem)] font-bold uppercase leading-[0.94] tracking-[-0.04em]">
@@ -71,7 +71,7 @@ function HomePage() {
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
                   to="/resultados"
-                  className="inline-flex min-h-12 min-w-0 items-center justify-center gap-2 bg-asanda-cyan px-4 text-center text-xs font-extrabold uppercase tracking-[0.08em] text-asanda-ink transition-colors hover:bg-cyan-200 sm:gap-3 sm:px-6 sm:text-sm sm:tracking-[0.12em]"
+                  className="inline-flex min-h-12 min-w-0 items-center justify-center gap-2 bg-asanda-orange-strong px-4 text-center text-xs font-extrabold uppercase tracking-[0.08em] text-white shadow-[0_10px_30px_-16px_rgba(0,0,0,0.4)] transition-colors hover:bg-[#a94320] sm:gap-3 sm:px-6 sm:text-sm sm:tracking-[0.12em]"
                 >
                   <Trophy size={19} aria-hidden="true" />
                   Ver resultados
