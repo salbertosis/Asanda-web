@@ -37,7 +37,7 @@ Chain strategy: stacked-to-main
   - [x] 1.3b2 Wire the Edge Function and prove staging contention, restoration, and cleanup.
 - [x] 1.4 Create `useAdminSession`, `AdminGuard`, lazy `/admin` routes, noindex lifecycle, login, recovery, sign-out, and responsive shell.
 - [ ] 1.5 Add featured athletes, publication/consent guards, source mappings, grants, and atomic RPC contracts.
-- [ ] 1.6 Create the `sign-media-upload` Edge Function with repeated active-role checks and Cloudinary secret isolation.
+- [x] 1.6 Create the `sign-media-upload` Edge Function with repeated active-role checks and Cloudinary secret isolation.
 
 ## Phase 2: Editorial Operations
 

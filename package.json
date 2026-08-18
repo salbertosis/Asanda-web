@@ -8,6 +8,8 @@
     "prebuild": "node scripts/generate-public-assets.mjs",
     "build": "vite build",
     "test:admin-staff": "node scripts/admin-staff-regression.mjs",
+    "test:admin-sign-media": "node scripts/admin-sign-media-regression.mjs",
+    "test:admin-sign-media-harness": "node scripts/admin-sign-media-harness.mjs",
     "test:admin-staff-orchestration": "node scripts/admin-staff-orchestration-regression.mjs",
     "test:ads": "node scripts/ads-regression.mjs",
     "test:lighthouse": "npx --yes @lhci/cli@0.15.1 autorun --config=lighthouserc.cjs",
