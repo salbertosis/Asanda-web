@@ -176,3 +176,19 @@ Production Supabase was not mutated; all database changes were exercised only in
 | Diff check | `git diff --check`: passed. |
 | Rollback boundary | Revert the three service files, `supabase/tests/admin-editorial-services.sql`, migration `20260818150000_enable_content_contracts_rls.sql` (re-enables RLS on `featured_athletes` and `source_mappings`; without it anonymous clients again read every featured window), the 2.2a tasks.md hunks, and this evidence section. Editorial core, admin shell, public site, and prior deliveries remain untouched. |
 | Privacy boundary | No credentials, recipient data, IDs, tokens, or private staging details were introduced or persisted. |
+
+## Work Unit Evidence — Task 2.2b
+**Work unit**: `task-2.2b-admin-news-ui`; auto-chain; stacked-to-main; approved issue #52.
+**Prior context**: Third slice of Phase 2 on top of merged 2.2a (editorial services, PR #51). Task 2.2 splits into 2.2a (services, done), 2.2b (news UI, this unit), and 2.2c (media and featured UI, later).
+### Work Unit Evidence
+| Evidence | Result |
+|---|---|
+| Routes | `/admin` redirects to `/admin/noticias`; news list at `/admin/noticias`; editor at `/admin/noticias/nueva` and `/admin/noticias/:id`; all inside the guarded `AdminShell` layout with its new module navigation (Noticias). |
+| News list | Status badges (Borrador, Publicada, Programada, Archivada), publish/archive actions wired to `publishNews`/`archiveNews` with per-row busy state, plus loading (`role=status`), empty, and error-with-retry (`role=alert`) states. |
+| News editor | Title, slug (generator from title), category, summary, and safe-markdown body fields validated with the reviewed `validateNewsInput`; live preview rendered via `renderSafeBody` (escaped, link/bold/italic/lists only); save and publish wired to `createNews`/`updateNews`/`publishNews`; editing an article replaces the URL so publish works after first save. |
+| Accessibility | Keyboard-operable controls, visible focus, semantic landmarks, Spanish copy, no motion-dependent feedback, Lucide icons only. |
+| Build | `npm run build`: passed. |
+| E2E baseline | `npm run test:e2e`: passed (existing scenarios, no new tests in this unit; 2.1b lands later). |
+| Diff check | `git diff --check`: passed. |
+| Rollback boundary | Revert `src/admin/AdminShell.jsx` (layout + nav), `src/admin/AdminNewsPage.jsx`, `src/admin/NewsEditorPage.jsx`, the `src/App.jsx` admin route hunks, the 2.2b tasks.md hunks, and this evidence section. Services, editorial core, admin login, and public site remain untouched. |
+| Privacy boundary | No credentials, recipient data, IDs, tokens, or private staging details were introduced or persisted. |
