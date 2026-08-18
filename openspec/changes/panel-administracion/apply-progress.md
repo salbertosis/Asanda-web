@@ -208,3 +208,19 @@ Production Supabase was not mutated; all database changes were exercised only in
 | Diff check | `git diff --check`: passed. |
 | Rollback boundary | Revert `src/admin/AdminMediaPage.jsx`, the `listAdminMedia` addition in `src/services/admin/media.js`, the Imágenes nav hunks in `src/admin/AdminShell.jsx`, the `src/App.jsx` media route hunks, the 2.2c tasks.md hunks, and this evidence section. Services, editorial core, news UI, admin login, and public site remain untouched. |
 | Privacy boundary | No credentials, recipient data, IDs, tokens, or private staging details were introduced or persisted. |
+
+## Work Unit Evidence — Task 2.2d
+**Work unit**: `task-2.2d-admin-featured-ui`; auto-chain; stacked-to-main; approved issue #55.
+**Prior context**: Fifth slice of Phase 2 on top of merged 2.2c (media UI, PR #56). Task 2.2 splits into 2.2a (services, done), 2.2b (news UI, done), 2.2c (media UI, done), and 2.2d (featured UI, this unit).
+### Work Unit Evidence
+| Evidence | Result |
+|---|---|
+| Route | `/admin/destacados` inside the guarded `AdminShell` layout; module navigation gains Destacados. |
+| Featured list | Ordered list (1-6) with window dates, active/out-of-window badge computed with the reviewed `featuredWindow`, edit and remove actions wired to `saveFeaturedAthlete`/`removeFeaturedAthlete`, plus loading (`role=status`), empty, and error-with-retry (`role=alert`) states. |
+| Editor form | Publishable-athlete selector fed by the new `listPublishableAthletes` (`publication_status='published'`, excluding athletes already selected unless editing), order 1-6, start/end window in `datetime-local` converted to/from local time; client validation with `featuredWindow` before saving. |
+| Accessibility | Keyboard-operable controls, visible focus, semantic landmarks, Spanish copy, Lucide icons only, labeled form fields. |
+| Build | `npm run build`: passed. |
+| E2E baseline | `npm run test:e2e`: passed (existing scenarios, no new tests in this unit; 2.1b lands later). |
+| Diff check | `git diff --check`: passed. |
+| Rollback boundary | Revert `src/admin/AdminFeaturedPage.jsx`, the `listPublishableAthletes` addition in `src/services/admin/featured.js`, the Destacados nav hunks in `src/admin/AdminShell.jsx`, the `src/App.jsx` featured route hunks, the 2.2d tasks.md hunks, and this evidence section. Services, editorial core, news and media UI, admin login, and public site remain untouched. |
+| Privacy boundary | No credentials, recipient data, IDs, tokens, or private staging details were introduced or persisted. |
