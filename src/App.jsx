@@ -36,6 +36,7 @@ const AdminLoginPage = lazy(() => import('./admin/AdminLoginPage.jsx'));
 const AdminShell = lazy(() => import('./admin/AdminShell.jsx'));
 const AdminNewsPage = lazy(() => import('./admin/AdminNewsPage.jsx'));
 const NewsEditorPage = lazy(() => import('./admin/NewsEditorPage.jsx'));
+const AdminMediaPage = lazy(() => import('./admin/AdminMediaPage.jsx'));
 function HomePage() {
   const [atletaSeleccionado, setAtletaSeleccionado] = useState(null);
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -179,6 +180,7 @@ function AdminApplication() {
             <Route path="noticias" element={<AdminNewsPage />} />
             <Route path="noticias/nueva" element={<NewsEditorPage />} />
             <Route path="noticias/:id" element={<NewsEditorPage />} />
+            <Route path="media" element={<AdminMediaPage />} />
             <Route path="*" element={<Navigate to="/admin/noticias" replace />} />
           </Route>
         </Routes>

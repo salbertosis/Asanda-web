@@ -192,3 +192,19 @@ Production Supabase was not mutated; all database changes were exercised only in
 | Diff check | `git diff --check`: passed. |
 | Rollback boundary | Revert `src/admin/AdminShell.jsx` (layout + nav), `src/admin/AdminNewsPage.jsx`, `src/admin/NewsEditorPage.jsx`, the `src/App.jsx` admin route hunks, the 2.2b tasks.md hunks, and this evidence section. Services, editorial core, admin login, and public site remain untouched. |
 | Privacy boundary | No credentials, recipient data, IDs, tokens, or private staging details were introduced or persisted. |
+
+## Work Unit Evidence — Task 2.2c
+**Work unit**: `task-2.2c-admin-media-ui`; auto-chain; stacked-to-main; approved issue #53.
+**Prior context**: Fourth slice of Phase 2 on top of merged 2.2b (news UI, PR #54). Task 2.2 splits into 2.2a (services, done), 2.2b (news UI, done), 2.2c (media UI, this unit), and 2.2d (featured UI, later).
+### Work Unit Evidence
+| Evidence | Result |
+|---|---|
+| Route | `/admin/media` inside the guarded `AdminShell` layout; module navigation gains Imágenes. |
+| Media list | Latest-first grid of `media_assets` with thumbnails via the existing `getCloudinaryUrl` helper, format/size/dimensions metadata, plus loading (`role=status`), empty, and error-with-retry (`role=alert`) states. `listAdminMedia` added to `src/services/admin/media.js` following the existing normalize pattern. |
+| Upload flow | File picker (JPG/PNG/WebP, up to 8 MB) validated with the reviewed `validateImageFile`; optional alt text; signature from the deployed `sign-media-upload` function for folder `asanda/media`; direct Cloudinary upload with the signed `folder`/`timestamp`/`api_key`/`signature`; asset inserted via `insertMediaAsset`; busy, success, and error feedback; the picker resets after a successful upload. |
+| Accessibility | Keyboard-operable controls, visible focus, semantic landmarks, Spanish copy, Lucide icons only, thumbnails with alt text. |
+| Build | `npm run build`: passed. |
+| E2E baseline | `npm run test:e2e`: passed (existing scenarios, no new tests in this unit; 2.1b lands later). |
+| Diff check | `git diff --check`: passed. |
+| Rollback boundary | Revert `src/admin/AdminMediaPage.jsx`, the `listAdminMedia` addition in `src/services/admin/media.js`, the Imágenes nav hunks in `src/admin/AdminShell.jsx`, the `src/App.jsx` media route hunks, the 2.2c tasks.md hunks, and this evidence section. Services, editorial core, news UI, admin login, and public site remain untouched. |
+| Privacy boundary | No credentials, recipient data, IDs, tokens, or private staging details were introduced or persisted. |
