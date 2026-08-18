@@ -41,7 +41,8 @@ Chain strategy: stacked-to-main
 
 ## Phase 2: Editorial Operations
 
-- [ ] 2.1 Add RED service/E2E tests for image validation, drafts, scheduled news, safe body rendering, and featured windows.
+- [x] 2.1a Add the pure editorial domain core (validation, safe body, images, featured windows) with service-level RED tests.
+- [ ] 2.1b Add E2E RED tests for editorial workflows (lands with the UI unit).
 - [ ] 2.2 Create admin media, news, and featured-athlete services, forms, lists, previews, loading, empty, and error states.
 - [ ] 2.3 Migrate homepage and `/noticias` reads to published Supabase articles and add `/noticias/:slug`.
 

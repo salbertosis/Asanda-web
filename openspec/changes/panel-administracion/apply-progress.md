@@ -148,3 +148,17 @@ Production Supabase was not mutated; all database changes were exercised only in
 | Diff check | `git diff --check`: passed. |
 | Rollback boundary | Delete the deployed staging function, revert `index.ts`, `signature.js`, `scripts/admin-sign-media-regression.mjs`, the `test:admin-sign-media` package script, the 1.6 checkbox in `tasks.md`, and this evidence section. Manage-staff, task 1.5 contracts, and public application behavior remain unchanged. |
 | Privacy boundary | No credentials, recipient data, profile/Auth IDs, tokens, or private staging details were introduced or persisted; Cloudinary secrets exist only as staging function secrets. |
+
+## Work Unit Evidence — Task 2.1a
+**Work unit**: `task-2.1a-editorial-core`; auto-chain; stacked-to-main; approved issue #48; one attempt.
+**Prior context**: First slice of Phase 2 editorial operations on top of the merged 1.3/1.5/1.6 chain. Task 2.1 splits into 2.1a (service-level RED tests with the pure domain core, this unit) and 2.1b (E2E RED tests, lands with the UI unit).
+### Work Unit Evidence
+| Evidence | Result |
+|---|---|
+| Focused deterministic regression | `node scripts/admin-editorial-regression.mjs`: exit 0, **12/12 passed** — valid input accepted; title/slug/summary/category/date boundaries; future publication accepted as scheduling; HTML markup and `javascript:` schemes rejected; plain text passes and renders inert; limited Markdown (bold, italic, http links, lists, paragraphs) renders safely with non-http links staying inert; image type/size/name validation; featured window order/uniqueness/date validation and time-based filtering without deletion; draft/scheduled/published/archived derivation. |
+| Module isolation | `src/services/admin/editorialLogic.js` imports natively as ESM in Node without dependencies; no Supabase, Deno, network, timer, storage, or environment APIs are referenced. |
+| Package script | `npm run test:admin-editorial` runs the same deterministic regression. |
+| Build | `npm run build`: passed. |
+| Diff check | `git diff --check`: passed. |
+| Rollback boundary | Revert `src/services/admin/editorialLogic.js`, `scripts/admin-editorial-regression.mjs`, the `test:admin-editorial` package script, the 2.1a tasks.md hunks, and this evidence section. Admin shell, public site, and prior deliveries remain untouched. |
+| Privacy boundary | No credentials, recipient data, IDs, tokens, or private staging details were introduced or persisted. |
