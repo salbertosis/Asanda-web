@@ -134,7 +134,7 @@ async function deactivate(command, operations) {
   if (!ban.ok) return restoreState(state, operations, command, 'deactivate-ban-failed', true);
   const final = await readState(operations, command.userId);
   if (!final.ok) return outcome('failed', 'deactivate-final-unknown', { recovery: 'unknown', compensation: 'failed' });
-  if (final.value.authPresent && !final.value.isActive && final.value.authBanned) {
+  if (final.value.authPresent && final.value.role === role && !final.value.isActive && final.value.authBanned) {
     return outcome('success', 'deactivated', { staff: safeStaff(final.value) });
   }
   return outcome('failed', 'deactivate-final-mismatch', { recovery: 'unknown', compensation: 'failed' });

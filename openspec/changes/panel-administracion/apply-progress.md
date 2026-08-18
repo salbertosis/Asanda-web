@@ -76,3 +76,23 @@ Production Supabase was not mutated; all database changes were exercised only in
 | Diff check | `git diff --check`: passed. |
 | Rollback boundary | Delete `supabase/functions/manage-staff/orchestration.js`, `scripts/admin-staff-orchestration-regression.mjs`, the `test:admin-staff-orchestration` package script, and revert only this 1.3b1a evidence section. The transactional RPC (1.3a), task 1.5 files, and public application behavior remain unchanged. |
 | Privacy boundary | No credentials, recipient data, profile/Auth IDs, tokens, or private staging details were introduced or persisted; results expose only bounded staff fields and state codes. |
+
+## Work Unit Evidence — Task 1.3b1b
+**Work unit**: `task-1.3b1b-access-transition-tests`; auto-chain; stacked-to-main; approved issue #39; one attempt.
+**Prior context**: Completes slice 1.3b1 on top of merged 1.3b1a (PR #40 / issue #38). Adds the deterministic access-transition suite (deactivation, reactivation compensation/recovery, role-only transitions), tightens the deactivation success check to also verify the requested role (reviewer note from 1.3b1a), and closes the 1.3b1 OpenSpec entry.
+
+### Completed Tasks
+- [x] 1.3b1 Add dependency-injected fail-closed staff orchestration and deterministic recovery tests.
+- [ ] 1.3 Parent correction remains open until Edge Function integration (1.3b2) is complete.
+- [ ] 1.3b2 Wire the Edge Function and prove staging contention, restoration, and cleanup.
+
+### Work Unit Evidence
+| Evidence | Result |
+|---|---|
+| Focused deterministic regression | `node scripts/admin-staff-orchestration-regression.mjs`: exit 0, **26/26 passed** — the 9 slice-a invitation/cleanup cases plus deactivation denial without Auth mutation, ambiguous deactivation proven inactive/still-active/unknown, ban-failure compensation, deactivation success with exact inactive/banned state, deactivation with role change verifying both role and inactive state, reactivation success, ambiguous reactivation never taking early success, compensation failure, Auth re-ban failure, unban failure desired-safe, ambiguous unban compensation, role change success/ambiguous-restore/unchanged, and non-managed/missing staff rejection — all with exact effect ordering and maximum call counts. |
+| Module change | `supabase/functions/manage-staff/orchestration.js`: deactivation success now also verifies `final.value.role === role` (one condition); no other behavior changed. |
+| Package script | `npm run test:admin-staff-orchestration` runs the same deterministic regression. |
+| Build | `npm run build`: passed. |
+| Diff check | `git diff --check`: passed. |
+| Rollback boundary | Revert the deactivation role-check condition in `orchestration.js`, the added access-transition tests in `scripts/admin-staff-orchestration-regression.mjs`, the 1.3b1 checkbox in `tasks.md`, the `state.yaml` pending/work-unit hunks, and this evidence section. The 1.3b1a module/test delivery, transactional RPC (1.3a), task 1.5 files, and public behavior remain intact. |
+| Privacy boundary | No credentials, recipient data, profile/Auth IDs, tokens, or private staging details were introduced or persisted. |
