@@ -4,6 +4,7 @@
 - [x] 1.4 Admin session, protected routes, login, recovery, sign-out, noindex, and responsive shell.
 - [x] 1.1 Remote SQL authorization and audit regression.
 - [x] 1.2 Immutable private audit storage and managed-table triggers.
+- [x] 1.5 Featured athletes, publication/consent guards, source mappings, grants, and atomic RPC contracts.
 
 ## Work Unit Evidence
 | Evidence | Result |
@@ -117,6 +118,20 @@ Production Supabase was not mutated; all database changes were exercised only in
 | Diff check | `git diff --check`: passed. |
 | Rollback boundary | Delete the deployed staging function, revert `index.ts`, `scripts/admin-staff-regression.mjs`, the `test:admin-staff` package script, the 1.3b2 checkbox in `tasks.md`, the `state.yaml` completed/work-unit hunks, and this evidence section. The orchestration module (1.3b1), the transactional RPC (1.3a), task 1.5 files, and public application behavior remain unchanged. |
 | Privacy boundary | No credentials, recipient data, profile/Auth IDs, tokens, or private staging details were introduced or persisted; the invitation recipient and service credentials exist only as process environment variables; results expose only bounded staff fields and state codes. |
+
+## Content Contract Evidence — Task 1.5
+**Work unit**: `task-1.5-content-contracts`; auto-chain; stacked-to-main; approved issue #44; one attempt.
+**Prior context**: Delivered on top of the completed 1.3 correction chain (PRs #37/#40/#41/#43). The contracts were authored and verified on staging earlier and are now delivered as their own PR.
+### Work Unit Evidence
+| Evidence | Result |
+|---|---|
+| Focused static contract check | `node --input-type=module -e '<6 migration markers (featured_athletes, source_mappings, commit_result_import, resolution_status, results_publication, revision) and 3 regression markers (has_table_privilege, Every source mapping, Athletes require active)>'`: exit 0. |
+| Runtime harness | Isolated ASANDA Staging: dry-run selected only migration `20260817190000` (applied once); `supabase db query` from the staging CLI context ran `supabase/tests/admin-content-contracts.sql` in one attempt (exit 0) — privacy grants, publication/consent guards, featured constraints, unresolved-mapping rejection, and self-cleaning verified. Production was not mutated. |
+| Cleanup evidence | Read-only staging query after the run: `athlete_count=0`, `mapping_count=0`, `featured_count=0`, `recent_test_table_audit_count=0`; the temporary SQL file was deleted and verified absent. |
+| Build | `npm run build`: passed. |
+| Diff check | `git diff --check`: passed. |
+| Rollback boundary | Revert `supabase/migrations/20260817190000_add_admin_content_contracts.sql`, `supabase/tests/admin-content-contracts.sql`, the 1.5 checkbox in `tasks.md`, and this evidence section; manage-staff work, public fixtures, and prior migrations remain untouched. |
+| Privacy boundary | No credentials, recipient data, IDs, tokens, or private staging details were introduced or persisted. |
 
 ## Work Unit Evidence — Task 1.6
 **Work unit**: `task-1.6-sign-media-upload`; auto-chain; stacked-to-main; approved issue #46; one attempt.
