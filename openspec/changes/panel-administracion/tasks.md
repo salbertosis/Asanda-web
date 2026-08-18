@@ -8,7 +8,7 @@
 | 400-line budget risk | High |
 | Chained PRs recommended | Yes |
 | Suggested split | Foundation → Editorial → Athletes/Clubs → Calendar → HY3 Results → Public migration |
-| Delivery strategy | ask-on-risk (resolved) |
+| Delivery strategy | auto-chain (resolved) |
 | Chain strategy | stacked-to-main |
 
 Decision needed before apply: No
@@ -31,9 +31,12 @@ Chain strategy: stacked-to-main
 
 - [x] 1.1 Add RED SQL tests for anonymous and inactive writes, editor account escalation, and audit evidence.
 - [x] 1.2 Add immutable audit storage/triggers and lock current active-role RLS behavior.
-- [ ] 1.3 Create `manage-staff` and `sign-media-upload` Edge Functions with repeated active-role checks and secret isolation.
+- [ ] 1.3 Correct `manage-staff` with serialized profile authority and fail-closed Auth ordering.
+  - [x] 1.3a Add the service-role-only transactional staff profile transition RPC and focused SQL regression.
+  - [ ] 1.3b Integrate the RPC into `manage-staff` and expand the runtime regression for compensation and recovery.
 - [x] 1.4 Create `useAdminSession`, `AdminGuard`, lazy `/admin` routes, noindex lifecycle, login, recovery, sign-out, and responsive shell.
 - [ ] 1.5 Add featured athletes, publication/consent guards, source mappings, grants, and atomic RPC contracts.
+- [ ] 1.6 Create the `sign-media-upload` Edge Function with repeated active-role checks and Cloudinary secret isolation.
 
 ## Phase 2: Editorial Operations
 

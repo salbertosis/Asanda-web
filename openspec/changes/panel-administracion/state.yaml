@@ -1,7 +1,7 @@
 change: panel-administracion
 phase: apply
 artifact_store: openspec
-delivery_strategy: ask-on-risk
+delivery_strategy: auto-chain
 chain_strategy: stacked-to-main
 artifacts:
   exploration: true
@@ -15,9 +15,13 @@ tasks_progress:
   completed:
     - admin-auth-shell
     - admin-database-audit
+    - admin-manage-staff-profile-rpc
   pending:
+    - admin-manage-staff-edge-integration
     - editorial-operations
     - athletes-and-clubs
     - calendar-and-hy3-results
     - verification-and-rollout
 last_updated: 2026-08-17
+current_work_unit: task-1.3a-transactional-staff-rpc
+next_work_unit: task-1.3b-edge-function-integration
