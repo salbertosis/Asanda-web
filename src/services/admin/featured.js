@@ -12,6 +12,12 @@ export const listFeaturedAthletes = async () => {
   return (data ?? []).map(normalize);
 };
 
+export const listPublishableAthletes = async () => {
+  const { data, error } = await supabase.from('athletes').select('id,display_name').eq('publication_status', 'published').order('display_name');
+  if (error) throw error;
+  return (data ?? []).map((row) => ({ id: row.id, displayName: row.display_name }));
+};
+
 export const saveFeaturedAthlete = async (entry) => {
   const validation = featuredWindow([{ athleteId: entry.athleteId, displayOrder: entry.displayOrder, startsAt: entry.startsAt, endsAt: entry.endsAt }]);
   if (!validation.ok) throw new Error('Selección destacada inválida.');

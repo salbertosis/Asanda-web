@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { Image, LogOut, Newspaper } from 'lucide-react';
+import { Image, LogOut, Newspaper, Star } from 'lucide-react';
 import { useAdminSession } from './AdminSessionContext';
 
 const roleLabel = { administrator: 'Administrador', editor: 'Editor' };
@@ -37,6 +37,10 @@ const AdminShell = () => {
           <NavLink to="/admin/media" className={navItem}>
             <Image size={17} aria-hidden="true" />
             Imágenes
+          </NavLink>
+          <NavLink to="/admin/destacados" className={navItem}>
+            <Star size={17} aria-hidden="true" />
+            Destacados
           </NavLink>
         </div>
       </nav>
