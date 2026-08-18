@@ -162,3 +162,17 @@ Production Supabase was not mutated; all database changes were exercised only in
 | Diff check | `git diff --check`: passed. |
 | Rollback boundary | Revert `src/services/admin/editorialLogic.js`, `scripts/admin-editorial-regression.mjs`, the `test:admin-editorial` package script, the 2.1a tasks.md hunks, and this evidence section. Admin shell, public site, and prior deliveries remain untouched. |
 | Privacy boundary | No credentials, recipient data, IDs, tokens, or private staging details were introduced or persisted. |
+
+## Work Unit Evidence — Task 2.2a
+**Work unit**: `task-2.2a-editorial-services`; auto-chain; stacked-to-main; approved issue #50.
+**Prior context**: Second slice of Phase 2 on top of merged 2.1a (editorial core, PR #49). Task 2.2 splits into 2.2a (services + RLS regression, this unit) and 2.2b (UI, later).
+### Work Unit Evidence
+| Evidence | Result |
+|---|---|
+| Focused RLS regression | `supabase db query --linked --file supabase/tests/admin-editorial-services.sql` against isolated ASANDA Staging: exit 0 — anonymous clients see exactly one of draft/scheduled/published fixtures (drafts and future-scheduled articles hidden), unlinked media assets invisible to anonymous clients, expired featured windows hidden with only the active window visible; cleanup deleted every fixture row and audit residue. |
+| Defect remediation | The regression exposed that migration 1.5 created `featured_athletes` and `source_mappings` with policies but without row-level security enabled (`relrowsecurity=false`), so anonymous clients read every featured window including expired ones. Corrective migration `20260818150000_enable_content_contracts_rls.sql` enables RLS on both tables; it was dry-run selected, applied once on staging, and both `admin-content-contracts.sql` (1.5) and `admin-editorial-services.sql` (2.2a) regressions pass after it. The regression also exercises editor-role writes (authenticated role) for news, media, and featured rows, proving the editor RLS policies are now effective. |
+| Service wiring | `src/services/admin/news.js`, `media.js`, and `featured.js` are thin Supabase wrappers over the reviewed `editorialLogic` core: validation before every write, normalized admin rows with derived `status`, signature request through the deployed `sign-media-upload` function, and media/featured payloads constrained to public fields. |
+| Build | `npm run build`: passed. |
+| Diff check | `git diff --check`: passed. |
+| Rollback boundary | Revert the three service files, `supabase/tests/admin-editorial-services.sql`, migration `20260818150000_enable_content_contracts_rls.sql` (re-enables RLS on `featured_athletes` and `source_mappings`; without it anonymous clients again read every featured window), the 2.2a tasks.md hunks, and this evidence section. Editorial core, admin shell, public site, and prior deliveries remain untouched. |
+| Privacy boundary | No credentials, recipient data, IDs, tokens, or private staging details were introduced or persisted. |
