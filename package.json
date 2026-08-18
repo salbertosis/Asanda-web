@@ -7,6 +7,7 @@
     "dev": "vite",
     "prebuild": "node scripts/generate-public-assets.mjs",
     "build": "vite build",
+    "test:admin-staff-orchestration": "node scripts/admin-staff-orchestration-regression.mjs",
     "test:ads": "node scripts/ads-regression.mjs",
     "test:lighthouse": "npx --yes @lhci/cli@0.15.1 autorun --config=lighthouserc.cjs",
     "test:metadata": "node tests/metadata-regression.mjs",

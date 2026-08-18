@@ -56,3 +56,23 @@ Production Supabase was not mutated; all database changes were exercised only in
 | Rollback boundary | Revert the inactive-administrator block in `supabase/tests/admin-staff-profile-transition.sql`, the forecast line in `tasks.md`, and this evidence section; no migration/RPC implementation changes. |
 | Privacy boundary | No credentials, recipient data, Auth/profile IDs, audit IDs, tokens, or private staging details were persisted. |
 | Evidence revision | `sha256:ffd14225dbfdbab00eeae6a23f91d9b65cf241c26c3371476910248016177e8a` |
+
+## Work Unit Evidence — Task 1.3b1a
+**Work unit**: `task-1.3b1-staff-orchestration` (slice a); auto-chain; stacked-to-main; approved issue #38; one attempt.
+**Prior context**: The first Edge integration candidate consumed its scoped review correction and still contained severe recovery/cleanup defects with structural-only tests. The maintainer approved replacing it with two clean slices: 1.3b1a (orchestration module + deterministic invitation/cleanup tests, this evidence) and 1.3b1b (issue #39: deterministic access-transition tests + OpenSpec completion). The unsafe candidate code was discarded, not patched.
+
+### Completed Tasks
+- [ ] 1.3b1 Add dependency-injected fail-closed staff orchestration and deterministic recovery tests (slice a: module and invitation/cleanup determinism).
+- [ ] 1.3 Parent correction remains open until Edge Function integration (1.3b2) is complete.
+- [ ] 1.3b2 Wire the Edge Function and prove staging contention, restoration, and cleanup.
+
+### Work Unit Evidence
+| Evidence | Result |
+|---|---|
+| Focused deterministic regression | `node scripts/admin-staff-orchestration-regression.mjs`: exit 0, **9/9 passed** — (1) invite rejects null/array/malformed/disallowed-role commands with zero effects; (2) setStaffAccess rejects null/array/malformed commands with zero effects; (3) failed or malformed auth invite without further effects; (4) bootstrap throw after auth creation; (5) RPC denial, malformed, and ambiguous variants; (6) cleanup deletion failure with residue; (7) deletion throw with exact absence; (8) success with each effect exactly once; (9) final state mismatch — with exact effect ordering and maximum call counts enforced by trace equality and handler-queue exhaustion, plus recursive output privacy assertions. |
+| Package script | `npm run test:admin-staff-orchestration` runs the same deterministic regression. |
+| Module check | `supabase/functions/manage-staff/orchestration.js` imports natively as ESM in Node without loaders or dependencies; no Deno, Supabase, network, timer, storage, or environment APIs are referenced. |
+| Build | `npm run build`: passed. |
+| Diff check | `git diff --check`: passed. |
+| Rollback boundary | Delete `supabase/functions/manage-staff/orchestration.js`, `scripts/admin-staff-orchestration-regression.mjs`, the `test:admin-staff-orchestration` package script, and revert only this 1.3b1a evidence section. The transactional RPC (1.3a), task 1.5 files, and public application behavior remain unchanged. |
+| Privacy boundary | No credentials, recipient data, profile/Auth IDs, tokens, or private staging details were introduced or persisted; results expose only bounded staff fields and state codes. |
