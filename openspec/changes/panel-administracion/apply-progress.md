@@ -96,3 +96,24 @@ Production Supabase was not mutated; all database changes were exercised only in
 | Diff check | `git diff --check`: passed. |
 | Rollback boundary | Revert the deactivation role-check condition in `orchestration.js`, the added access-transition tests in `scripts/admin-staff-orchestration-regression.mjs`, the 1.3b1 checkbox in `tasks.md`, the `state.yaml` pending/work-unit hunks, and this evidence section. The 1.3b1a module/test delivery, transactional RPC (1.3a), task 1.5 files, and public behavior remain intact. |
 | Privacy boundary | No credentials, recipient data, profile/Auth IDs, tokens, or private staging details were introduced or persisted. |
+
+## Work Unit Evidence — Task 1.3b2
+**Work unit**: `task-1.3b2-edge-runtime`; auto-chain; stacked-to-main; approved issue #42; one attempt; parent issue #35 closes after this evidence.
+**Prior context**: Slice 1.3b2 wires the reviewed orchestration module into the `manage-staff` Edge Function with thin HTTP/Supabase adapters, deploys only to the isolated ASANDA Staging project (us-east-1) from the staging CLI context, and proves runtime contention, restoration, and verified cleanup. The module and transactional RPC were delivered in 1.3b1 and 1.3a and are used unchanged.
+
+### Completed Tasks
+- [x] 1.3 Correct `manage-staff` with serialized profile authority and fail-closed Auth ordering.
+  - [x] 1.3a Add the service-role-only transactional staff profile transition RPC and focused SQL regression.
+  - [x] 1.3b1 Add dependency-injected fail-closed staff orchestration and deterministic recovery tests.
+  - [x] 1.3b2 Wire the Edge Function and prove staging contention, restoration, and cleanup.
+
+### Work Unit Evidence
+| Evidence | Result |
+|---|---|
+| Edge wiring | `supabase/functions/manage-staff/index.ts` (129 lines) only maps HTTP to commands and adapters: gateway CORS/methods, bearer verification, fresh active-administrator actor check, command validation, Supabase adapters over the reviewed module, Spanish bounded responses, and RPC status mapping (23514 → 409, self-removal 42501 → 409, other 42501 → 403, 22023 → 422). JWT verification is enabled by the platform default; `supabase/config.toml` contains no `verify_jwt = false` entry. No orchestration logic is duplicated. |
+| Focused hosted regression | `npm run test:admin-staff` against staging: exit 0 — missing bearer and non-administrator actor denied; unknown action, missing fields, non-UUID target, disallowed role, non-boolean active flag, null/array/primitive/malformed JSON all 422; self-demotion and last-admin self-removal 409; role transition and restoration exact; deactivation exact with banned Auth and denied stale sessions; reactivation exact with fresh sign-in and profile read; real two-administrator contention race with exactly one winner and one safe denial (403/409/502, never recovery-required) and exactly one active administrator remaining; survivor restores the removed administrator; editor identity returns to editor; both fixtures verified with fresh sessions; invitation 201 with exact bounded staff and exact profile/Auth state; invited Auth user and cascaded profile deleted with exact absence verified; emergency service-role restoration exercised on both fixtures with exact final-state verification. |
+| Deployment boundary | Function deployed only to the isolated ASANDA Staging project (us-east-1) via the staging CLI context; production project never linked, contacted, or deployed. |
+| Build | `npm run build`: passed. |
+| Diff check | `git diff --check`: passed. |
+| Rollback boundary | Delete the deployed staging function, revert `index.ts`, `scripts/admin-staff-regression.mjs`, the `test:admin-staff` package script, the 1.3b2 checkbox in `tasks.md`, the `state.yaml` completed/work-unit hunks, and this evidence section. The orchestration module (1.3b1), the transactional RPC (1.3a), task 1.5 files, and public application behavior remain unchanged. |
+| Privacy boundary | No credentials, recipient data, profile/Auth IDs, tokens, or private staging details were introduced or persisted; the invitation recipient and service credentials exist only as process environment variables; results expose only bounded staff fields and state codes. |

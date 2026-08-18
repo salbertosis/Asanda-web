@@ -16,12 +16,12 @@ tasks_progress:
     - admin-auth-shell
     - admin-database-audit
     - admin-manage-staff-profile-rpc
-  pending:
     - admin-manage-staff-edge-runtime
+  pending:
     - editorial-operations
     - athletes-and-clubs
     - calendar-and-hy3-results
     - verification-and-rollout
 last_updated: 2026-08-18
-current_work_unit: task-1.3b1b-access-transition-tests
-next_work_unit: task-1.3b2-edge-runtime
+current_work_unit: task-1.3b2-edge-runtime
+next_work_unit: editorial-operations
