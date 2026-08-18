@@ -33,7 +33,8 @@ Chain strategy: stacked-to-main
 - [x] 1.2 Add immutable audit storage/triggers and lock current active-role RLS behavior.
 - [ ] 1.3 Correct `manage-staff` with serialized profile authority and fail-closed Auth ordering.
   - [x] 1.3a Add the service-role-only transactional staff profile transition RPC and focused SQL regression.
-  - [ ] 1.3b Integrate the RPC into `manage-staff` and expand the runtime regression for compensation and recovery.
+  - [ ] 1.3b1 Add dependency-injected fail-closed staff orchestration and deterministic recovery tests.
+  - [ ] 1.3b2 Wire the Edge Function and prove staging contention, restoration, and cleanup.
 - [x] 1.4 Create `useAdminSession`, `AdminGuard`, lazy `/admin` routes, noindex lifecycle, login, recovery, sign-out, and responsive shell.
 - [ ] 1.5 Add featured athletes, publication/consent guards, source mappings, grants, and atomic RPC contracts.
 - [ ] 1.6 Create the `sign-media-upload` Edge Function with repeated active-role checks and Cloudinary secret isolation.
