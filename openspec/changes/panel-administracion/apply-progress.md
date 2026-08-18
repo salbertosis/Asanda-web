@@ -132,3 +132,19 @@ Production Supabase was not mutated; all database changes were exercised only in
 | Diff check | `git diff --check`: passed. |
 | Rollback boundary | Revert `supabase/migrations/20260817190000_add_admin_content_contracts.sql`, `supabase/tests/admin-content-contracts.sql`, the 1.5 checkbox in `tasks.md`, and this evidence section; manage-staff work, public fixtures, and prior migrations remain untouched. |
 | Privacy boundary | No credentials, recipient data, IDs, tokens, or private staging details were introduced or persisted. |
+
+## Work Unit Evidence — Task 1.6
+**Work unit**: `task-1.6-sign-media-upload`; auto-chain; stacked-to-main; approved issue #46; one attempt.
+**Prior context**: Adds the `sign-media-upload` Edge Function on top of the completed 1.3 chain and task 1.5 PR. Cloudinary signing secrets are read only from `Deno.env`; the public cloud name stays in the browser config.
+### Work Unit Evidence
+| Evidence | Result |
+|---|---|
+| Focused deterministic regression | `node scripts/admin-sign-media-regression.mjs`: exit 0, **6/6 passed** — canonical parameter ordering, signature matches a known SHA-1 vector, signature changes with secret/timestamp/folder, folder validation accepts bounded `asanda/` folders (≤ 80 chars), rejects unsafe/foreign/malformed folders (`../`, spaces, wrong prefix, non-string), and the response payload never exposes the api secret. |
+| Module isolation | `supabase/functions/sign-media-upload/signature.js` imports natively as ESM in Node without dependencies; hashing is dependency-injected (Web Crypto in Deno, `node:crypto` in tests); no Deno, Supabase, network, or environment APIs are referenced. |
+| Focused hosted regression | `npm run test:admin-sign-media-harness` against staging with test-only Cloudinary secrets: exit 0, **11/11 passed** — anonymous and bogus bearer denied, non-POST denied, foreign folder rejected before authorization, missing folder, malformed body and invalid folder rejected, editor receives a bounded payload whose signature re-verifies against the staging secret, deactivated actor is denied immediately with the same session (Auth ban at the gateway or fresh role check), and the restored actor signs again without re-login. |
+| Edge wiring | `index.ts` only maps HTTP to signing: gateway CORS/methods, bearer verification, fresh active editor/administrator check from `profiles` on every request, strict folder validation, bounded Spanish errors, and short-lived `folder`+`timestamp`+SHA-1 signature with secret isolation. |
+| Deployment boundary | Function deployed only to the isolated ASANDA Staging project (us-east-1) via the staging CLI context with test-only Cloudinary secrets; production project never linked, contacted, or deployed. |
+| Build | `npm run build`: passed. |
+| Diff check | `git diff --check`: passed. |
+| Rollback boundary | Delete the deployed staging function, revert `index.ts`, `signature.js`, `scripts/admin-sign-media-regression.mjs`, the `test:admin-sign-media` package script, the 1.6 checkbox in `tasks.md`, and this evidence section. Manage-staff, task 1.5 contracts, and public application behavior remain unchanged. |
+| Privacy boundary | No credentials, recipient data, profile/Auth IDs, tokens, or private staging details were introduced or persisted; Cloudinary secrets exist only as staging function secrets. |
