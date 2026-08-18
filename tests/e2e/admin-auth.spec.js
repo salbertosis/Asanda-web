@@ -84,11 +84,11 @@ test('restores an active editor session and signs out safely', async ({ page }) 
   await page.getByLabel('Contraseña').fill('not-a-real-password');
   await page.getByRole('button', { name: 'Ingresar' }).click();
 
-  await expect(page).toHaveURL(/\/admin$/);
-  await expect(page.getByRole('heading', { name: 'Panel de administración' })).toBeVisible();
+  await expect(page).toHaveURL(/\/admin\/noticias$/);
+  await expect(page.getByRole('heading', { name: 'Noticias' })).toBeVisible();
   await expect(page.getByText('Editor ASANDA')).toBeVisible();
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Panel de administración' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Noticias' })).toBeVisible();
   await page.getByRole('button', { name: 'Cerrar sesión' }).click();
   await expect(page).toHaveURL(/\/admin\/login$/);
   await expect(page.getByRole('heading', { name: 'Acceso administrativo' })).toBeVisible();

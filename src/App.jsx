@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useState } from 'react';
-import { Link, Routes, Route, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, Routes, Route, useSearchParams } from 'react-router-dom';
 import { ArrowRight, CalendarDays, Trophy } from 'lucide-react';
 import { atletas } from './data/atletas';
 import AppShell from './components/layout/AppShell';
@@ -34,6 +34,8 @@ const LegalPage = lazy(() => import('./pages/LegalPage.jsx'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage.jsx'));
 const AdminLoginPage = lazy(() => import('./admin/AdminLoginPage.jsx'));
 const AdminShell = lazy(() => import('./admin/AdminShell.jsx'));
+const AdminNewsPage = lazy(() => import('./admin/AdminNewsPage.jsx'));
+const NewsEditorPage = lazy(() => import('./admin/NewsEditorPage.jsx'));
 function HomePage() {
   const [atletaSeleccionado, setAtletaSeleccionado] = useState(null);
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -172,7 +174,13 @@ function AdminApplication() {
       <Suspense fallback={<main className="grid min-h-screen place-items-center bg-asanda-foam" role="status">Cargando administración…</main>}>
         <Routes>
           <Route path="login" element={<AdminLoginPage />} />
-          <Route path="*" element={<AdminGuard><AdminShell /></AdminGuard>} />
+          <Route element={<AdminGuard><AdminShell /></AdminGuard>}>
+            <Route index element={<Navigate to="/admin/noticias" replace />} />
+            <Route path="noticias" element={<AdminNewsPage />} />
+            <Route path="noticias/nueva" element={<NewsEditorPage />} />
+            <Route path="noticias/:id" element={<NewsEditorPage />} />
+            <Route path="*" element={<Navigate to="/admin/noticias" replace />} />
+          </Route>
         </Routes>
       </Suspense>
     </AdminSessionProvider>

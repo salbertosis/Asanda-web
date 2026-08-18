@@ -1,8 +1,14 @@
 import React from 'react';
-import { LogOut, ShieldCheck } from 'lucide-react';
+import { NavLink, Outlet } from 'react-router-dom';
+import { LogOut, Newspaper } from 'lucide-react';
 import { useAdminSession } from './AdminSessionContext';
 
 const roleLabel = { administrator: 'Administrador', editor: 'Editor' };
+
+const navItem = ({ isActive }) =>
+  `inline-flex min-h-12 items-center gap-2 border-b-2 px-3 font-bold transition-colors ${
+    isActive ? 'border-asanda-orange text-asanda-orange' : 'border-transparent text-asanda-deep hover:text-asanda-orange'
+  }`;
 
 const AdminShell = () => {
   const { profile, signOut } = useAdminSession();
@@ -22,13 +28,16 @@ const AdminShell = () => {
           </button>
         </div>
       </header>
-      <main id="admin-main" className="mx-auto max-w-7xl px-4 py-10 sm:px-5">
-        <div className="rounded-[14px] border border-asanda-line bg-white p-6 sm:p-8">
-          <ShieldCheck className="text-asanda-deep" size={32} aria-hidden="true" />
-          <p className="mt-5 text-xs font-bold uppercase tracking-[0.16em] text-asanda-deep">Área protegida</p>
-          <h1 className="mt-2 font-display text-3xl font-bold sm:text-4xl">Panel de administración</h1>
-          <p className="mt-4 max-w-2xl leading-7 text-slate-600">La sesión está activa. Los módulos de contenido se habilitarán en las siguientes entregas.</p>
+      <nav aria-label="Módulos de administración" className="border-b border-asanda-line bg-white">
+        <div className="mx-auto flex max-w-7xl items-stretch gap-1 overflow-x-auto px-4 sm:px-5">
+          <NavLink to="/admin/noticias" className={navItem}>
+            <Newspaper size={17} aria-hidden="true" />
+            Noticias
+          </NavLink>
         </div>
+      </nav>
+      <main id="admin-main" className="mx-auto max-w-7xl px-4 py-10 sm:px-5">
+        <Outlet />
       </main>
     </div>
   );
