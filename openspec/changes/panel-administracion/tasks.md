@@ -45,7 +45,8 @@ Chain strategy: stacked-to-main
 - [ ] 2.1b Add E2E RED tests for editorial workflows (lands with the UI unit).
 - [x] 2.2a Add admin news, media, and featured services with the RLS regression.
 - [x] 2.2b Add the admin news UI (list, editor form, safe-body preview) with loading, empty, and error states.
-- [ ] 2.2c Add the admin media and featured-athletes UI with loading, empty, and error states.
+- [x] 2.2c Add the admin media UI (asset list and signature upload flow) with loading, empty, and error states.
+- [ ] 2.2d Add the admin featured-athletes UI with loading, empty, and error states.
 - [ ] 2.3 Migrate homepage and `/noticias` reads to published Supabase articles and add `/noticias/:slug`.
 
 ## Phase 3: Athletes and Clubs
