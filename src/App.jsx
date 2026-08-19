@@ -18,6 +18,7 @@ import { AdminSessionProvider } from './admin/AdminSessionContext';
 import AdminGuard from './admin/AdminGuard';
 
 const NoticiasPage = lazy(() => import('./pages/NoticiasPage.jsx'));
+const NoticiaPage = lazy(() => import('./pages/NoticiaPage.jsx'));
 const VideosPage = lazy(() => import('./pages/VideosPage.jsx'));
 const FotosPage = lazy(() => import('./pages/FotosPage.jsx'));
 const AlbumPage = lazy(() => import('./pages/AlbumPage.jsx'));
@@ -153,6 +154,7 @@ function PublicApplication() {
         <Route path="/legal" element={<LegalPage />} />
         <Route path="/privacidad" element={<PrivacyPage />} />
         <Route path="/noticias" element={<NoticiasPage />} />
+        <Route path="/noticias/:slug" element={<NoticiaPage />} />
         <Route path="/videos" element={<VideosPage />} />
         <Route path="/fotos" element={<FotosPage />} />
         <Route path="/fotos/album/:id" element={<AlbumPage />} />

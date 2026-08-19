@@ -8,8 +8,24 @@ const statsResponse = {
   asOf: '2026-08-12',
 };
 
+const newsResponse = [{
+  id: '50000000-0000-4000-8000-000000000001',
+  slug: 'noticia-publicada',
+  title: 'Noticia publicada',
+  summary: 'Resumen visible para visitantes.',
+  body: 'Cuerpo seguro.',
+  category: 'Competencias',
+  publication_status: 'published',
+  published_at: '2026-08-18T10:00:00Z',
+  hero: null,
+}];
+
 const routeStats = (page, response = statsResponse, status = 200) => page.route('**/rest/v1/rpc/get_homepage_stats', (route) => (
   route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(response) })
+));
+
+const routeNews = (page) => page.route('**/rest/v1/news_articles*', (route) => (
+  route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(newsResponse) })
 ));
 
 test('renders live homepage statistics from the aggregate endpoint', async ({ page }) => {
@@ -107,6 +123,7 @@ test('keeps the primary CTA above the fold on a standard mobile viewport', async
 
 test('aligns the news section with the ASANDA landing palette', async ({ page }) => {
   await routeStats(page);
+  await routeNews(page);
   await page.goto('/');
 
   const news = page.locator('#noticias');

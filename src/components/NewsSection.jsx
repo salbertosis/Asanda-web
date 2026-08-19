@@ -1,10 +1,31 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, ArrowRight } from 'lucide-react';
-import { getUltimasNoticias } from '../data/noticias';
+import { getPublishedNews } from '../services/news';
 
 const NewsSection = () => {
-  const noticias = getUltimasNoticias(3);
+  const [noticias, setNoticias] = useState([]);
+  const [status, setStatus] = useState('loading');
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+
+    getPublishedNews({ limit: 3, signal: controller.signal })
+      .then((publishedNews) => {
+        if (!active) return;
+        setNoticias(publishedNews);
+        setStatus('ready');
+      })
+      .catch(() => {
+        if (active) setStatus('error');
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, []);
 
   return (
     <section id="noticias" aria-labelledby="news-title" className="border-t border-asanda-line bg-asanda-foam py-14 sm:py-16">
@@ -23,7 +44,22 @@ const NewsSection = () => {
             Ver todas <ArrowRight className="text-asanda-orange" size={19} aria-hidden="true" />
           </Link>
         </div>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        {status === 'loading' && (
+          <p role="status" className="rounded-[14px] border border-[#d3e9ea] bg-white p-6 text-sm font-bold text-asanda-deep">
+            Cargando noticias…
+          </p>
+        )}
+        {status === 'error' && (
+          <p role="alert" className="rounded-[14px] border border-red-200 bg-red-50 p-6 text-sm font-bold text-red-800">
+            No pudimos cargar las noticias. Intentá nuevamente más tarde.
+          </p>
+        )}
+        {status === 'ready' && noticias.length === 0 && (
+          <p className="rounded-[14px] border border-[#d3e9ea] bg-white p-6 text-sm font-bold text-asanda-deep">
+            Todavía no hay noticias publicadas.
+          </p>
+        )}
+        {status === 'ready' && noticias.length > 0 && <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           {noticias.map((noticia) => (
             <article
               key={noticia.id}
@@ -32,7 +68,7 @@ const NewsSection = () => {
               <div className="relative h-48 overflow-hidden">
                 <img
                   src={noticia.imagen}
-                  alt={noticia.titulo}
+                  alt={noticia.imagenAlt}
                   className="h-full w-full object-cover motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-[1.03]"
                 />
                 <div className="absolute left-4 top-4">
@@ -47,7 +83,9 @@ const NewsSection = () => {
                   <span>{noticia.fecha}</span>
                 </div>
                 <h3 className="mb-2 text-xl font-bold leading-snug text-asanda-ink transition-colors group-hover:text-asanda-deep">
-                  {noticia.titulo}
+                  <Link to={`/noticias/${noticia.slug}`} className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-asanda-orange">
+                    {noticia.titulo}
+                  </Link>
                 </h3>
                 <p className="line-clamp-2 text-sm leading-6 text-slate-600">
                   {noticia.resumen}
@@ -55,7 +93,7 @@ const NewsSection = () => {
               </div>
             </article>
           ))}
-        </div>
+        </div>}
       </div>
     </section>
   );
