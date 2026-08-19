@@ -224,3 +224,34 @@ Production Supabase was not mutated; all database changes were exercised only in
 | Diff check | `git diff --check`: passed. |
 | Rollback boundary | Revert `src/admin/AdminFeaturedPage.jsx`, the `listPublishableAthletes` addition in `src/services/admin/featured.js`, the Destacados nav hunks in `src/admin/AdminShell.jsx`, the `src/App.jsx` featured route hunks, the 2.2d tasks.md hunks, and this evidence section. Services, editorial core, news and media UI, admin login, and public site remain untouched. |
 | Privacy boundary | No credentials, recipient data, IDs, tokens, or private staging details were introduced or persisted. |
+
+## Work Unit Evidence — Task 2.1b
+**Work unit**: `task-2.1b-admin-editorial-e2e`; auto-chain; stacked-to-main; approved issue #58.
+**Prior context**: Final E6 editorial validation slice on top of merged 2.2d (featured UI, PR #57). This unit adds browser coverage for the already delivered editorial UI and services without changing production code.
+### Work Unit Evidence
+| Evidence | Result |
+|---|---|
+| Route coverage | Added `tests/e2e/admin-editorial.spec.js` with three Playwright workflows: news create/publish/archive, featured athlete add/edit/remove, and signed media upload. |
+| PostgREST mock contract | News, featured, and media write mocks inspect the request `Accept` header and return an object when it includes `application/vnd.pgrst.object+json`; otherwise they return arrays. Featured POST also attaches the embedded `athletes.display_name` fixture used by the UI after reload. |
+| Focused E2E command | `npx playwright test tests/e2e/admin-editorial.spec.js`: passed, **3/3 passed** — news, featured windows, and signed media upload workflows completed. |
+| Delivery evidence | Commit `d470c8c` (`test: add admin editorial e2e flows`) merged through PR #59 into `main` as merge commit `b52f0c8`; issue #58 closed as completed by `Closes #58`. |
+| Diff check | `git show --check HEAD`: passed after the E6 merge commit inspection; no whitespace errors reported. |
+| Rollback boundary | Revert `tests/e2e/admin-editorial.spec.js` and this 2.1b evidence/checkbox update. Production admin routes, services, migrations, staff work, and public site behavior remain untouched. |
+| Privacy boundary | No credentials, private profile IDs, tokens, recipient data, or real media uploads were introduced; E2E uses synthetic editor/profile fixtures and mocked Cloudinary responses only. |
+
+## Work Unit Evidence — Task 2.3
+**Work unit**: `task-2.3-public-news-migration`; auto-chain; stacked-to-main; approved issue #60.
+**Prior context**: Public migration slice after E6 merged through PR #59. This unit moves public news reads from static fixtures to published Supabase articles and adds the public detail route.
+### Work Unit Evidence
+| Evidence | Result |
+|---|---|
+| Public service | Added `src/services/news.js` with anonymous read helpers for due published `news_articles`, explicit `publication_status='published'` and `published_at <= now()` filters, Cloudinary hero normalization, and safe body rendering. |
+| Homepage and list migration | `NewsSection.jsx` and `NoticiasPage.jsx` now load published news via the public service and render stable loading, error, empty, and linked-card states without exposing draft, archived, scheduled, author, profile, or private media fields. |
+| Detail route | Added `src/pages/NoticiaPage.jsx` and `/noticias/:slug`, with loading, error, not-found, back-link, semantic article content, accessible image alt text, and safe rendered body. |
+| Focused E2E command | `npx playwright test tests/e2e/public-news.spec.js`: passed, **3/3 passed** — homepage/list show only due published news, detail renders a published slug with safe body, and unpublished/missing slugs render not-found. |
+| Regression compatibility | `npx playwright test tests/e2e/homepage-stats.spec.js tests/e2e/public-news.spec.js`: passed, **12/12 passed**. `homepage-stats.spec.js` now mocks public news for the existing palette assertion that inspects a news card. |
+| Baseline E2E | `npm run test:e2e`: passed, **57/57 passed**. |
+| Build | `npm run build`: passed. |
+| Diff check | `git diff --check`: passed; only line-ending warnings were emitted by Git for touched files. |
+| Rollback boundary | Revert `src/services/news.js`, `src/components/NewsSection.jsx`, `src/pages/NoticiasPage.jsx`, `src/pages/NoticiaPage.jsx`, the `/noticias/:slug` route in `src/App.jsx`, `tests/e2e/public-news.spec.js`, the public-news helper in `tests/e2e/homepage-stats.spec.js`, and this 2.3 OpenSpec evidence. Admin editorial/staff code and database migrations remain untouched. |
+| Privacy boundary | Public queries request only article and hero media fields needed for rendering; tests prove draft and future-scheduled articles do not render publicly. No credentials, private profile data, raw uploads, or real external calls were introduced. |

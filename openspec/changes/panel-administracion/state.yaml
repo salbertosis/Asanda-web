@@ -16,12 +16,21 @@ tasks_progress:
     - admin-auth-shell
     - admin-database-audit
     - admin-manage-staff-profile-rpc
+    - admin-manage-staff-orchestration
     - admin-manage-staff-edge-runtime
+    - admin-content-contracts
+    - sign-media-upload
+    - editorial-core
+    - editorial-services
+    - admin-news-ui
+    - admin-media-ui
+    - admin-featured-ui
+    - admin-editorial-e2e
+    - public-news-migration
   pending:
-    - editorial-operations
     - athletes-and-clubs
     - calendar-and-hy3-results
     - verification-and-rollout
-last_updated: 2026-08-18
-current_work_unit: task-1.3b2-edge-runtime
-next_work_unit: editorial-operations
+last_updated: 2026-08-19
+current_work_unit: athletes-and-clubs
+next_work_unit: calendar-and-hy3-results
