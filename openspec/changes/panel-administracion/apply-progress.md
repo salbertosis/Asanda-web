@@ -273,3 +273,23 @@ Production Supabase was not mutated; all database changes were exercised only in
 | Authored budget | **174 additions plus deletions** across the athlete E2E coverage and surgical task 3.2 OpenSpec updates; below the 400-line limit. |
 | Rollback boundary | Revert the relation helper and three relation scenarios in `tests/e2e/admin-athletes.spec.js`, the task 3.2 checkbox, and this evidence section. Leave merged SQL contracts, athlete services, wizard UI, task 3.1, task 3.3, and all prior deliveries unchanged. |
 | Privacy and environment | Synthetic public athlete/reference fixtures only; no database, linked project, staging, production, credentials, private identity data, or external service was contacted. |
+
+## Work Unit Evidence — Task 3.1
+**Work unit**: `task-3.1-athlete-club-sql-contracts`; auto-chain; stacked-to-main; approved issue #65 (athlete slice) and issue #73 (club lifecycle slice); parent issue #64.
+**Delivery chain**: Athlete SQL contracts merged through PR #66 at `515bdef`; this unit completes task 3.1 with the club lifecycle migration and archival/contact SQL coverage on `origin/main` at `30271cb`.
+
+### Completed Tasks
+- [x] 3.1 RED SQL/E2E tests for consent gates, category overlap, federation coverage, pre-infant rejection, contacts, and archival.
+
+### Work Unit Evidence
+| Evidence | Result |
+|---|---|
+| SQL regression | `supabase/tests/admin-athlete-club-rules.sql` covers anonymous/private contact visibility, archival preserving memberships, and delete rejection for clubs referenced by memberships, competitions, and historical results; deterministic fixtures with transaction rollback. |
+| Migration | `supabase/migrations/20260820120000_add_club_lifecycle_contracts.sql` adds `on delete restrict` for organization references, approved Cloudinary logo enforcement, and archive-only delete trigger. |
+| Static SQL validation | `sqlfluff parse`/`lint --dialect postgres` on migration and regression: passed. |
+| Build | `npm run build`: passed. |
+| Diff check | `git diff --check`: passed; only line-ending conversion warnings were emitted. |
+| SQL runtime | Not executed: local PostgreSQL/Docker unavailable; no linked, staging, or production database was contacted. |
+| Authored budget | **225 additions plus deletions** across the migration, SQL regression, and surgical OpenSpec updates; below the 400-line limit. |
+| Rollback boundary | Revert the club lifecycle migration, the club archival/contact SQL block, the task 3.1 checkbox, and this evidence section. Athlete contracts, services, wizard, and all prior deliveries remain unchanged. |
+| Privacy and environment | Synthetic public fixtures only; no credentials, private identity data, or external services were contacted. |
