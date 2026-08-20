@@ -5,6 +5,7 @@
 - [x] 1.1 Remote SQL authorization and audit regression.
 - [x] 1.2 Immutable private audit storage and managed-table triggers.
 - [x] 1.5 Featured athletes, publication/consent guards, source mappings, grants, and atomic RPC contracts.
+- [x] 4.2 Venue, competition lifecycle, and ordered event-program administration.
 
 ## Work Unit Evidence
 | Evidence | Result |
@@ -328,3 +329,23 @@ Production Supabase was not mutated; all database changes were exercised only in
 | Privacy boundary | All names, aliases, IDs, dates, contacts, hosts, and private canaries are unmistakably synthetic; tests reject real-brand markers, credentials, external URLs, and private values in sanitized output. |
 | Authored budget | 383 changed lines including fixture/test/docs and surgical OpenSpec/package updates; below the 400-line PR target and below the authorized 800-line maximum. |
 | Expected RED boundary | The missing parser module is the only intentional failure; task 4.1 supplies no fake parser or worker implementation. |
+
+## Work Unit Evidence — Task 4.2
+**Work unit**: `phase-4-task-4.2-calendar-events`; Standard Mode (`strict_tdd: false`); auto-chain; stacked-to-main; native attempt state was not acquired or mutated.
+### Completed Tasks
+- [x] 4.2 Venue, competition lifecycle, and ordered event-program administration.
+### Implementation
+- Added RLS-compatible admin services and guarded routes for reusable venues, competition CRUD/publication/lifecycle states, and event-program CRUD.
+- Added database contracts for exact venue identity reuse, active sport/category references, date-bounded schedules, historical deletion protection, and transactional deterministic event reordering.
+- Added Spanish accessible UI states and behavior-first E2E coverage for invalid dates, venue creation, ordered events, publication, postponement, completion, and archival.
+### Work Unit Evidence
+| Evidence | Result |
+|---|---|
+| Focused behavior test | `npx playwright test tests/e2e/admin-calendar.spec.js`: exit 0; **1/1 passed**. |
+| Runtime harness | `npm run test:e2e`: exit 0; **63/63 passed** with mocked Supabase Auth/PostgREST/RPC routes only. No database, linked project, staging, production, or external service was contacted. |
+| SQL contract parse | `sqlfluff parse --dialect postgres` for the migration and regression: both passed. SQL runtime was intentionally not executed because this work unit forbids database contact. |
+| Build | `npm run build`: exit 0; Vite transformed **1,491 modules**. Generated public manifest, robots, and sitemap metadata were restored. |
+| Diff check | `git diff --check`: exit 0; only existing LF/CRLF conversion warnings were emitted. |
+| Rollback boundary | Revert `AdminCalendarPage.jsx`, `src/services/admin/calendar.js`, the calendar route/nav hunks, the competition-admin migration and SQL regression, `admin-calendar.spec.js`, and this task/progress receipt. Existing public calendar reads, prior admin modules, HY3 fixtures, and result-import work remain untouched. |
+| Privacy boundary | Only public venue/location, organization display, competition, event-definition, category, schedule, and lifecycle fields are requested; no contacts, identity details, credentials, raw HY3 data, or external service calls were added. |
+| Authored budget | **628 final changed lines; 608 before this receipt; 800-line actor maximum respected.** Recommended split: schema contract slice **256 lines** (`20260820133000_add_competition_admin_contracts.sql` + `admin-calendar-contracts.sql`), application/runtime slice **372 lines** (service, UI, routes/nav, E2E, task checkbox, and progress receipt). Both slices remain below the repository's 400-line review target. |
