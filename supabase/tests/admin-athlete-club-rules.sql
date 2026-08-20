@@ -23,6 +23,12 @@ declare
   competition_event_id uuid;
   entry_id uuid;
   performance_id uuid;
+  competition_club uuid;
+  history_club uuid;
+  history_competition_id uuid;
+  history_event_id uuid;
+  history_entry_id uuid;
+  history_performance_id uuid;
   blocked boolean;
   visible integer;
   failures text[] := array[]::text[];
@@ -283,8 +289,105 @@ begin
   end;
   if not blocked then failures := array_append(failures, 'pre-infant federation was accepted'); end if;
 
+  -- Only explicitly public typed contacts are visible to anonymous clients.
+  insert into public.organization_contacts (
+    organization_id, contact_type, label, value, url, is_public, sort_order
+  ) values
+    (test_club, 'email', 'Public email', 'task-31@example.test', null, true, 1),
+    (test_club, 'phone', 'Private phone', '000-000-0000', null, false, 2);
+  execute 'set local role anon';
+  select count(*) into visible
+  from public.organization_contacts
+  where organization_id = test_club and contact_type = 'email';
+  if visible <> 1 then failures := array_append(failures, 'public typed contact was hidden'); end if;
+  select count(*) into visible
+  from public.organization_contacts
+  where organization_id = test_club and contact_type = 'phone';
+  if visible <> 0 then failures := array_append(failures, 'private typed contact was publicly visible'); end if;
+  execute 'reset role';
+
+  -- Archival must preserve membership references and prevent hard deletion.
+  update public.organizations set publication_status = 'archived' where id = test_club;
+  select count(*) into visible
+  from public.athlete_memberships
+  where organization_id = test_club;
+  if visible <> 3 then failures := array_append(failures, 'archival did not preserve membership references'); end if;
+  blocked := false;
+  begin
+    delete from public.organizations where id = test_club;
+  exception when foreign_key_violation then
+    blocked := true;
+  end;
+  if not blocked then failures := array_append(failures, 'club referenced by memberships was hard-deleted'); end if;
+
+  -- Competition organizers must also be archived rather than deleted.
+  insert into public.organizations (
+    organization_type, name, short_name, slug, publication_status
+  ) values (
+    'club', 'Task 3.1 Competition Club', 'T31C',
+    'task-31-competition-' || replace(substr(gen_random_uuid()::text, 1, 8), '-', ''),
+    'published'
+  ) returning id into competition_club;
+  insert into public.competitions (
+    name, slug, sport_id, organizer_id, starts_on, status
+  ) values (
+    'Task 3.1 organizer reference',
+    'task-31-organizer-' || replace(substr(gen_random_uuid()::text, 1, 8), '-', ''),
+    sport_id, competition_club, current_date, 'completed'
+  ) returning id into history_competition_id;
+  blocked := false;
+  begin
+    delete from public.organizations where id = competition_club;
+  exception when foreign_key_violation then
+    blocked := true;
+  end;
+  if not blocked then failures := array_append(failures, 'club referenced by a competition was hard-deleted'); end if;
+
+  -- Historical result references must survive the club lifecycle operation.
+  insert into public.organizations (
+    organization_type, name, short_name, slug, publication_status
+  ) values (
+    'club', 'Task 3.1 History Club', 'T31H',
+    'task-31-history-' || replace(substr(gen_random_uuid()::text, 1, 8), '-', ''),
+    'published'
+  ) returning id into history_club;
+  insert into public.competitions (
+    name, slug, sport_id, starts_on, status
+  ) values (
+    'Task 3.1 historical result competition',
+    'task-31-history-competition-' || replace(substr(gen_random_uuid()::text, 1, 8), '-', ''),
+    sport_id, current_date, 'completed'
+  ) returning id into history_competition_id;
+  insert into public.competition_events (
+    competition_id, event_definition_id, category_id, competitive_sex, sequence_number, status
+  ) values (
+    history_competition_id, event_definition_id, category_id, 'open', 1, 'completed'
+  ) returning id into history_event_id;
+  insert into public.entries (
+    competition_event_id, athlete_id, represented_organization_id, status
+  ) values (
+    history_event_id, test_athlete, history_club, 'confirmed'
+  ) returning id into history_entry_id;
+  insert into public.performances (
+    entry_id, time_ms, place, status, recorded_at
+  ) values (
+    history_entry_id, 32200, 2, 'official', now()
+  ) returning id into history_performance_id;
+  insert into public.records (
+    performance_id, scope_type, scope_organization_id, ratification_status
+  ) values (
+    history_performance_id, 'club', history_club, 'ratified'
+  );
+  blocked := false;
+  begin
+    delete from public.organizations where id = history_club;
+  exception when foreign_key_violation then
+    blocked := true;
+  end;
+  if not blocked then failures := array_append(failures, 'club referenced by historical results was hard-deleted'); end if;
+
   if coalesce(array_length(failures, 1), 0) > 0 then
-    raise exception 'Task 3.1 athlete contract failures: %', array_to_string(failures, '; ');
+    raise exception 'Task 3.1 contract failures: %', array_to_string(failures, '; ');
   end if;
 end;
 $$;
