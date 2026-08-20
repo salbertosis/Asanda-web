@@ -44,3 +44,14 @@ parseHy3(buffer) => {
 Rejected variants return `ok: false`, a stable `code` such as
 `unsupported-version` or `malformed-record`, and no preview. This file defines
 the test boundary only; it does not provide a parser implementation.
+
+## Task 4.3 validation boundary
+
+The local parser accepts only `HY3-8.0` records with the geometry above. It
+returns stable rejection codes for malformed records, unsupported versions,
+duplicate aliases, invalid values, and missing references. The worker passes
+only the sanitized preview and checksum to the administration flow; source
+bytes and private `C`-record fields remain local. Team, athlete, and event
+aliases must reconcile to the selected competition before the preview can be
+approved. CSV remains an explicit alias-and-result fallback, not a replacement
+for the HY3 contract.

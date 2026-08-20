@@ -14,6 +14,7 @@
     "test:admin-staff-orchestration": "node scripts/admin-staff-orchestration-regression.mjs",
     "test:hy3": "node scripts/hy3-regression.mjs",
     "test:hy3-fixtures": "node scripts/hy3-regression.mjs --fixtures-only",
+    "test:hy3-import": "node scripts/hy3-import-regression.mjs",
     "test:ads": "node scripts/ads-regression.mjs",
     "test:lighthouse": "npx --yes @lhci/cli@0.15.1 autorun --config=lighthouserc.cjs",
     "test:metadata": "node tests/metadata-regression.mjs",
