@@ -28,4 +28,60 @@ test('procesa HY3 local, muestra vista saneada y bloquea identidades sin reconci
   await page.getByRole('link', { name: 'Resultados' }).click(); await expect(page.getByRole('heading', { name: 'Importar resultados' })).toBeVisible();
   await page.getByLabel('Competencia').selectOption(competition.id); await page.getByLabel('Archivo HY3 o CSV (fallback)').setInputFiles({ name: 'synthetic-supported.hy3', mimeType: 'application/octet-stream', buffer: fixture.bytes }); await page.getByRole('button', { name: 'Generar vista previa saneada' }).click();
   await expect(page.getByRole('heading', { name: 'Vista previa saneada' })).toBeVisible(); await expect(page.getByRole('heading', { name: 'Reconciliación de identidades' })).toBeVisible(); await expect(page.getByRole('alert')).toContainText('bloqueada'); await expect(page.getByText('PRIVATE_TEST_ID_001')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /importar/i })).toHaveCount(0);
+});
+
+test('rechaza variantes HY3 incompatibles y mantiene cerrada la importación', async ({ page }) => {
+  const unsupported = await loadFixture('synthetic-unsupported-version.hy3');
+  const malformed = await loadFixture('synthetic-malformed-record.hy3');
+  await routeAuth(page);
+  await page.route('**/rest/v1/competitions**', (route) => route.fulfill(json([competition])));
+  await page.route('**/rest/v1/competition_events**', (route) => route.fulfill(json(events)));
+  await page.route('**/rest/v1/athletes**', (route) => route.fulfill(json([])));
+  await page.route('**/rest/v1/organizations**', (route) => route.fulfill(json([])));
+  await page.route('**/rest/v1/source_mappings**', (route) => route.fulfill(json([])));
+  await page.goto('/admin/login'); await page.getByLabel('Correo electrónico').fill(user.email); await page.getByLabel('Contraseña').fill('not-a-real-password'); await page.getByRole('button', { name: 'Ingresar' }).click();
+  await page.getByRole('link', { name: 'Resultados' }).click(); await page.getByLabel('Competencia').selectOption(competition.id);
+
+  const rejectFile = async (fixture, expectedMessage) => {
+    await page.getByLabel('Archivo HY3 o CSV (fallback)').setInputFiles({ name: fixture.filename, mimeType: 'application/octet-stream', buffer: fixture.bytes });
+    await page.getByRole('button', { name: 'Generar vista previa saneada' }).click();
+    await expect(page.getByRole('alert')).toContainText(expectedMessage);
+    await expect(page.getByRole('heading', { name: 'Vista previa saneada' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /importar/i })).toHaveCount(0);
+  };
+
+  await rejectFile(unsupported, 'No se pudo generar la vista previa saneada');
+  await rejectFile(malformed, 'No se pudo generar la vista previa saneada');
+});
+
+test('permite corregir manualmente mapeos y conserva resultados sin tiempo ni media', async ({ page }) => {
+  const fixture = await loadFixture('synthetic-supported.hy3');
+  let mappings = [];
+  await routeAuth(page);
+  await page.route('**/rest/v1/competitions**', (route) => route.fulfill(json([competition])));
+  await page.route('**/rest/v1/competition_events**', (route) => route.fulfill(json(events)));
+  await page.route('**/rest/v1/athletes**', (route) => route.fulfill(json([{ id: 'athlete-1', display_name: 'Atleta E2E uno', publication_status: 'published' }, { id: 'athlete-2', display_name: 'Atleta E2E dos', publication_status: 'published' }])));
+  await page.route('**/rest/v1/organizations**', (route) => route.fulfill(json([{ id: 'org-1', name: 'Club E2E', short_name: 'E2E', organization_type: 'club', publication_status: 'published' }])));
+  await page.route('**/rest/v1/source_mappings**', async (route) => {
+    const request = route.request();
+    if (request.method() === 'GET') return route.fulfill(json(mappings));
+    const payload = request.postDataJSON();
+    const saved = { ...payload, id: `mapping-${mappings.length + 1}`, resolution_status: 'resolved' };
+    mappings = [...mappings.filter((item) => !(item.provider === saved.provider && item.source_organization === saved.source_organization && item.external_code === saved.external_code)), saved];
+    return route.fulfill(json(saved));
+  });
+  await page.goto('/admin/login'); await page.getByLabel('Correo electrónico').fill(user.email); await page.getByLabel('Contraseña').fill('not-a-real-password'); await page.getByRole('button', { name: 'Ingresar' }).click();
+  await page.getByRole('link', { name: 'Resultados' }).click(); await page.getByLabel('Competencia').selectOption(competition.id); await page.getByLabel('Archivo HY3 o CSV (fallback)').setInputFiles({ name: fixture.filename, mimeType: 'application/octet-stream', buffer: fixture.bytes }); await page.getByRole('button', { name: 'Generar vista previa saneada' }).click();
+  await expect(page.getByRole('heading', { name: 'Vista previa saneada' })).toBeVisible(); await expect(page.getByRole('alert')).toContainText('bloqueada');
+
+  for (const [alias, targetId] of [['TEAM-TST-01', 'org-1'], ['ATH-TST-001', 'athlete-1'], ['ATH-TST-002', 'athlete-2']]) {
+    await page.getByLabel(`Resolver ${alias}`).selectOption(targetId);
+    await expect(page.getByText('Identidad guardada. La vista previa fue recalculada.')).toBeVisible();
+  }
+
+  await expect(page.getByText('Todas las referencias y resultados están listos para revisión transaccional.')).toBeVisible();
+  await expect(page.getByRole('row').filter({ hasText: 'disqualified' })).toContainText('—');
+  await expect(page.getByText('PRIVATE_TEST_ID_001')).toHaveCount(0);
+  await expect(page.locator('section[aria-labelledby="preview-title"] img')).toHaveCount(0);
 });
