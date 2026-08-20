@@ -1,13 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import { Building2, Calendar, Instagram, Mail, MapPin, Phone, Users } from 'lucide-react';
+import { Building2, Calendar, Globe, Instagram, Mail, MapPin, Phone, Users } from 'lucide-react';
 import PageHero from '../components/PageHero';
 import { getClubTotals, getPublishedClubs } from '../services/clubs';
+
+const safeHttpsUrl = (value) => {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'https:' && parsed.hostname ? value : null;
+  } catch {
+    return null;
+  }
+};
 
 const ContactRow = ({ contact, icon: Icon }) => {
   if (!contact) return null;
 
-  const content = contact.url ? (
-    <a className="hover:text-blue-700 hover:underline" href={contact.url} rel="noreferrer" target="_blank">
+  const href = safeHttpsUrl(contact.url)
+    || (contact.contact_type === 'website' ? safeHttpsUrl(contact.value) : null)
+    || (contact.contact_type === 'email' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.value) ? `mailto:${contact.value}` : null)
+    || (contact.contact_type === 'phone' && /^[+\d][\d\s().-]{3,}$/.test(contact.value) ? `tel:${contact.value.replace(/[^+\d]/g, '')}` : null);
+
+  const content = href ? (
+    <a className="hover:text-blue-700 hover:underline" href={href} {...(href.startsWith('https://') ? { rel: 'noreferrer', target: '_blank' } : {})}>
       {contact.value}
     </a>
   ) : contact.value;
@@ -142,6 +156,7 @@ const ClubesPage = () => {
                         <ContactRow contact={club.address} icon={MapPin} />
                         <ContactRow contact={club.phone} icon={Phone} />
                         <ContactRow contact={club.email} icon={Mail} />
+                        <ContactRow contact={club.website} icon={Globe} />
                         <ContactRow contact={club.social} icon={Instagram} />
                         {club.foundedYear && (
                           <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
