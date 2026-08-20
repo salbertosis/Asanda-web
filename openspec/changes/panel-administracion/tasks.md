@@ -52,7 +52,7 @@ Chain strategy: stacked-to-main
 ## Phase 3: Athletes and Clubs
 
 - [ ] 3.1 Add RED SQL/E2E tests for consent gates, category overlap, federation coverage, pre-infant rejection, contacts, and archival.
-- [ ] 3.2 Create athlete wizard for public profile, media, consent confirmation, categories, disciplines, and memberships.
+- [x] 3.2 Create athlete wizard for public profile, media, consent confirmation, categories, disciplines, and memberships.
 - [ ] 3.3 Create club identity, contact, logo, publication, and safe archival workflows.
 
 ## Phase 4: Calendar and Results
