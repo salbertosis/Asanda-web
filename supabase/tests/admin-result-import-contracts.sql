@@ -37,12 +37,25 @@ declare
   duplicate_rows_checksum text := repeat('c', 64);
   atomicity_checksum text := repeat('d', 64);
   test_correction_reason text := 'Task 4.4 synthetic timing correction';
+  test_correction_evidence text := 'Task 4.4 synthetic signed result sheet';
 begin
   if to_regprocedure('public.commit_result_import(uuid,bigint,jsonb,text,jsonb,text)') is null then
     raise exception 'The transactional result import RPC surface is missing.';
   end if;
+  if to_regprocedure('public.commit_result_import(uuid,bigint,jsonb,text,jsonb,text,text,text)') is null then
+    raise exception 'The evidence-aware result import RPC surface is missing.';
+  end if;
+  if to_regprocedure('public.get_published_result_rows(uuid)') is null then
+    raise exception 'The public photo/logo result query surface is missing.';
+  end if;
   if has_function_privilege('anon', 'public.commit_result_import(uuid,bigint,jsonb,text,jsonb,text)', 'EXECUTE') then
     raise exception 'Anonymous clients can execute the result import RPC.';
+  end if;
+  if has_function_privilege('anon', 'public.commit_result_import(uuid,bigint,jsonb,text,jsonb,text,text,text)', 'EXECUTE') then
+    raise exception 'Anonymous clients can execute the evidence-aware result import RPC.';
+  end if;
+  if not has_function_privilege('anon', 'public.get_published_result_rows(uuid)', 'EXECUTE') then
+    raise exception 'Anonymous clients cannot execute the public result query.';
   end if;
 
   select id into strict test_editor_id
@@ -224,11 +237,14 @@ begin
     correction_rows,
     correction_checksum,
     '[]'::jsonb,
-    test_correction_reason
+    test_correction_reason,
+    'manual',
+    test_correction_evidence
   ) into correction_batch_id;
   select count(*) into visible
   from public.import_batches
-  where id = correction_batch_id and correction_reason = test_correction_reason;
+  where id = correction_batch_id and correction_reason = test_correction_reason
+    and correction_evidence = test_correction_evidence;
   if visible <> 1 then failures := array_append(failures, 'manual correction reason was not retained'); end if;
   select count(*) into visible
   from public.performances performance
@@ -239,8 +255,9 @@ begin
   execute 'reset role';
   select count(*) into visible
   from private.admin_audit_log
-  where actor_id = test_editor_id and entity_table in ('entries', 'performances');
-  if visible <= audit_count_before then failures := array_append(failures, 'result import did not leave actor audit evidence'); end if;
+  where actor_id = test_editor_id and entity_table in ('entries', 'performances')
+    and reason = test_correction_reason and evidence = test_correction_evidence;
+  if visible = 0 then failures := array_append(failures, 'result correction did not leave reason and evidence audit data'); end if;
   execute 'set local role authenticated';
 
   -- A checksum already committed for this competition is rejected at the current revision.
