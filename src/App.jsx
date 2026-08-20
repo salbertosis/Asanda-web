@@ -42,6 +42,7 @@ const AdminFeaturedPage = lazy(() => import('./admin/AdminFeaturedPage.jsx'));
 const AdminAthleteWizard = lazy(() => import('./admin/AdminAthleteWizard.jsx'));
 const AdminClubManager = lazy(() => import('./admin/AdminClubManager.jsx'));
 const AdminCalendarPage = lazy(() => import('./admin/AdminCalendarPage.jsx'));
+const AdminResultsPage = lazy(() => import('./admin/AdminResultsPage.jsx'));
 
 function AdminAthleteRoute() {
   const { athleteId } = useParams();
@@ -215,6 +216,7 @@ function AdminApplication() {
             <Route path="calendario/sedes/nueva" element={<AdminCalendarRoute view="venue-form" />} />
             <Route path="calendario/sedes/:venueId" element={<AdminCalendarRoute view="venue-form" />} />
             <Route path="calendario/:competitionId" element={<AdminCalendarRoute view="competition" />} />
+            <Route path="resultados" element={<AdminResultsPage />} />
             <Route path="*" element={<Navigate to="/admin/noticias" replace />} />
           </Route>
         </Routes>

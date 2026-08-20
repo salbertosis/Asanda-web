@@ -349,3 +349,29 @@ Production Supabase was not mutated; all database changes were exercised only in
 | Rollback boundary | Revert `AdminCalendarPage.jsx`, `src/services/admin/calendar.js`, the calendar route/nav hunks, the competition-admin migration and SQL regression, `admin-calendar.spec.js`, and this task/progress receipt. Existing public calendar reads, prior admin modules, HY3 fixtures, and result-import work remain untouched. |
 | Privacy boundary | Only public venue/location, organization display, competition, event-definition, category, schedule, and lifecycle fields are requested; no contacts, identity details, credentials, raw HY3 data, or external service calls were added. |
 | Authored budget | **628 final changed lines; 608 before this receipt; 800-line actor maximum respected.** Recommended split: schema contract slice **256 lines** (`20260820133000_add_competition_admin_contracts.sql` + `admin-calendar-contracts.sql`), application/runtime slice **372 lines** (service, UI, routes/nav, E2E, task checkbox, and progress receipt). Both slices remain below the repository's 400-line review target. |
+
+## Work Unit Evidence — Task 4.3
+**Work unit**: `phase-4-task-4.3-hy3-parser`; Standard Mode (`strict_tdd: false`); auto-chain; stacked-to-main; native attempt state was not acquired or mutated.
+
+### Completed Tasks
+- [x] 4.3 Local HY3 worker/parser, checksum, team/athlete reconciliation UI, source mappings, sanitized preview, and optional CSV fallback.
+
+### Implementation
+- Added a Windows-1252, fixed-width `HY3-8.0` parser for A/B/C/D/E/F/H records with decimal and clock times, relay semantics, DQ/no-time handling, stable fail-closed codes, duplicate/reference validation, and a SHA-256 checksum.
+- Added a module worker boundary that parses bytes locally and returns only the sanitized preview; added a public-column-only CSV fallback.
+- Added pure reconciliation for competition events and source mappings, RLS-backed mapping persistence, and an authenticated `/admin/resultados` preview flow with Spanish accessible states and no private-field rendering.
+- Added deterministic worker/reconciliation regression coverage and a Playwright preview/blocked-mapping scenario.
+
+### Work Unit Evidence
+| Evidence | Result |
+|---|---|
+| Focused parser test | `npm run test:hy3`: exit 0; fixture checks **7/7** and the declared parser contract **8/8**, with **0 RED** failures. |
+| Focused fixture test | `npm run test:hy3-fixtures`: exit 0; **7/7** fixture checks passed. |
+| Focused worker/reconciliation test | `npm run test:hy3-import`: exit 0; **5/5** checksum/privacy, worker, resolved reconciliation, fail-closed mapping, and CSV fallback checks passed. |
+| Focused runtime harness | `npx playwright test tests/e2e/admin-results.spec.js`: exit 0; **1/1 passed** for local HY3 processing, sanitized preview, inaccessible private canary, and blocked unresolved mappings using mocked Auth/PostgREST only. |
+| Full runtime harness | `npm run test:e2e`: exit 0; **64/64 passed**. No database, linked project, staging, production, or external service was contacted. |
+| Build | `npm run build`: exit 0; Vite transformed **1,495 modules**. Generated public manifest, robots, and sitemap files were restored. |
+| Diff check | `git diff --check`: exit 0; only existing LF/CRLF conversion warnings were emitted. |
+| Rollback boundary | Revert `src/services/admin/hy3Parser.js`, `src/services/admin/hy3Reconciliation.js`, `src/services/admin/results.js`, `src/workers/hy3Import.worker.js`, `src/admin/AdminResultsPage.jsx`, the results route/nav hunks, `scripts/hy3-import-regression.mjs`, `tests/e2e/admin-results.spec.js`, the HY3 README/package script, and this 4.3 evidence/checkbox. Leave the 4.1 fixtures, calendar module, existing source-mapping/RLS/RPC contracts, and public result behavior unchanged. |
+| Privacy boundary | No raw HY3 bytes, exact birth dates, identity numbers, contacts, credentials, or external service data were added to source, UI, logs, fixtures, or network mocks. |
+| Authored budget | **525 changed lines** for this candidate (parser/worker/reconciliation/service/UI/tests/docs/routes/package and surgical OpenSpec updates); below the 800-line actor maximum. Recommended repository PR split: **PR A — 252 lines** for parser/worker/import regression, package script, and fixture contract documentation; **PR B — 273 lines** for reconciliation/service/admin route/UI/E2E and OpenSpec receipt. Both boundaries are autonomous and below the repository's 400-line review target. |
