@@ -255,3 +255,21 @@ Production Supabase was not mutated; all database changes were exercised only in
 | Diff check | `git diff --check`: passed; only line-ending warnings were emitted by Git for touched files. |
 | Rollback boundary | Revert `src/services/news.js`, `src/components/NewsSection.jsx`, `src/pages/NoticiasPage.jsx`, `src/pages/NoticiaPage.jsx`, the `/noticias/:slug` route in `src/App.jsx`, `tests/e2e/public-news.spec.js`, the public-news helper in `tests/e2e/homepage-stats.spec.js`, and this 2.3 OpenSpec evidence. Admin editorial/staff code and database migrations remain untouched. |
 | Privacy boundary | Public queries request only article and hero media fields needed for rendering; tests prove draft and future-scheduled articles do not render publicly. No credentials, private profile data, raw uploads, or real external calls were introduced. |
+
+## Work Unit Evidence — Task 3.2
+**Work unit**: `task-3.2-athlete-relations`; auto-chain; stacked-to-main; approved issue #71; parent issue #64.
+**Delivery chain**: SQL contracts merged through PR #66 at `515bdef`; athlete services through PR #68 at `2e9dc38`; wizard shell and consent coverage through PR #70 at `3eed8ac`. This unit completes task 3.2 with the remaining relation coverage on that exact base.
+
+### Completed Tasks
+- [x] 3.2 Athlete wizard for public profile, approved media, consent confirmation, categories, disciplines, and memberships.
+
+### Work Unit Evidence
+| Evidence | Result |
+|---|---|
+| Focused E2E | `npx playwright test tests/e2e/admin-athletes.spec.js`: passed, **4/4 passed** — consent preservation, category-overlap preservation, valid discipline/membership POST contracts, and federated/pre-infant rejection preservation. |
+| Runtime harness | `npm run test:e2e`: passed, **61/61 passed**. |
+| Build | `npm run build`: passed; Vite transformed **1,487 modules**. |
+| Diff check | `git diff --check`: passed; only line-ending conversion warnings were emitted. |
+| Authored budget | **174 additions plus deletions** across the athlete E2E coverage and surgical task 3.2 OpenSpec updates; below the 400-line limit. |
+| Rollback boundary | Revert the relation helper and three relation scenarios in `tests/e2e/admin-athletes.spec.js`, the task 3.2 checkbox, and this evidence section. Leave merged SQL contracts, athlete services, wizard UI, task 3.1, task 3.3, and all prior deliveries unchanged. |
+| Privacy and environment | Synthetic public athlete/reference fixtures only; no database, linked project, staging, production, credentials, private identity data, or external service was contacted. |
