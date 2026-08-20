@@ -77,6 +77,7 @@ export const commitResultImport = async ({ competitionId, expectedRevision, sani
   if (!['hy3', 'csv', 'manual'].includes(sourceType)) throw new Error('SOURCE_TYPE_INVALID');
   if (correctionReason != null && (typeof correctionReason !== 'string' || !correctionReason.trim() || correctionReason.length > 2000)) throw new Error('CORRECTION_REASON_REQUIRED');
   if (correctionEvidence != null && (typeof correctionEvidence !== 'string' || !correctionEvidence.trim() || correctionEvidence.length > 4000)) throw new Error('CORRECTION_EVIDENCE_REQUIRED');
+  if (sourceType === 'manual' && (!correctionReason?.trim() || !correctionEvidence?.trim())) throw new Error('CORRECTION_EVIDENCE_REQUIRED');
   if ((correctionReason && !correctionEvidence) || (!correctionReason && correctionEvidence)) throw new Error('CORRECTION_EVIDENCE_REQUIRED');
   const sourceChecksum = await submitChecksum({ checksum, rows: sanitizedRows, correctionReason, correctionEvidence, sourceType });
   const { data, error } = await supabase.rpc('commit_result_import', {
@@ -94,7 +95,7 @@ export const commitResultImport = async ({ competitionId, expectedRevision, sani
 };
 
 export const formatResultImportError = (error) => {
-  const message = String(error?.message || (error?.ok === false ? '' : error?.code) || error || '').toLowerCase();
+  const message = String(error?.ok === false ? error.code : error?.message || error?.code || error || '').toLowerCase();
   if (message.includes('unsupported-version')) return 'El archivo HY3 usa una versión no compatible. No se habilitó la importación.';
   if (message.includes('malformed') || message.includes('invalid-record')) return 'El archivo no respeta el formato HY3 fijo. No se habilitó la importación.';
   if (message.includes('mapping')) return 'Resolvé todas las identidades de equipos y atletas antes de continuar.';

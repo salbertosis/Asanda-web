@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { loadFixture } from '../fixtures/hy3/harness.mjs';
+import { loadFixture, RECORD_WIDTH } from '../fixtures/hy3/harness.mjs';
 
 const userId = '10000000-0000-4000-8000-000000000001';
 const token = `x.${Buffer.from(JSON.stringify({ exp: 4102444800, sub: userId, role: 'authenticated' })).toString('base64url')}.x`;
@@ -30,6 +30,8 @@ const routeResolvedImportReferences = async (page) => {
   await page.route('**/rest/v1/organizations**', (route) => route.fulfill(json([{ id: 'org-1', name: 'Club E2E', short_name: 'E2E', organization_type: 'club', publication_status: 'published' }])));
   await page.route('**/rest/v1/source_mappings**', (route) => route.fulfill(json(resolvedMappings)));
 };
+
+const loadIndividualFixture = async () => { const fixture = await loadFixture('synthetic-supported.hy3'); return { ...fixture, bytes: fixture.bytes.subarray(0, -(RECORD_WIDTH + 1)) }; };
 
 const openResolvedPreview = async (page, fixture) => {
   await page.goto('/admin/login'); await page.getByLabel('Correo electrónico').fill(user.email); await page.getByLabel('Contraseña').fill('not-a-real-password'); await page.getByRole('button', { name: 'Ingresar' }).click();
@@ -71,8 +73,8 @@ test('rechaza variantes HY3 incompatibles y mantiene cerrada la importación', a
     await expect(page.getByRole('button', { name: /importar/i })).toHaveCount(0);
   };
 
-  await rejectFile(unsupported, 'No se pudo generar la vista previa saneada');
-  await rejectFile(malformed, 'No se pudo generar la vista previa saneada');
+  await rejectFile(unsupported, 'El archivo HY3 usa una versión no compatible');
+  await rejectFile(malformed, 'El archivo no respeta el formato HY3 fijo');
 });
 
 test('permite corregir manualmente mapeos y conserva resultados sin tiempo ni media', async ({ page }) => {
@@ -100,14 +102,16 @@ test('permite corregir manualmente mapeos y conserva resultados sin tiempo ni me
     await expect(page.getByText('Identidad guardada. La vista previa fue recalculada.')).toBeVisible();
   }
 
-  await expect(page.getByText('Todas las referencias y resultados están listos para revisión transaccional.')).toBeVisible();
+  await expect(page.getByRole('alert')).toContainText('La persistencia de relevos aún no está disponible');
+  await expect(page.getByText('Relevos', { exact: true }).locator('..')).toContainText('1');
+  await expect(page.getByRole('button', { name: /importar/i })).toHaveCount(0);
   await expect(page.getByRole('row').filter({ hasText: 'disqualified' })).toContainText('—');
   await expect(page.getByText('PRIVATE_TEST_ID_001')).toHaveCount(0);
   await expect(page.locator('section[aria-labelledby="preview-title"] img')).toHaveCount(0);
 });
 
 test('confirma una importación transaccional y muestra su resumen', async ({ page }) => {
-  const fixture = await loadFixture('synthetic-supported.hy3'); let payload;
+  const fixture = await loadIndividualFixture(); let payload;
   await routeAuth(page); await routeResolvedImportReferences(page);
   await page.route('**/rest/v1/rpc/commit_result_import', async (route) => { payload = route.request().postDataJSON(); return route.fulfill(json('batch-success')); });
   await openResolvedPreview(page, fixture); await page.getByRole('button', { name: 'Importar resultados' }).click();
@@ -117,7 +121,7 @@ test('confirma una importación transaccional y muestra su resumen', async ({ pa
 });
 
 test('mantiene el estado sin cambios cuando el RPC rechaza toda la importación', async ({ page }) => {
-  const fixture = await loadFixture('synthetic-supported.hy3'); let calls = 0;
+  const fixture = await loadIndividualFixture(); let calls = 0;
   await routeAuth(page); await routeResolvedImportReferences(page);
   await page.route('**/rest/v1/rpc/commit_result_import', async (route) => { calls += 1; return route.fulfill(json({ code: '40001', message: 'Result import failed atomically: one row is invalid.' }, 409)); });
   await openResolvedPreview(page, fixture); await page.getByRole('button', { name: 'Importar resultados' }).click();
@@ -125,7 +129,7 @@ test('mantiene el estado sin cambios cuando el RPC rechaza toda la importación'
 });
 
 test('envía correcciones manuales con motivo y evidencia de auditoría', async ({ page }) => {
-  const fixture = await loadFixture('synthetic-supported.hy3'); let payload;
+  const fixture = await loadIndividualFixture(); let payload;
   await routeAuth(page); await routeResolvedImportReferences(page);
   await page.route('**/rest/v1/rpc/commit_result_import', async (route) => { payload = route.request().postDataJSON(); return route.fulfill(json('batch-correction')); });
   await openResolvedPreview(page, fixture); await page.getByLabel('Tiempo en segundos RES-TST-001').fill('62.4'); await page.getByLabel('Motivo de la corrección').fill('Acta corregida por mesa técnica'); await page.getByLabel('Evidencia de la corrección').fill('Acta pública sintética 2026-01'); await page.getByRole('button', { name: 'Importar resultados' }).click();

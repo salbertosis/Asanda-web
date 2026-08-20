@@ -122,9 +122,18 @@ begin
   ) then
     raise exception 'Correction evidence is required and must be bounded.';
   end if;
+  if requested_source_type = 'manual' and (
+    requested_correction_reason is null or btrim(requested_correction_reason) = ''
+    or requested_correction_evidence is null or btrim(requested_correction_evidence) = ''
+  ) then
+    raise exception 'Manual result entry requires an audit reason and evidence.';
+  end if;
 
   if requested_mappings is null or jsonb_typeof(requested_mappings) <> 'array' then
     raise exception 'Result mappings must be an array.';
+  end if;
+  if requested_source_type in ('hy3', 'csv') and jsonb_array_length(requested_mappings) = 0 then
+    raise exception 'HY3 and CSV imports require resolved source mappings.';
   end if;
   if exists (
     select 1
@@ -220,6 +229,21 @@ begin
       or (payload.status = 'official' and not private.has_active_consent(payload.athlete_id, 'results_publication'))
   ) then
     raise exception 'Result rows failed event, identity, status, or consent validation.';
+  end if;
+  if requested_source_type in ('hy3', 'csv') and exists (
+    select 1
+    from jsonb_to_recordset(requested_sanitized_rows) as payload(athlete_id uuid, represented_organization_id uuid)
+    where not exists (
+      select 1 from jsonb_array_elements(requested_mappings) mapping
+      join public.source_mappings stored on stored.id = (mapping->>'id')::uuid
+      where stored.mapping_kind = 'athlete' and stored.athlete_id = payload.athlete_id
+    ) or (payload.represented_organization_id is not null and not exists (
+      select 1 from jsonb_array_elements(requested_mappings) mapping
+      join public.source_mappings stored on stored.id = (mapping->>'id')::uuid
+      where stored.mapping_kind = 'organization' and stored.organization_id = payload.represented_organization_id
+    ))
+  ) then
+    raise exception 'Result row identities must match supplied resolved mappings.';
   end if;
   if exists (
     select payload.competition_event_id, payload.athlete_id
