@@ -2,28 +2,50 @@ import { expect, test } from '@playwright/test';
 
 const clubResponse = [{
   id: 'club-cce',
+  organization_type: 'club',
   name: 'Centro Cultural Español',
   short_name: 'CCE',
   description: 'Escuela enfocada en la formación y desarrollo competitivo de atletas.',
   founded_year: 1985,
+  publication_status: 'published',
   logo: {
     provider: 'cloudinary',
     public_id: 'cce',
     external_url: null,
+    resource_type: 'image',
     alt_text: 'Emblema de CCE',
+    is_public: true,
   },
-  contacts: [{
-    contact_type: 'social',
-    label: 'Instagram',
-    value: '@edacce_oficial',
-    url: 'https://www.instagram.com/edacce_oficial/',
-    sort_order: 1,
-  }],
+  contacts: [
+    {
+      contact_type: 'social',
+      label: 'Instagram',
+      value: '@edacce_oficial',
+      url: 'https://www.instagram.com/edacce_oficial/',
+      is_public: true,
+      sort_order: 1,
+    },
+    {
+      contact_type: 'phone',
+      label: 'Private office',
+      value: '0283-0000000',
+      url: null,
+      is_public: false,
+      sort_order: 2,
+    },
+  ],
   memberships: [
     { athlete_id: 'athlete-1', membership_type: 'associated' },
     { athlete_id: 'athlete-2', membership_type: 'associated' },
     { athlete_id: 'athlete-2', membership_type: 'federated' },
   ],
+}, {
+  id: 'club-archived',
+  organization_type: 'club',
+  name: 'Club Archivado',
+  publication_status: 'archived',
+  contacts: [],
+  memberships: [],
 }];
 
 const routeClubs = (page, response, status = 200) => page.route('**/rest/v1/organizations*', (route) => (
@@ -47,6 +69,8 @@ test('renders published clubs from Supabase with distinct athlete totals', async
   );
   await expect(page.getByText('Av. Peñalver')).toHaveCount(0);
   await expect(page.getByText('0283-2410404')).toHaveCount(0);
+  await expect(page.getByText('0283-0000000')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Club Archivado' })).toHaveCount(0);
   await expect(page.getByLabel('Resumen del directorio')).toContainText('1 club');
   await expect(page.getByLabel('Resumen del directorio')).toContainText('2 atletas');
   const clubCard = page.getByRole('article').filter({ hasText: 'Centro Cultural Español' });
@@ -95,13 +119,19 @@ test('keeps the club profile readable on mobile and in dark mode', async ({ page
   expect(pageWidth).toBeLessThanOrEqual(390);
 });
 
-test('uses the club short name when no logo is published', async ({ page }) => {
+test('uses the club short name when no approved logo is published', async ({ page }) => {
   await routeClubs(page, [{
     ...clubResponse[0],
     id: 'club-mansc',
     name: 'Mantarrayas Swimming Club',
     short_name: 'MANSC',
-    logo: null,
+    logo: {
+      provider: 'external',
+      external_url: 'https://example.test/unapproved-logo.png',
+      resource_type: 'image',
+      alt_text: 'Unapproved logo',
+      is_public: true,
+    },
     contacts: [],
     memberships: [],
   }]);
