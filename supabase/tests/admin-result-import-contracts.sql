@@ -14,6 +14,8 @@ declare
   no_consent_athlete_id uuid;
   test_club_id uuid;
   pending_mapping_id uuid;
+  athlete_mapping_id uuid;
+  club_mapping_id uuid;
   baseline_batch_id uuid;
   correction_batch_id uuid;
   test_row jsonb;
@@ -22,6 +24,7 @@ declare
   valid_rows jsonb;
   correction_rows jsonb;
   mixed_rows jsonb;
+  valid_mappings jsonb;
   current_revision bigint;
   revision_before bigint;
   source_count_before integer;
@@ -114,6 +117,11 @@ begin
     'athlete',
     'pending'
   ) returning id into pending_mapping_id;
+  insert into public.source_mappings (provider, source_organization, external_code, mapping_kind, athlete_id, resolution_status)
+  values ('hy-tek', 'TASK-44-SOURCE', 'ATH-TASK-44', 'athlete', test_athlete_id, 'resolved') returning id into athlete_mapping_id;
+  insert into public.source_mappings (provider, source_organization, external_code, mapping_kind, organization_id, resolution_status)
+  values ('hy-tek', 'TASK-44-SOURCE', 'CLUB-TASK-44', 'organization', test_club_id, 'resolved') returning id into club_mapping_id;
+  valid_mappings := jsonb_build_array(jsonb_build_object('id', athlete_mapping_id), jsonb_build_object('id', club_mapping_id));
 
   test_row := jsonb_build_object(
     'competition_event_id', test_event_id,
@@ -149,10 +157,34 @@ begin
   end;
   if not blocked then failures := array_append(failures, 'unresolved source mapping was accepted'); end if;
 
+  blocked := false;
+  begin
+    perform public.commit_result_import(test_competition_id, 1, valid_rows, repeat('0', 64), '[]'::jsonb, null);
+    raise exception 'task-44-empty-mappings-not-rejected';
+  exception when others then blocked := sqlerrm like 'HY3 and CSV imports require resolved source mappings%'; end;
+  if not blocked then failures := array_append(failures, 'HY3 import bypassed resolved mappings'); end if;
+
+  blocked := false;
+  insert into public.athlete_consents (athlete_id, consent_type, status, granted_at)
+  values (no_consent_athlete_id, 'results_publication', 'granted', now());
+  begin
+    perform public.commit_result_import(test_competition_id, 1, jsonb_build_array(jsonb_set(test_row, '{athlete_id}', to_jsonb(no_consent_athlete_id), true)), repeat('1', 64), valid_mappings, null);
+    raise exception 'task-44-mapping-target-not-rejected';
+  exception when others then blocked := sqlerrm like 'Result row identities must match supplied resolved mappings%'; end;
+  if not blocked then failures := array_append(failures, 'row identity bypassed supplied mapping targets'); end if;
+  delete from public.athlete_consents where athlete_id = no_consent_athlete_id and consent_type = 'results_publication';
+
+  blocked := false;
+  begin
+    perform public.commit_result_import(test_competition_id, 1, valid_rows, repeat('2', 64), '[]'::jsonb, null, 'manual', null);
+    raise exception 'task-44-manual-audit-not-rejected';
+  exception when others then blocked := sqlerrm like 'Manual result entry requires an audit reason and evidence%'; end;
+  if not blocked then failures := array_append(failures, 'new manual result omitted reason or evidence'); end if;
+
   -- Malformed payloads and malformed checksums fail closed.
   blocked := false;
   begin
-    perform public.commit_result_import(test_competition_id, 1, '{"rows":"not-an-array"}'::jsonb, baseline_checksum, '[]'::jsonb, null);
+    perform public.commit_result_import(test_competition_id, 1, '{"rows":"not-an-array"}'::jsonb, baseline_checksum, valid_mappings, null);
     raise exception 'task-44-malformed-payload-not-rejected';
   exception when others then
     if position('task-44-malformed-payload-not-rejected' in sqlerrm) > 0 then blocked := false; else blocked := true; end if;
@@ -161,7 +193,7 @@ begin
 
   blocked := false;
   begin
-    perform public.commit_result_import(test_competition_id, 1, valid_rows, repeat('g', 64), '[]'::jsonb, null);
+    perform public.commit_result_import(test_competition_id, 1, valid_rows, repeat('g', 64), valid_mappings, null);
     raise exception 'task-44-malformed-checksum-not-rejected';
   exception when others then
     if position('task-44-malformed-checksum-not-rejected' in sqlerrm) > 0 then blocked := false; else blocked := true; end if;
@@ -172,7 +204,7 @@ begin
   invalid_reference_row := jsonb_set(test_row, '{competition_event_id}', to_jsonb(gen_random_uuid()), true);
   blocked := false;
   begin
-    perform public.commit_result_import(test_competition_id, 1, jsonb_build_array(invalid_reference_row), repeat('h', 64), '[]'::jsonb, null);
+    perform public.commit_result_import(test_competition_id, 1, jsonb_build_array(invalid_reference_row), repeat('h', 64), valid_mappings, null);
     raise exception 'task-44-missing-reference-not-rejected';
   exception when others then
     if position('task-44-missing-reference-not-rejected' in sqlerrm) > 0 then blocked := false; else blocked := true; end if;
@@ -186,7 +218,7 @@ begin
       1,
       jsonb_build_array(jsonb_set(test_row, '{athlete_id}', to_jsonb(no_consent_athlete_id), true)),
       repeat('i', 64),
-      '[]'::jsonb,
+      valid_mappings,
       null
     );
     raise exception 'task-44-consent-not-rejected';
@@ -198,7 +230,7 @@ begin
   -- Duplicate result rows must not silently upsert the same athlete/event twice.
   blocked := false;
   begin
-    perform public.commit_result_import(test_competition_id, 1, jsonb_build_array(test_row, test_row), duplicate_rows_checksum, '[]'::jsonb, null);
+    perform public.commit_result_import(test_competition_id, 1, jsonb_build_array(test_row, test_row), duplicate_rows_checksum, valid_mappings, null);
     raise exception 'task-44-duplicate-row-not-rejected';
   exception when others then
     if position('task-44-duplicate-row-not-rejected' in sqlerrm) > 0 then blocked := false; else blocked := true; end if;
@@ -214,7 +246,7 @@ begin
 
   -- A valid import is the baseline for duplicate-checksum and correction checks.
   select public.commit_result_import(
-    test_competition_id, 1, valid_rows, baseline_checksum, '[]'::jsonb, null
+    test_competition_id, 1, valid_rows, baseline_checksum, valid_mappings, null
   ) into baseline_batch_id;
   select count(*) into visible
   from public.import_batches
@@ -264,7 +296,7 @@ begin
   select revision into current_revision from public.competitions where id = test_competition_id;
   blocked := false;
   begin
-    perform public.commit_result_import(test_competition_id, current_revision, correction_rows, baseline_checksum, '[]'::jsonb, null);
+    perform public.commit_result_import(test_competition_id, current_revision, correction_rows, baseline_checksum, valid_mappings, null);
     raise exception 'task-44-duplicate-checksum-not-rejected';
   exception when others then
     if position('task-44-duplicate-checksum-not-rejected' in sqlerrm) > 0 then blocked := false; else blocked := true; end if;
@@ -287,7 +319,7 @@ begin
   mixed_rows := jsonb_build_array(correction_row, invalid_reference_row);
   blocked := false;
   begin
-    perform public.commit_result_import(test_competition_id, revision_before, mixed_rows, atomicity_checksum, '[]'::jsonb, null);
+    perform public.commit_result_import(test_competition_id, revision_before, mixed_rows, atomicity_checksum, valid_mappings, null);
     raise exception 'task-44-atomic-import-not-rejected';
   exception when others then
     if position('task-44-atomic-import-not-rejected' in sqlerrm) > 0 then blocked := false; else blocked := true; end if;
@@ -315,7 +347,7 @@ begin
   select revision into current_revision from public.competitions where id = test_competition_id;
   blocked := false;
   begin
-    perform public.commit_result_import(test_competition_id, revision_before, correction_rows, atomicity_checksum, '[]'::jsonb, null);
+    perform public.commit_result_import(test_competition_id, revision_before, correction_rows, atomicity_checksum, valid_mappings, null);
     raise exception 'task-44-revision-conflict-not-rejected';
   exception when others then
     if position('task-44-revision-conflict-not-rejected' in sqlerrm) > 0 then blocked := false; else blocked := true; end if;

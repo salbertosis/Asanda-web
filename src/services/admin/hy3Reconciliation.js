@@ -78,6 +78,7 @@ export function reconcileHy3Preview(preview, references = {}, options = {}) {
     if (!eventId) errors.push(error('relay', relay.sourceAlias, 'event-unresolved', 'The relay event is not resolved in the competition program.'));
     return organizationId && eventId ? [{ sourceAlias: relay.sourceAlias, competition_event_id: eventId, represented_organization_id: organizationId, legs: relay.legs, time_ms: relay.timeSeconds == null ? null : Math.round(relay.timeSeconds * 1000), status: relay.status, notes: relay.note || null }] : [];
   });
+  if (relays.length > 0) errors.push(error('relay', relays[0].sourceAlias, 'relay-persistence-unsupported', 'La persistencia de relevos aún no está disponible; eliminá todos los relevos antes de importar.'));
   const mappingErrors = mappings.filter((mapping) => mapping.resolutionStatus !== 'resolved').length;
   return { ok: errors.length === 0 && (sanitizedRows.length > 0 || relays.length > 0), mappings, sanitizedRows, relays, errors, summary: { teams: preview?.teams?.length || 0, athletes: preview?.athletes?.length || 0, events: preview?.events?.length || 0, results: sanitizedRows.length, relays: relays.length, unresolvedMappings: mappingErrors, blockedRows: errors.length } };
 }
