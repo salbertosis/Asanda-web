@@ -41,6 +41,7 @@ const AdminMediaPage = lazy(() => import('./admin/AdminMediaPage.jsx'));
 const AdminFeaturedPage = lazy(() => import('./admin/AdminFeaturedPage.jsx'));
 const AdminAthleteWizard = lazy(() => import('./admin/AdminAthleteWizard.jsx'));
 const AdminClubManager = lazy(() => import('./admin/AdminClubManager.jsx'));
+const AdminCalendarPage = lazy(() => import('./admin/AdminCalendarPage.jsx'));
 
 function AdminAthleteRoute() {
   const { athleteId } = useParams();
@@ -50,6 +51,11 @@ function AdminAthleteRoute() {
 function AdminClubRoute({ listOnly = false }) {
   const { clubId } = useParams();
   return <AdminClubManager clubId={clubId} listOnly={listOnly} />;
+}
+
+function AdminCalendarRoute({ view = 'calendar' }) {
+  const { competitionId, venueId } = useParams();
+  return <AdminCalendarPage view={view} competitionId={competitionId} venueId={venueId} />;
 }
 
 function HomePage() {
@@ -203,6 +209,12 @@ function AdminApplication() {
             <Route path="clubes" element={<AdminClubRoute listOnly />} />
             <Route path="clubes/nuevo" element={<AdminClubRoute />} />
             <Route path="clubes/:clubId" element={<AdminClubRoute />} />
+            <Route path="calendario" element={<AdminCalendarRoute />} />
+            <Route path="calendario/nueva" element={<AdminCalendarRoute view="competition" />} />
+            <Route path="calendario/sedes" element={<AdminCalendarRoute view="venues" />} />
+            <Route path="calendario/sedes/nueva" element={<AdminCalendarRoute view="venue-form" />} />
+            <Route path="calendario/sedes/:venueId" element={<AdminCalendarRoute view="venue-form" />} />
+            <Route path="calendario/:competitionId" element={<AdminCalendarRoute view="competition" />} />
             <Route path="*" element={<Navigate to="/admin/noticias" replace />} />
           </Route>
         </Routes>
