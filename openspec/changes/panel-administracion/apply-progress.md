@@ -375,3 +375,35 @@ Production Supabase was not mutated; all database changes were exercised only in
 | Rollback boundary | Revert `src/services/admin/hy3Parser.js`, `src/services/admin/hy3Reconciliation.js`, `src/services/admin/results.js`, `src/workers/hy3Import.worker.js`, `src/admin/AdminResultsPage.jsx`, the results route/nav hunks, `scripts/hy3-import-regression.mjs`, `tests/e2e/admin-results.spec.js`, the HY3 README/package script, and this 4.3 evidence/checkbox. Leave the 4.1 fixtures, calendar module, existing source-mapping/RLS/RPC contracts, and public result behavior unchanged. |
 | Privacy boundary | No raw HY3 bytes, exact birth dates, identity numbers, contacts, credentials, or external service data were added to source, UI, logs, fixtures, or network mocks. |
 | Authored budget | **525 changed lines** for this candidate (parser/worker/reconciliation/service/UI/tests/docs/routes/package and surgical OpenSpec updates); below the 800-line actor maximum. Recommended repository PR split: **PR A — 252 lines** for parser/worker/import regression, package script, and fixture contract documentation; **PR B — 273 lines** for reconciliation/service/admin route/UI/E2E and OpenSpec receipt. Both boundaries are autonomous and below the repository's 400-line review target. |
+
+## Work Unit Evidence — Task 4.4
+**Work unit**: `phase-4-task-4.4-result-import-validation`; Standard Mode (`strict_tdd: false`); auto-chain; stacked-to-main; native attempt state was not acquired or mutated.
+
+### Completed Tasks
+- [x] 4.4 RED SQL/E2E validation for result import, manual correction, fail-closed validation, atomic rollback, and media fallbacks.
+
+### Implementation
+- Added `supabase/tests/admin-result-import-contracts.sql` as a RED database contract for the task 4.5 `commit_result_import` surface. The transaction covers unresolved mappings, malformed payload/checksum, missing event references, results consent, duplicate rows/checksums, manual correction reason and audit evidence, revision conflicts, atomic residue counts, and stable missing-media fallbacks.
+- Extended `tests/e2e/admin-results.spec.js` with unsupported/malformed HY3 error states, closed import controls on blocked previews, and manual mapping correction through the current sanitized-preview UI. The resolved preview also proves disqualified rows retain an empty time and no media/private fields are rendered.
+
+### Work Unit Evidence
+| Evidence | Result |
+|---|---|
+| Focused E2E test | `npx playwright test tests/e2e/admin-results.spec.js`: exit 0; **3/3 passed** — sanitized blocked preview, unsupported/malformed error states with import closed, and manual mapping correction with no-time/media/privacy boundary. |
+| Runtime harness | The focused Playwright suite is the real browser/runtime harness for the current application surface; it used only local Vite plus mocked Auth/PostgREST routes. No import RPC or task 4.5 runtime was required. |
+| Full E2E regression | `npm run test:e2e`: exit 0; **66/66 passed**. |
+| SQL contract parse | `sqlfluff parse --dialect postgres supabase/tests/admin-result-import-contracts.sql`: exit 0. |
+| SQL RED/deferred-runtime boundary | The SQL regression was intentionally not executed: task 4.4 adds RED tests for the future transactional/manual-correction runtime, and the launch constraints prohibit database, linked, staging, production, and external-service contact. SQL execution remains deferred to task 4.5/verification. |
+| Build | `npm run build`: exit 0; Vite transformed **1,495 modules**. Build-generated `public/manifest.webmanifest`, `public/robots.txt`, and `public/sitemap.xml` were restored and remain outside this slice. |
+| Diff check | `git diff --check`: exit 0; only existing LF/CRLF conversion warnings were emitted. |
+| Rollback boundary | Revert `supabase/tests/admin-result-import-contracts.sql`, the three added scenarios/assertion in `tests/e2e/admin-results.spec.js`, the task 4.4 checkbox, and this evidence section. Leave the 4.1 fixtures, 4.3 parser/worker/reconciliation implementation, task 4.5 RPC implementation, public result behavior, and all prior work untouched. |
+| Privacy and environment | Synthetic aliases and display names only; no raw HY3 bytes, private identity/contact data, credentials, database endpoints, linked projects, staging, production, or external services were contacted. |
+
+### Deviations and Issues
+- None from the approved design. The current 4.3 surface does not expose the future task 4.5 import-submit button or manual-performance editor, so E2E coverage validates the pre-import gate and current mapping correction controls without inventing a parallel runtime.
+- Current parser failures reach the existing formatter as `{ ok: false, code }` objects and therefore render its generic Spanish error notice. The E2E test records that current behavior rather than changing production error formatting outside task 4.4.
+
+### Delivery Boundary
+- Authorized actor maximum: **800 changed lines**; this candidate remains below the limit.
+- Final authored count: **418 changed lines** (`328` SQL contract additions + `56` E2E additions + `32` progress additions + `2` task checkbox changes); below the authorized 800-line maximum.
+- Repository PR target: **PR A — 328 lines**, SQL contract file only; **PR B — 90 lines**, E2E coverage plus the task/progress receipt. Both autonomous boundaries are below the repository's 400-line review target.
