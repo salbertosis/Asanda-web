@@ -407,3 +407,36 @@ Production Supabase was not mutated; all database changes were exercised only in
 - Authorized actor maximum: **800 changed lines**; this candidate remains below the limit.
 - Final authored count: **418 changed lines** (`328` SQL contract additions + `56` E2E additions + `32` progress additions + `2` task checkbox changes); below the authorized 800-line maximum.
 - Repository PR target: **PR A — 328 lines**, SQL contract file only; **PR B — 90 lines**, E2E coverage plus the task/progress receipt. Both autonomous boundaries are below the repository's 400-line review target.
+
+## Work Unit Evidence — Task 4.5
+**Work unit**: `phase-4-task-4.5-transactional-import`; Standard Mode (`strict_tdd: false`); auto-chain; stacked-to-main; native attempt was acquired and settled by the orchestrator.
+
+### Completed Tasks
+- [x] 4.5 Transactional import RPC, manual correction, audit reason, summary, and public photo/logo-enriched result query.
+
+### Implementation
+- Added `supabase/migrations/20260820150000_add_result_import_transaction.sql` with the `public.commit_result_import` RPC (8-argument evidence-aware surface plus a 6-argument convenience overload): editor authorization, source-type validation, bounded correction reason/evidence, resolved-and-unique mapping requirements, public-contract-only sanitized row fields, event/athlete/club reference validation, consent enforcement for official results, duplicate-row and duplicate-checksum rejection, competition revision concurrency control, audit reason/evidence propagation via `request.admin_audit_*` settings into `private.admin_audit_log`, and atomic all-or-nothing writes to `source_documents`, `import_batches`, `entries`, and `performances`.
+- Added `supabase/migrations/20260820151000_add_public_result_query.sql` with `public.get_published_result_rows(uuid)` projecting official published results with photo/logo media only when public and consent-backed; revoked from all and granted to anon/authenticated.
+- Extended `supabase/tests/admin-result-import-contracts.sql` so the task 4.4 RED contracts now target the implemented surface (RPC existence, anon denial, unresolved mapping rejection, malformed payload/checksum, missing references, consent, duplicates, audit retention, checksum duplication, atomic residue counts, revision conflicts, and stable missing-media fallbacks).
+- Added `src/services/admin/results.js` commit path (`commitResultImport` with local checksum derivation, mapping id payload, and correction fields) and the manual correction/import submission UI in `src/admin/AdminResultsPage.jsx` with audit reason/evidence fields and a post-commit summary; added `src/services/results.js` for the public photo/logo-enriched result projection; extended `tests/e2e/admin-results.spec.js` with transactional import success, atomic RPC rejection, and manual-correction payload scenarios.
+
+### Work Unit Evidence
+| Evidence | Result |
+|---|---|
+| Focused E2E test | `npx playwright test tests/e2e/admin-results.spec.js`: exit 0; **6/6 passed** — blocked preview, unsupported/malformed fail-closed, mapping correction with no-time/media/privacy boundary, transactional import summary, atomic RPC rejection with unchanged state, and manual-correction reason/evidence payload. |
+| Full runtime harness | `npm run test:e2e`: exit 0; **69/69 passed**. No database, linked project, staging, production, or external service was contacted. |
+| Parser and import regressions | `npm run test:hy3`: **8/8 passed**, 0 RED; `npm run test:hy3-import`: **5/5 passed**. |
+| SQL contract parse | `sqlfluff parse --dialect postgres` on the two migrations and the extended contract regression: exit 0 on all three files. |
+| SQL runtime boundary | The contract regression was not executed against a database: this work unit forbids database, linked, staging, production, and external-service contact. Execution remains for Phase 5 verification. |
+| Build | `npm run build`: exit 0; Vite build succeeded. Generated `public/manifest.webmanifest`, `public/robots.txt`, and `public/sitemap.xml` were restored and remain outside this slice. |
+| Diff check | `git diff --check`: exit 0; only existing LF/CRLF conversion warnings were emitted. |
+| Rollback boundary | Revert the two result-import migrations, the contract-test updates, the service/UI/E2E additions for import commit and public result projection, the task 4.5 checkbox, and this evidence section. Leave 4.1 fixtures, 4.3 parser/worker/reconciliation, 4.4 contracts, calendar work, and prior modules untouched. |
+| Privacy and environment | Synthetic aliases and display names only; no raw HY3 bytes, private identity/contact data, credentials, database endpoints, linked projects, staging, production, or external services were contacted. |
+
+### Deviations and Issues
+- None material. The RPC exposes both an evidence-aware 8-argument surface and a 6-argument overload so existing and new clients share one reviewed transaction path; the design's manual-correction and audit requirements are satisfied by the evidence-aware surface.
+
+### Delivery Boundary
+- Authorized actor maximum: **800 changed lines**; this candidate remains below the limit.
+- Final authored count: approximately **670 changed lines** (two migrations, contract-test updates, admin results service/UI hunks, public results service, E2E additions, and OpenSpec receipt).
+- Repository PR target: **PR A — 371 lines**, transactional import RPC migration only; **PR B — approximately 300 lines**, public result query migration, contract-test updates, admin commit service/UI hunks, public results service, E2E scenarios, and the task/progress receipt. Both autonomous boundaries are below the repository's 400-line review target.

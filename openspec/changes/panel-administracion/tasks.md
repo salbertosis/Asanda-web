@@ -61,7 +61,7 @@ Chain strategy: stacked-to-main
 - [x] 4.2 Create venue, competition, and ordered event-program administration.
 - [x] 4.3 Create local HY3 worker/parser, checksum, team/athlete reconciliation UI, source mappings, sanitized preview, and optional CSV fallback.
 - [x] 4.4 Add RED SQL/E2E tests for unresolved mappings, results consent, duplicate checksum, revision conflicts, atomic rollback, and media fallbacks.
-- [ ] 4.5 Create transactional import RPC, manual correction, audit reason, summary, and public photo/logo-enriched result query.
+- [x] 4.5 Create transactional import RPC, manual correction, audit reason, summary, and public photo/logo-enriched result query.
 
 ## Phase 5: Verification and Rollout
 

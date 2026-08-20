@@ -42,6 +42,18 @@ const runWorker = (message) => new Promise((resolve, reject) => {
   worker.postMessage(message, message.bytes ? [message.bytes] : []);
 });
 
+const digestText = async (value) => {
+  if (!globalThis.crypto?.subtle || typeof TextEncoder !== 'function') throw new Error('CHECKSUM_UNAVAILABLE');
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+};
+
+const submitChecksum = async ({ checksum, rows: sanitizedRows, correctionReason, correctionEvidence, sourceType }) => {
+  const sourceChecksum = typeof checksum === 'string' && /^[a-f0-9]{64}$/i.test(checksum) ? checksum.toLowerCase() : '';
+  if (sourceChecksum && !correctionReason && !correctionEvidence && sourceType !== 'manual') return sourceChecksum;
+  return digestText(JSON.stringify({ sourceChecksum, sanitizedRows, correctionReason: correctionReason || null, correctionEvidence: correctionEvidence || null, sourceType }));
+};
+
 export const parseResultFile = async (file) => {
   if (!file || typeof file.name !== 'string') throw new Error('FILE_REQUIRED');
   if (/\.csv$/i.test(file.name)) return runWorker({ type: 'parse', format: 'csv', text: await file.text() });
@@ -58,11 +70,39 @@ export const previewResultFile = async (competitionId, file, options = {}) => {
   return { ...reconcileResultPreview(parsed, references, options), references };
 };
 
+export const commitResultImport = async ({ competitionId, expectedRevision, sanitizedRows, checksum, mappings = [], correctionReason = null, correctionEvidence = null, sourceType = 'hy3' }) => {
+  if (!id(competitionId, 'COMPETITION_REQUIRED') || !Number.isInteger(expectedRevision) || expectedRevision < 1) throw new Error('REVISION_REQUIRED');
+  if (!Array.isArray(sanitizedRows) || sanitizedRows.length === 0) throw new Error('RESULT_ROWS_REQUIRED');
+  if (!Array.isArray(mappings) || mappings.some((mapping) => !mapping?.id || mapping.resolutionStatus === 'pending')) throw new Error('MAPPING_REQUIRED');
+  if (!['hy3', 'csv', 'manual'].includes(sourceType)) throw new Error('SOURCE_TYPE_INVALID');
+  if (correctionReason != null && (typeof correctionReason !== 'string' || !correctionReason.trim() || correctionReason.length > 2000)) throw new Error('CORRECTION_REASON_REQUIRED');
+  if (correctionEvidence != null && (typeof correctionEvidence !== 'string' || !correctionEvidence.trim() || correctionEvidence.length > 4000)) throw new Error('CORRECTION_EVIDENCE_REQUIRED');
+  if ((correctionReason && !correctionEvidence) || (!correctionReason && correctionEvidence)) throw new Error('CORRECTION_EVIDENCE_REQUIRED');
+  const sourceChecksum = await submitChecksum({ checksum, rows: sanitizedRows, correctionReason, correctionEvidence, sourceType });
+  const { data, error } = await supabase.rpc('commit_result_import', {
+    requested_competition_id: competitionId,
+    requested_expected_revision: expectedRevision,
+    requested_sanitized_rows: sanitizedRows,
+    requested_source_checksum: sourceChecksum,
+    requested_mappings: mappings.filter((mapping) => mapping?.id).map(({ id: mappingId }) => ({ id: mappingId })),
+    requested_correction_reason: correctionReason?.trim() || null,
+    requested_source_type: sourceType,
+    requested_correction_evidence: correctionEvidence?.trim() || null,
+  });
+  if (error) throw error;
+  return { batchId: data, checksum: sourceChecksum };
+};
+
 export const formatResultImportError = (error) => {
-  const message = String(error?.message || error || '').toLowerCase();
+  const message = String(error?.message || (error?.ok === false ? '' : error?.code) || error || '').toLowerCase();
   if (message.includes('unsupported-version')) return 'El archivo HY3 usa una versión no compatible. No se habilitó la importación.';
   if (message.includes('malformed') || message.includes('invalid-record')) return 'El archivo no respeta el formato HY3 fijo. No se habilitó la importación.';
   if (message.includes('mapping')) return 'Resolvé todas las identidades de equipos y atletas antes de continuar.';
+  if (message.includes('revision') || message.includes('changed')) return 'La competencia cambió mientras revisabas el archivo. Generá una vista previa nueva.';
+  if (message.includes('checksum') || message.includes('already imported')) return 'Este archivo ya fue importado para la competencia seleccionada.';
+  if (message.includes('correction') || message.includes('evidence')) return 'Las correcciones requieren un motivo y una evidencia de auditoría.';
+  if (message.includes('atomic') || message.includes('result rows') || message.includes('failed event')) return 'No se importó ningún resultado: la validación transaccional rechazó la operación completa.';
+  if (message.includes('checksum_unavailable')) return 'No se pudo generar el checksum local para revisar este resultado.';
   if (message.includes('competition')) return 'Seleccioná una competencia válida con un programa cargado.';
   if (message.includes('worker')) return 'No se pudo procesar el archivo localmente. Intentá nuevamente.';
   if (message.includes('file')) return 'Seleccioná un archivo HY3 o CSV válido.';
