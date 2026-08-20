@@ -40,10 +40,16 @@ const NewsEditorPage = lazy(() => import('./admin/NewsEditorPage.jsx'));
 const AdminMediaPage = lazy(() => import('./admin/AdminMediaPage.jsx'));
 const AdminFeaturedPage = lazy(() => import('./admin/AdminFeaturedPage.jsx'));
 const AdminAthleteWizard = lazy(() => import('./admin/AdminAthleteWizard.jsx'));
+const AdminClubManager = lazy(() => import('./admin/AdminClubManager.jsx'));
 
 function AdminAthleteRoute() {
   const { athleteId } = useParams();
   return <AdminAthleteWizard athleteId={athleteId} />;
+}
+
+function AdminClubRoute({ listOnly = false }) {
+  const { clubId } = useParams();
+  return <AdminClubManager clubId={clubId} listOnly={listOnly} />;
 }
 
 function HomePage() {
@@ -194,6 +200,9 @@ function AdminApplication() {
             <Route path="destacados" element={<AdminFeaturedPage />} />
             <Route path="atletas/nuevo" element={<AdminAthleteRoute />} />
             <Route path="atletas/:athleteId" element={<AdminAthleteRoute />} />
+            <Route path="clubes" element={<AdminClubRoute listOnly />} />
+            <Route path="clubes/nuevo" element={<AdminClubRoute />} />
+            <Route path="clubes/:clubId" element={<AdminClubRoute />} />
             <Route path="*" element={<Navigate to="/admin/noticias" replace />} />
           </Route>
         </Routes>

@@ -293,3 +293,13 @@ Production Supabase was not mutated; all database changes were exercised only in
 | Authored budget | **225 additions plus deletions** across the migration, SQL regression, and surgical OpenSpec updates; below the 400-line limit. |
 | Rollback boundary | Revert the club lifecycle migration, the club archival/contact SQL block, the task 3.1 checkbox, and this evidence section. Athlete contracts, services, wizard, and all prior deliveries remain unchanged. |
 | Privacy and environment | Synthetic public fixtures only; no credentials, private identity data, or external services were contacted. |
+
+## Work Unit Evidence — Task 3.3
+**Work unit**: `task-3.3-club-admin-ui`; stacked-to-main; approved issue #77; parent #64; base `d296fe8`.
+| Evidence | Result |
+|---|---|
+| Focused E2E | `npx playwright test tests/e2e/admin-clubs.spec.js`: **1/1 passed**; typed private contact hidden publicly and archive PATCH proven with zero DELETEs. |
+| Baseline | `npm run test:e2e`: **62/62 passed**. `npm run build`: passed, **1,489 modules**. `git diff --check`: passed. |
+| Authored budget | **170 additions plus deletions**; below 400. |
+| Rollback boundary | Revert `AdminClubManager.jsx`, club route/nav hunks, `admin-clubs.spec.js`, task 3.3 checkbox, and this receipt; merged services, public reads, migrations, tasks 3.1/3.2, and other modules remain. |
+| Environment | Synthetic mocked E2E only; no database, linked project, staging, production, or external service contacted. |
