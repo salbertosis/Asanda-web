@@ -303,3 +303,28 @@ Production Supabase was not mutated; all database changes were exercised only in
 | Authored budget | **170 additions plus deletions**; below 400. |
 | Rollback boundary | Revert `AdminClubManager.jsx`, club route/nav hunks, `admin-clubs.spec.js`, task 3.3 checkbox, and this receipt; merged services, public reads, migrations, tasks 3.1/3.2, and other modules remain. |
 | Environment | Synthetic mocked E2E only; no database, linked project, staging, production, or external service contacted. |
+
+## Work Unit Evidence — Task 4.1
+**Work unit**: `phase-4-task-4.1-hy3-red-fixtures`; Standard Mode (`strict_tdd: false`) with an explicit RED contract; auto-chain; stacked-to-main; no native attempt state was acquired or mutated.
+### Completed Tasks
+- [x] 4.1 Synthetic HY3 fixtures and RED parser contract.
+### Exact Fixture Matrix
+| Fixture | Coverage |
+|---|---|
+| `synthetic-supported.hy3` | A/B/C/D/E/F/H, decimal seconds, relay, DQ note, and synthetic private canaries. |
+| `synthetic-windows-1252.hy3` | Windows-1252 bytes for accents, euro, punctuation, display names, and notes. |
+| `synthetic-unsupported-version.hy3` | Well-formed geometry with unsupported `HY3-99.0` version. |
+| `synthetic-malformed-record.hy3` | Supported header followed by a deliberately short 9-byte A record. |
+### Work Unit Evidence
+| Evidence | Result |
+|---|---|
+| Focused fixture check | `npm run test:hy3-fixtures`: exit 0; 7/7 fixture checks passed. |
+| RED parser regression | `npm run test:hy3`: exit 1 as expected; fixture checks 7/7, parser contract 0/8 with 8 expected RED failures because `src/services/admin/hy3Parser.js` is task 4.3 scope; no fixture or infrastructure failure. |
+| Syntax check | `node --check scripts/hy3-regression.mjs; node --check tests/fixtures/hy3/harness.mjs`: exit 0. |
+| Build | `npm run build`: exit 0; Vite transformed 1,489 modules. Prebuild-generated public metadata was restored. |
+| Diff check | `git diff --check`: exit 0; only existing LF/CRLF conversion warnings for touched JSON/Markdown files. |
+| Runtime harness | `npm run test:hy3-fixtures`: local byte-level fixture harness exercised 7/7; no external runtime boundary exists because parser/worker production behavior is task 4.3 scope. |
+| Rollback boundary | Delete `scripts/hy3-regression.mjs` and `tests/fixtures/hy3/`; revert the HY3 package scripts, task 4.1 checkbox, and this evidence section. No parser, worker, UI, RPC, database, or public behavior was changed. |
+| Privacy boundary | All names, aliases, IDs, dates, contacts, hosts, and private canaries are unmistakably synthetic; tests reject real-brand markers, credentials, external URLs, and private values in sanitized output. |
+| Authored budget | 383 changed lines including fixture/test/docs and surgical OpenSpec/package updates; below the 400-line PR target and below the authorized 800-line maximum. |
+| Expected RED boundary | The missing parser module is the only intentional failure; task 4.1 supplies no fake parser or worker implementation. |

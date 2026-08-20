@@ -1,0 +1,14 @@
+# ASANDA SYNTHETIC HY3 MANIFEST v1
+# encoding=windows-1252
+# record-width=192
+A|version=HY3-8.0|meet=SYNTHETIC MEET ALPHA|date=2099-07-15|venue=SYNTHETIC VENUE ALPHA|pool=25M
+B|alias=TEAM-TST-01|name=SYNTHETIC CLUB NORTH|country=ZZ
+C|alias=ATH-TST-001|display=SYNTHETIC ATHLETE ALPHA|private=id=PRIVATE_TEST_ID_001;birth=2088-11-23;address=SYNTHETIC_ADDRESS_001;phone=+00-000-0000;email=private-athlete-001@example.invalid
+C|alias=ATH-TST-002|display=SYNTHETIC ATHLETE BETA|private=id=PRIVATE_TEST_ID_002;birth=2088-11-24;address=SYNTHETIC_ADDRESS_002;phone=+00-000-0001;email=private-athlete-002@example.invalid
+D|alias=EVT-TST-050|label=SYNTHETIC 50 FREE|distance=50|stroke=freestyle|sex=mixed|round=final
+D|alias=EVT-TST-200|label=SYNTHETIC 4X50 FREE|distance=200|stroke=freestyle|sex=mixed|round=final
+E|alias=ENT-TST-001|athlete=ATH-TST-001|event=EVT-TST-050|seed=62.34
+E|alias=ENT-TST-002|athlete=ATH-TST-002|event=EVT-TST-050|seed=1:04.56
+F|alias=RES-TST-001|entry=ENT-TST-001|time=62.34|status=official|place=1|note=DECIMAL_TIME_SYNTHETIC
+F|alias=RES-TST-002|entry=ENT-TST-002|time=|status=disqualified|place=|note=DQ:EARLY_START \x96 SYNTHETIC
+H|alias=REL-TST-001|team=TEAM-TST-01|event=EVT-TST-200|legs=4|time=4:12.34|status=official|note=RELAY_SYNTHETIC

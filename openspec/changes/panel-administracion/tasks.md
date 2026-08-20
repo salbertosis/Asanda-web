@@ -57,7 +57,7 @@ Chain strategy: stacked-to-main
 
 ## Phase 4: Calendar and Results
 
-- [ ] 4.1 Create synthetic HY3 fixtures and RED tests for A/B/C/D/E/F/H records, Windows-1252, decimal times, relays, DQ notes, malformed versions, and zero private-field leakage.
+- [x] 4.1 Create synthetic HY3 fixtures and RED tests for A/B/C/D/E/F/H records, Windows-1252, decimal times, relays, DQ notes, malformed versions, and zero private-field leakage.
 - [ ] 4.2 Create venue, competition, and ordered event-program administration.
 - [ ] 4.3 Create local HY3 worker/parser, checksum, team/athlete reconciliation UI, source mappings, sanitized preview, and optional CSV fallback.
 - [ ] 4.4 Add RED SQL/E2E tests for unresolved mappings, results consent, duplicate checksum, revision conflicts, atomic rollback, and media fallbacks.

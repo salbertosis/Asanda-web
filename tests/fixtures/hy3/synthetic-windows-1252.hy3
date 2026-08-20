@@ -1,0 +1,9 @@
+# ASANDA SYNTHETIC HY3 MANIFEST v1
+# encoding=windows-1252
+# record-width=192
+A|version=HY3-8.0|meet=SYNTHETIC CAF\xC9 \x80 \x96EDGE\x94|date=2099-08-16|venue=SYNTHETIC VENUE \xD1|pool=25M
+B|alias=TEAM-TST-CP|name=SYNTHETIC CLUB \xD1AND\xDA|country=ZZ
+C|alias=ATH-TST-CP|display=SYNTHETIC N\xDA\xD1EZ \xDC|private=id=PRIVATE_TEST_ID_CP;birth=2088-12-01;address=SYNTHETIC_ADDRESS_CP;phone=+00-000-0010;email=private-cp@example.invalid
+D|alias=EVT-TST-CP|label=SYNTHETIC CAF\xC9 \xFC FREE|distance=50|stroke=freestyle|sex=mixed|round=final
+E|alias=ENT-TST-CP|athlete=ATH-TST-CP|event=EVT-TST-CP|seed=62.34
+F|alias=RES-TST-CP|entry=ENT-TST-CP|time=62.34|status=official|place=1|note=CP1252 \x91SYNTHETIC\x92
