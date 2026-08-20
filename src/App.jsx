@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useState } from 'react';
-import { Link, Navigate, Routes, Route, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, Routes, Route, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowRight, CalendarDays, Trophy } from 'lucide-react';
 import { atletas } from './data/atletas';
 import AppShell from './components/layout/AppShell';
@@ -39,6 +39,13 @@ const AdminNewsPage = lazy(() => import('./admin/AdminNewsPage.jsx'));
 const NewsEditorPage = lazy(() => import('./admin/NewsEditorPage.jsx'));
 const AdminMediaPage = lazy(() => import('./admin/AdminMediaPage.jsx'));
 const AdminFeaturedPage = lazy(() => import('./admin/AdminFeaturedPage.jsx'));
+const AdminAthleteWizard = lazy(() => import('./admin/AdminAthleteWizard.jsx'));
+
+function AdminAthleteRoute() {
+  const { athleteId } = useParams();
+  return <AdminAthleteWizard athleteId={athleteId} />;
+}
+
 function HomePage() {
   const [atletaSeleccionado, setAtletaSeleccionado] = useState(null);
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -185,6 +192,8 @@ function AdminApplication() {
             <Route path="noticias/:id" element={<NewsEditorPage />} />
             <Route path="media" element={<AdminMediaPage />} />
             <Route path="destacados" element={<AdminFeaturedPage />} />
+            <Route path="atletas/nuevo" element={<AdminAthleteRoute />} />
+            <Route path="atletas/:athleteId" element={<AdminAthleteRoute />} />
             <Route path="*" element={<Navigate to="/admin/noticias" replace />} />
           </Route>
         </Routes>
