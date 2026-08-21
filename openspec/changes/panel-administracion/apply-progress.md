@@ -440,3 +440,26 @@ Production Supabase was not mutated; all database changes were exercised only in
 - Authorized actor maximum: **800 changed lines**; this candidate remains below the limit.
 - Final authored count: approximately **670 changed lines** (two migrations, contract-test updates, admin results service/UI hunks, public results service, E2E additions, and OpenSpec receipt).
 - Repository PR target: **PR A — 371 lines**, transactional import RPC migration only; **PR B — approximately 300 lines**, public result query migration, contract-test updates, admin commit service/UI hunks, public results service, E2E scenarios, and the task/progress receipt. Both autonomous boundaries are below the repository's 400-line review target.
+
+## Work Unit Evidence — Task 5.1
+**Work unit**: `phase-5-task-5.1-verification`; completed against authorized ASANDA Staging project `vtfqueybnvawevsoxwsl`; production was never contacted.
+
+### Completed Task
+- [x] 5.1 SQL regressions, focused Node checks, full E2E, build, and diff verification.
+
+### Work Unit Evidence
+| Evidence | Result |
+|---|---|
+| Local Node regressions | Passed **26/26**, **6/6**, **12/12**, **7/7**, **8/8**, and **5/5**. |
+| Baseline verification | Full E2E passed **69/69**; build and `git diff --check` passed. Build-generated public metadata was restored. |
+| Staging identity and initial migrations | Verified authorized staging identity `vtfqueybnvawevsoxwsl`; production was never contacted. Migrations `20260820120000`, `20260820133000`, `20260820150000`, and `20260820151000` matched the dry run and were applied once to staging. |
+| SQL test corrections | Qualified `athlete_disciplines.discipline_id`; replaced the overlapping synthetic active age range with existing `youth-a`. |
+| Forward-only correction | Added `20260820152000_fix_result_import_entry_conflict.sql`, redefining only `commit_result_import` to use `ON CONFLICT ON CONSTRAINT performances_entry_id_key`; **287 additions**. SQL parse and static contract passed **12/12**; the dry run selected only this migration and the staging push succeeded once. |
+| Migration history | Final staging migration history matched **25/25** through `20260820152000`. |
+| SQL runtime regressions | Seven SQL regressions passed exactly once in the required order. The final read-only residue proof returned `residue_count=0` and `residue_free=true`. |
+| Native runtime evidence | Revision `sha256:7248b16853d3857d4e3ed1c9c7f55172b1ffe2fce1b464db25c86c81d2378a2c`; the final staging harness settled `state: complete`. |
+| Rollback boundary | Revert the two test-line corrections and the new forward migration in Git. The staging migration is forward-applied and must be reverted only by a separately reviewed forward migration, never by rewriting history. |
+
+### Remaining Tasks
+- [ ] 5.2 Production RLS validation.
+- [ ] 5.3 Approved fixture migration, fallback removal, and operations documentation.
