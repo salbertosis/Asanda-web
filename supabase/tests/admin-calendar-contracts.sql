@@ -25,7 +25,7 @@ begin
   values (discipline_id, 'task-42-' || replace(substr(gen_random_uuid()::text, 1, 8), '-', ''), 'Task 4.2 event', 50, 'long_course') returning id into definition_id;
   insert into public.event_definitions (discipline_id, code, name, distance_metres, course)
   values (other_discipline_id, 'task-42-' || replace(substr(gen_random_uuid()::text, 1, 8), '-', ''), 'Task 4.2 foreign event', 50, 'long_course') returning id into other_definition_id;
-  insert into public.age_categories (code, name, minimum_age, maximum_age) values ('task-42-' || replace(substr(gen_random_uuid()::text, 1, 8), '-', ''), 'Task 4.2 category', 1, 99) returning id into category_id;
+  select id into strict category_id from public.age_categories where code = 'youth-a';
   insert into public.age_categories (code, name, is_active) values ('task-42-' || replace(substr(gen_random_uuid()::text, 1, 8), '-', ''), 'Task 4.2 inactive category', false) returning id into inactive_category_id;
 
   insert into public.venues (name, address, city, region, country_code)

@@ -198,7 +198,7 @@ begin
   begin
     update public.athlete_disciplines
     set is_primary = true
-    where athlete_id = discipline_athlete and discipline_id = open_water_id;
+    where athlete_id = discipline_athlete and athlete_disciplines.discipline_id = open_water_id;
   exception when others then
     if sqlerrm not like 'An athlete can have at most one primary%' then raise; end if;
     blocked := true;

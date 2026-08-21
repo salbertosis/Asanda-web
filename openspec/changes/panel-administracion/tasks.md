@@ -65,7 +65,7 @@ Chain strategy: stacked-to-main
 
 ## Phase 5: Verification and Rollout
 
-- [ ] 5.1 Run SQL regressions, focused Node checks, `npm run build`, full `npm run test:e2e`, and `git diff --check` for every PR.
+- [x] 5.1 Run SQL regressions, focused Node checks, `npm run build`, full `npm run test:e2e`, and `git diff --check` for every PR.
 - [ ] 5.2 Validate production RLS with administrator, editor, inactive, and anonymous accounts before enabling navigation.
 - [ ] 5.3 Migrate approved fixtures domain-by-domain, remove accepted fallbacks, and document account, media, HY3 sanitization, reconciliation, and result operations.
 
