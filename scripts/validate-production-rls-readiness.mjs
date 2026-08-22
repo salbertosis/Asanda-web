@@ -14,9 +14,30 @@ const auditMigration = readFileSync(auditMigrationPath, 'utf8')
 const candidate = readFileSync(candidatePath, 'utf8')
 const residue = readFileSync(residuePath, 'utf8')
 const runbookLines = runbook.split(/\r?\n/)
-const athleteClubCoveragePresent = candidate.includes('actual_rows = 15')
-  && candidate.includes('administrator_inserts = 9')
+const athleteClubCoveragePresent = candidate.includes('actual_rows = 24')
+  && candidate.includes('administrator_inserts = 12')
   && runbook.includes('athlete/club')
+const calendarMarkers = [
+  'anonymous_venue_visible',
+  'anonymous_competition_visible',
+  'anonymous_event_visible',
+  'anonymous_event_definition_visible',
+  'anonymous_event_category_visible',
+  'anonymous_calendar_write_denied',
+  'anonymous_reorder_denied',
+  'inactive_calendar_write_denied',
+  'inactive_reorder_denied',
+  'editor_competition_updated',
+  'editor_venue_updated',
+  'editor_event_updated',
+  'editor_event_reordered',
+  'administrator_competition_updated',
+  'administrator_calendar_visible',
+]
+const calendarCoveragePresent = calendarMarkers.every((marker) => candidate.includes(marker))
+  && ['venue_id', 'competition_id', 'competition_event_id', 'event_definition_id'].every((marker) => candidate.includes(marker))
+  && residue.includes('competition_event_id')
+  && runbook.includes('published venues/competitions/event programs')
 const sequenceClaimLines = runbookLines.filter((line) =>
   /(sequence|allocation)/i.test(line) && /(pass|stopped|stop|bound)/i.test(line),
 )
@@ -26,9 +47,9 @@ const staleSequenceClaimLines = sequenceClaimLines.filter((line) =>
   /\b0\s*\.\.\s*4\b/.test(line) || (/\b3\b/.test(line) && /(pass|allocation|sequence)/i.test(line)),
 )
 const passAllocationBoundsAligned = passAllocationClaims.length > 0
-  && passAllocationClaims.every((line) => /\b15\b/.test(line))
+  && passAllocationClaims.every((line) => /\b24\b/.test(line))
 const stoppedAllocationBoundsAligned = stoppedAllocationClaims.length > 0
-  && stoppedAllocationClaims.every((line) => /0\s*\.\.\s*16/.test(line) || /stopped_sequence_allocations_(min|max):/.test(line))
+  && stoppedAllocationClaims.every((line) => /0\s*\.\.\s*25/.test(line) || /stopped_sequence_allocations_(min|max):/.test(line))
 
 const checks = [
   ['audit identity is non-transactional input', /id bigint generated always as identity/.test(auditMigration)],
@@ -43,14 +64,18 @@ const checks = [
   ['all four roles are covered', ['anon', 'inactive', 'editor', 'administrator'].every((role) => candidate.includes(role))],
   ['athlete and club role controls are present', ['anonymous_athlete_visible', 'anonymous_private_contact_hidden', 'inactive_athlete_write_denied', 'inactive_club_write_denied', 'editor_athlete_updated', 'editor_club_visible', 'administrator_club_updated'].every((marker) => candidate.includes(marker))],
   ['private athlete fixture is synthetic and derived', candidate.includes('private.athlete_details') && candidate.includes('extensions.digest') && candidate.includes("':private-details'" )],
-  ['athlete and club audit entities are bounded', ["':public-contact'", "':private-contact'", "':membership'", "':category'", 'administrator_inserts = 9'].every((marker) => candidate.includes(marker))],
+  ['athlete and club audit entities are bounded', ["':public-contact'", "':private-contact'", "':membership'", "':category'", 'administrator_inserts = 12'].every((marker) => candidate.includes(marker))],
+  ['calendar role and lifecycle markers are complete', calendarCoveragePresent],
+  ['calendar fixture graph is bounded', ["':venue'", "':competition'", "':competition-event'", 'current_setting(\'rlsv.event_definition_id\')'].every((marker) => candidate.includes(marker))],
+  ['calendar residue proof is aggregate and aligned', ['public.venues venue', 'public.competitions competition', 'public.competition_events event_row', '24::integer as accepted_pass_sequence_allocations', '25::integer as stopped_sequence_allocations_max'].every((marker) => residue.includes(marker))],
   ['claim changes do not emit UUID values', !/^select\s+set_config/im.test(candidate) && candidate.includes("perform set_config('request.jwt.claim.sub'")],
-  ['ledger binds actors actions and fixture entity', candidate.includes('actor_id =') && candidate.includes('entity_id = any(array') && candidate.includes('administrator_updates = 3')],
-  ['pass requires exact athlete-club ledger', candidate.includes('actual_rows = 15') && candidate.includes('exact_sequence_allocations_on_pass')],
-  ['stopped allocation bound is zero through sixteen', candidate.includes('0::integer as stopped_sequence_allocations_min') && candidate.includes('16::integer as stopped_sequence_allocations_max')],
-  ['runbook pass allocation bounds match athlete-club coverage', !athleteClubCoveragePresent || passAllocationBoundsAligned],
-  ['runbook stopped allocation bounds match athlete-club coverage', !athleteClubCoveragePresent || stoppedAllocationBoundsAligned],
-  ['runbook has no stale 3 or 0..4 sequence claims', !athleteClubCoveragePresent || staleSequenceClaimLines.length === 0],
+  ['ledger binds actors actions and fixture entity', candidate.includes('actor_id =') && candidate.includes('entity_id = any(array') && candidate.includes('administrator_updates = 4')],
+  ['pass requires exact calendar ledger', candidate.includes('actual_rows = 24') && candidate.includes('exact_sequence_allocations_on_pass') && candidate.includes('then 24 else null')],
+  ['stopped allocation bound is zero through twenty-five', candidate.includes('0::integer as stopped_sequence_allocations_min') && candidate.includes('25::integer as stopped_sequence_allocations_max')],
+  ['runbook pass allocation bounds match calendar coverage', !athleteClubCoveragePresent || passAllocationBoundsAligned],
+  ['runbook stopped allocation bounds match calendar coverage', !athleteClubCoveragePresent || stoppedAllocationBoundsAligned],
+  ['runbook has no stale sequence claims', !athleteClubCoveragePresent || staleSequenceClaimLines.length === 0],
+  ['runbook/candidate/residue calendar slice cannot drift', calendarCoveragePresent && runbook.includes('Result/import surfaces remain for a later slice.') && residue.includes('false as profile_auth_migration_proof_in_slice')],
   ['candidate emits aggregate-only evidence', candidate.includes('failed_checks') && candidate.includes('candidate_outcome')],
   ['candidate creates no temporary DDL or grants', !/\b(create\s+temporary|grant\s+)/i.test(candidate)],
   ['candidate ends in rollback and has no commit', /rollback;\s*$/.test(candidate) && !/\bcommit\s*;/i.test(candidate)],

@@ -54,7 +54,7 @@ Every gate is fail-closed. Missing, stale, or ambiguous evidence means **do not 
 | Auth immutability | The run will not create or change Auth users, profiles, roles, active flags, passwords, sessions, bans, or invitations. |
 | Secret handling | Credentials and tokens never appear in command arguments, files, logs, evidence artifacts, shell history, environment dumps, or persistent environment values. The authorized operator must use an approved ephemeral secret channel and a non-echoing execution mechanism. |
 | Transaction support | The selected production SQL execution path is proven to preserve one transaction across setup, role switches, assertions, audit inspection, and final rollback. If this cannot be guaranteed, stop. |
-| Audit sequence semantics | The maintainer accepts an exact, reviewed, non-semantic identity-sequence allocation bound for each candidate slice. The current access/editorial plus athlete/club candidate contributes exactly **15** allocations on pass and **0..16** when stopped before complete evidence. Audit rows and fixture rows must still roll back to zero; sequence reset and trigger disabling remain prohibited. This policy does not authorize execution. |
+| Audit sequence semantics | The maintainer accepts an exact, reviewed, non-semantic identity-sequence allocation bound for each candidate slice. The current access/editorial plus athlete/club plus calendar candidate contributes exactly **24** allocations on pass and **0..25** when stopped before complete evidence. Audit rows and fixture rows must still roll back to zero; sequence reset and trigger disabling remain prohibited. This policy does not authorize execution. |
 | Fixture review | The exact transaction candidate is independently reviewed against this runbook before execution. It uses only the tables, policies, and functions listed here and contains an unconditional final rollback. |
 | Window and ownership | A bounded maintenance window, execution operator, stop authority, cleanup owner, residue reviewer, and escalation contact are recorded. |
 | Observability | Safe baseline and post-run count queries are reviewed before execution. Their output is aggregate-only and cannot emit raw rows. |
@@ -92,7 +92,7 @@ The role matrix uses these repository evidence codes. Paths are repository-relat
 | Editorial: `news_articles`, `media_assets`, `featured_athletes` | Allow admin read/write subject to domain constraints; this run uses synthetic news/featured operations and no media upload (`P`, `C`, `T-edit`) | Allow read/write subject to publication/consent constraints (`P`, `C`, `T-edit`) | Public read only; deny insert/update/delete (`P`, `C`, `T-sec`) | Public read only: due published news, linked public media, current valid featured rows; deny writes (`P`, `C`, `T-edit`) |
 | Athletes: `athletes`, `athlete_consents`, `athlete_category_assignments`, `athlete_disciplines`, `athlete_memberships` | Allow admin read/write subject to consent, category, discipline, and membership constraints (`P`, `C`, `T-ath`) | Allow read/write subject to the same constraints (`P`, `C`, `T-ath`) | Public read only; consents remain hidden; deny writes (`P`, `C`) | Public read only for consent-qualified published athletes and admitted relations; consents remain hidden; deny writes (`P`, `C`, `T-ath`) |
 | Clubs: `organizations`, `organization_contacts` | Allow read/write; hard delete denied and archive required (`P`, `L`, `T-ath`) | Allow read/write; hard delete denied and archive required (`P`, `L`, `T-ath`) | Public read only for published organizations and explicitly public contacts; deny writes (`P`, `T-ath`) | Same public read-only boundary; private contacts hidden; deny writes (`P`, `T-ath`) |
-| Calendar and references: `sports`, `disciplines`, `age_categories`, `event_definitions`, `venues`, `competitions`, `competition_events`; `reorder_competition_events(uuid,uuid[])` | Allow managed reads/writes and reorder subject to constraints; competition delete denied (`P`, `K`, `T-cal`) | Allow managed reads/writes and reorder subject to constraints; competition delete denied (`P`, `K`, `T-cal`) | Public/reference read only; deny writes and reorder because `private.is_content_editor()` is false (`P`, `K`) | Public/reference read only; function execution/write denied (`P`, `K`) |
+| Calendar and references: `sports`, `disciplines`, `age_categories`, `event_definitions`, `venues`, `competitions`, `competition_events`; `reorder_competition_events(uuid,uuid[])` | Allow managed venue/competition/event reads and lifecycle writes plus reorder; competition delete denied (`P`, `K`, `T-cal`) | Allow managed venue/competition/event reads and lifecycle writes plus reorder; competition delete denied (`P`, `K`, `T-cal`) | Public/reference read only; deny venue/competition/event writes and reorder because `private.is_content_editor()` is false (`P`, `K`) | Public/reference read only for published calendar and active definitions/categories; function execution/write denied (`P`, `K`) |
 | Result administration: `source_mappings`, `source_documents`, `import_batches`, `entries`, `performances`; both `commit_result_import` signatures | Allow admin reads/writes/import subject to mapping, revision, consent, and atomicity checks (`P`, `C`, `R`, `T-res`) | Allow reads/writes/import subject to the same checks (`P`, `C`, `R`, `T-res`) | Public result reads only; source mappings and non-public import state hidden; import denied by `private.is_content_editor()` (`P`, `C`, `R`) | Source mappings hidden and import functions not executable; public result projection allowed only through `get_published_result_rows(uuid)` and public RLS (`C`, `R`, `T-res`) |
 | Public result projection: `get_published_result_rows(uuid)` | Allow read (`R`, `T-res`) | Allow read (`R`, `T-res`) | Allow filtered read (`R`) | Allow filtered read of official, published, consent-qualified results (`R`, `T-res`) |
 
@@ -131,8 +131,8 @@ All rows below exist only inside one rollback-only transaction. Existing active 
 | `athlete_memberships` | 1 | Associated membership to the synthetic club. |
 | `featured_athletes` | 1 | Active window for the synthetic consent-qualified athlete. |
 | `venues` | 1 | Opaque venue identity with no address. |
-| `competitions` | 1 | Published synthetic competition using an existing active sport. |
-| `competition_events` | 1 | Uses one existing compatible active event definition and category. |
+| `competitions` | 1 | Published synthetic competition using the synthetic club, venue, and an existing active sport. |
+| `competition_events` | 1 | Ordered event using one existing compatible active event definition and category. |
 | `source_mappings` | 1 | Opaque pending mapping used only for visibility/write denial checks. |
 | `source_documents` | 1 | Created only through the reviewed manual result-import function. |
 | `import_batches` | 1 | Created only through the reviewed manual result-import function. |
@@ -145,7 +145,7 @@ All rows below exist only inside one rollback-only transaction. Existing active 
 - `organizations` and `competitions` are never committed because their delete guards require archival rather than hard deletion (`L`, `K`).
 - Expected lasting row impact: **zero rows in every public and private fixture table**.
 - Expected lasting audit-row impact: **zero fixture audit rows**. Audit rows participate in the rolled-back transaction.
-- Accepted non-row impact: `private.admin_audit_log.id` is `generated always as identity`, so PostgreSQL sequence allocation is non-transactional. The current candidate contributes exactly **15** allocations on pass: nine privileged athlete/club fixture inserts, one publication update, the three access/editorial mutations, one editor athlete update, and one administrator club update. A stopped run may contribute **0..16** allocations because an unexpectedly allowed profile-escalation probe can allocate once before the candidate fails; absence of final evidence is stopped, never pass. The in-transaction ledger attributes actual pass rows by actor, action, table, transaction, and exact fixture identifier.
+- Accepted non-row impact: `private.admin_audit_log.id` is `generated always as identity`, so PostgreSQL sequence allocation is non-transactional. The current candidate contributes exactly **24** allocations on pass: twelve privileged fixture inserts across athlete/club and calendar, one editor news insert, seven editor updates including the ordered-event reorder, and four administrator updates including the competition lifecycle mutation. A stopped run may contribute **0..25** allocations because an unexpectedly allowed profile-escalation probe can allocate once before the candidate fails; absence of final evidence is stopped, never pass. The in-transaction ledger attributes actual pass rows by actor, action, table, transaction, and exact fixture identifier.
 - The in-transaction audit delta must equal the independently reviewed operation ledger. The ledger is finalized with the exact transaction candidate; it is not guessed in this runbook.
 - Immutable audit rows that predate the run remain untouched. If the approved execution mechanism would make audit evidence survive the rollback, this plan is invalid and execution must stop. Any future plan permitting lasting audit rows must use only opaque synthetic entity identifiers and state the exact count before authorization.
 
@@ -157,7 +157,7 @@ Resetting the sequence is not an acceptable workaround: it is a separate product
 
 **Maintainer audit-sequence decision:** `accepted-bounded-non-semantic-advancement`
 
-The current autonomous candidate is `supabase/tests/production-rls-validation-candidate.sql`, with its separate read-only residue proof in `supabase/tests/production-rls-validation-residue.sql`. It validates all four roles against access/editorial and athlete/club surfaces, including consent-qualified public reads, private-detail/contact boundaries, relation visibility, mutation attribution, and archive-only club deletion. Calendar and result surfaces remain for later slices. Neither file grants production execution authority.
+The current autonomous candidate is `supabase/tests/production-rls-validation-candidate.sql`, with its separate read-only residue proof in `supabase/tests/production-rls-validation-residue.sql`. It validates all four roles against access/editorial, athlete/club, and calendar surfaces, including consent-qualified public reads, private-detail/contact boundaries, relation visibility, ordered event reordering, lifecycle mutation attribution, and archive-only deletion. Result/import surfaces remain for a later slice. Neither file grants production execution authority.
 
 ### Non-Transactional State
 
@@ -197,7 +197,7 @@ Concrete invocation syntax is intentionally omitted. The repository proves SQL b
 - Enter the anonymous database role with no user claim inside the transaction.
 - Prove writes are denied for one representative managed table and that result-import functions are not executable.
 - Prove the private audit table, profiles, source mappings, and non-public fixture rows are unreadable.
-- Prove exact public visibility for due news, public club/contact, consent-qualified athlete relations, published calendar rows, current featured selection, and the official consent-qualified result projection.
+- Prove exact public visibility for due news, public club/contact, consent-qualified athlete relations, published venues/competitions/event programs, active event definitions/categories, current featured selection, and the official consent-qualified result projection.
 - Prove draft/private/expired/non-public counterparts are hidden where the fixture graph includes them.
 
 ### 5. Inactive Authenticated Checks
@@ -210,7 +210,7 @@ Concrete invocation syntax is intentionally omitted. The repository proves SQL b
 ### 6. Editor Checks
 
 - Set only the transaction-local authenticated role and approved active editor identity claim.
-- Prove managed-table visibility and bounded mutations across editorial, athlete/club, calendar, and result surfaces using the synthetic graph.
+- Prove managed-table visibility and bounded mutations across editorial, athlete/club, and calendar surfaces using the synthetic graph; prove ordered event reordering succeeds for the editor. Result/import coverage is deferred.
 - Prove `reorder_competition_events` accepts the complete synthetic event order.
 - Prove the manual `commit_result_import` path accepts one sanitized row with opaque reason/evidence and creates exactly one source document, batch, entry, and performance inside the transaction.
 - Prove direct profile role escalation affects zero rows or is denied, `organization_staff` mutation is denied, `transition_staff_profile` is not executable, and private audit reads are denied.
@@ -220,7 +220,7 @@ Concrete invocation syntax is intentionally omitted. The repository proves SQL b
 
 - Set only the transaction-local authenticated role and approved active administrator identity claim.
 - Prove administrator visibility across profiles and all managed domain rows.
-- Perform one bounded synthetic domain mutation to prove content-editor authority.
+- Perform one bounded synthetic domain mutation to prove content-editor authority and one competition lifecycle mutation to prove administrator calendar authority.
 - Prove organization and competition hard-delete guards deny destructive removal even though RLS authorizes domain management.
 - Do not mutate profiles, organization staff, Auth users, or invoke service-role staff transitions.
 
@@ -259,7 +259,7 @@ Stop immediately, preserve only safe evidence, and do not repair or retry inside
 - The transaction boundary, final rollback, independent review, maintenance window, cleanup owner, or stop authority is unavailable.
 - The audit identity-sequence impact remains undecided, is absent from the reviewed ledger/evidence schema, or differs from the maintainer-approved bound.
 - In-transaction audit count/ledger, actor reference, entity table, action, reason, or evidence does not match exactly.
-- Post-rollback fixture rows or fixture audit rows are nonzero, profile/Auth state changes, or migration history changes. Global audit count/watermark movement alone is not residue; it must remain compatible with the accepted 0..16 stopped bound or exact 15-on-pass candidate contribution plus independently identified concurrent audit activity.
+- Post-rollback fixture rows or fixture audit rows are nonzero, profile/Auth state changes, or migration history changes. Global audit count/watermark movement alone is not residue; it must remain compatible with the accepted 0..25 stopped bound or exact 24-on-pass candidate contribution plus independently identified concurrent audit activity.
 - Any output, error, count, identity, or target result is ambiguous.
 
 There is **no repair, migration, privilege change, fixture deletion, identity replacement, or retry inside the run**. A stopped run requires incident assessment and a new reviewed plan and authorization.
@@ -302,9 +302,9 @@ audit:
   in_transaction_delta: <integer>
   expected_in_transaction_delta: <integer>
   actual_candidate_audit_rows: <integer>
-  exact_sequence_allocations_on_pass: <15-or-null>
+  exact_sequence_allocations_on_pass: <24-or-null>
   stopped_sequence_allocations_min: 0
-  stopped_sequence_allocations_max: 16
+  stopped_sequence_allocations_max: 25
   final_count: <integer>
   final_watermark: <integer-or-null>
 cleanup:
@@ -323,7 +323,7 @@ Evidence must not contain raw query rows, names, display names, emails, phone nu
 ## Rollback And Irreversibility
 
 - Data fixtures must be rolled back and their absence independently proven with aggregate prefix-scoped counts.
-- The expected lasting row impact is exactly zero. The only accepted lasting database effect is non-semantic audit identity-sequence allocation: exactly **15** on pass and **0..16** when stopped before complete evidence.
+- The expected lasting row impact is exactly zero. The only accepted lasting database effect is non-semantic audit identity-sequence allocation: exactly **24** on pass and **0..25** when stopped before complete evidence.
 - Existing immutable audit evidence is never altered. If a future authorized design permits lasting audit evidence, it may contain only synthetic opaque identifiers and must declare its exact count in advance.
 - Auth changes are out of scope and have no rollback procedure in this runbook.
 - Applied schema cannot be rolled back by editing or removing migration history. Any deployed schema rollback requires a separately reviewed forward migration and separate authorization.
