@@ -54,7 +54,7 @@ Every gate is fail-closed. Missing, stale, or ambiguous evidence means **do not 
 | Auth immutability | The run will not create or change Auth users, profiles, roles, active flags, passwords, sessions, bans, or invitations. |
 | Secret handling | Credentials and tokens never appear in command arguments, files, logs, evidence artifacts, shell history, environment dumps, or persistent environment values. The authorized operator must use an approved ephemeral secret channel and a non-echoing execution mechanism. |
 | Transaction support | The selected production SQL execution path is proven to preserve one transaction across setup, role switches, assertions, audit inspection, and final rollback. If this cannot be guaranteed, stop. |
-| Audit sequence semantics | The maintainer accepts an exact, reviewed, non-semantic identity-sequence allocation bound for each candidate slice. Slice 1 contributes exactly **3** allocations. Audit rows and fixture rows must still roll back to zero; sequence reset and trigger disabling remain prohibited. This policy does not authorize execution. |
+| Audit sequence semantics | The maintainer accepts an exact, reviewed, non-semantic identity-sequence allocation bound for each candidate slice. The current access/editorial plus athlete/club candidate contributes exactly **15** allocations on pass and **0..16** when stopped before complete evidence. Audit rows and fixture rows must still roll back to zero; sequence reset and trigger disabling remain prohibited. This policy does not authorize execution. |
 | Fixture review | The exact transaction candidate is independently reviewed against this runbook before execution. It uses only the tables, policies, and functions listed here and contains an unconditional final rollback. |
 | Window and ownership | A bounded maintenance window, execution operator, stop authority, cleanup owner, residue reviewer, and escalation contact are recorded. |
 | Observability | Safe baseline and post-run count queries are reviewed before execution. Their output is aggregate-only and cannot emit raw rows. |
@@ -145,7 +145,7 @@ All rows below exist only inside one rollback-only transaction. Existing active 
 - `organizations` and `competitions` are never committed because their delete guards require archival rather than hard deletion (`L`, `K`).
 - Expected lasting row impact: **zero rows in every public and private fixture table**.
 - Expected lasting audit-row impact: **zero fixture audit rows**. Audit rows participate in the rolled-back transaction.
-- Accepted non-row impact: `private.admin_audit_log.id` is `generated always as identity`, so PostgreSQL sequence allocation is non-transactional. Slice 1 contributes exactly **3** allocations on pass. A stopped run may contribute **0..4** allocations because an unexpectedly allowed profile-escalation probe can allocate once before the candidate fails; absence of final evidence is stopped, never pass. The in-transaction ledger attributes actual pass rows by actor, action, table, transaction, and exact fixture identifier.
+- Accepted non-row impact: `private.admin_audit_log.id` is `generated always as identity`, so PostgreSQL sequence allocation is non-transactional. The current candidate contributes exactly **15** allocations on pass: nine privileged athlete/club fixture inserts, one publication update, the three access/editorial mutations, one editor athlete update, and one administrator club update. A stopped run may contribute **0..16** allocations because an unexpectedly allowed profile-escalation probe can allocate once before the candidate fails; absence of final evidence is stopped, never pass. The in-transaction ledger attributes actual pass rows by actor, action, table, transaction, and exact fixture identifier.
 - The in-transaction audit delta must equal the independently reviewed operation ledger. The ledger is finalized with the exact transaction candidate; it is not guessed in this runbook.
 - Immutable audit rows that predate the run remain untouched. If the approved execution mechanism would make audit evidence survive the rollback, this plan is invalid and execution must stop. Any future plan permitting lasting audit rows must use only opaque synthetic entity identifiers and state the exact count before authorization.
 
@@ -157,7 +157,7 @@ Resetting the sequence is not an acceptable workaround: it is a separate product
 
 **Maintainer audit-sequence decision:** `accepted-bounded-non-semantic-advancement`
 
-The first autonomous candidate slice is `supabase/tests/production-rls-validation-candidate.sql`; its separate read-only residue proof is `supabase/tests/production-rls-validation-residue.sql`. This slice validates all four roles against access/editorial surfaces and establishes the ledger/evidence mechanism. Athlete/club, calendar, and result surfaces remain for later slices. Neither file grants production execution authority.
+The current autonomous candidate is `supabase/tests/production-rls-validation-candidate.sql`, with its separate read-only residue proof in `supabase/tests/production-rls-validation-residue.sql`. It validates all four roles against access/editorial and athlete/club surfaces, including consent-qualified public reads, private-detail/contact boundaries, relation visibility, mutation attribution, and archive-only club deletion. Calendar and result surfaces remain for later slices. Neither file grants production execution authority.
 
 ### Non-Transactional State
 
@@ -234,7 +234,7 @@ Concrete invocation syntax is intentionally omitted. The repository proves SQL b
 ### 9. Independent Residue Proof
 
 - A second operator, or an independently executed read-only step owned by the residue reviewer, repeats the prefix-scoped aggregate counts.
-- Require zero fixture rows and zero fixture audit rows, unchanged validation profile role/activity states, and no Auth changes. Global audit count/watermark may advance because of the accepted candidate allocation or unrelated concurrent audited work; it is context, not fixture residue.
+- Require zero fixture rows (including the private synthetic athlete detail) and zero fixture audit rows, unchanged validation profile role/activity states, and no Auth changes. Global audit count/watermark may advance because of the accepted candidate allocation or unrelated concurrent audited work; it is context, not fixture residue.
 - Compare production migration history again to prove the run performed no schema change.
 - Any nonzero or ambiguous result is a failed run and an incident/escalation input, not a cleanup invitation.
 
@@ -259,7 +259,7 @@ Stop immediately, preserve only safe evidence, and do not repair or retry inside
 - The transaction boundary, final rollback, independent review, maintenance window, cleanup owner, or stop authority is unavailable.
 - The audit identity-sequence impact remains undecided, is absent from the reviewed ledger/evidence schema, or differs from the maintainer-approved bound.
 - In-transaction audit count/ledger, actor reference, entity table, action, reason, or evidence does not match exactly.
-- Post-rollback fixture rows or fixture audit rows are nonzero, profile/Auth state changes, or migration history changes. Global audit count/watermark movement alone is not residue; it must remain compatible with the accepted 0..4 stopped bound or exact 3-on-pass candidate contribution plus independently identified concurrent audit activity.
+- Post-rollback fixture rows or fixture audit rows are nonzero, profile/Auth state changes, or migration history changes. Global audit count/watermark movement alone is not residue; it must remain compatible with the accepted 0..16 stopped bound or exact 15-on-pass candidate contribution plus independently identified concurrent audit activity.
 - Any output, error, count, identity, or target result is ambiguous.
 
 There is **no repair, migration, privilege change, fixture deletion, identity replacement, or retry inside the run**. A stopped run requires incident assessment and a new reviewed plan and authorization.
@@ -302,9 +302,9 @@ audit:
   in_transaction_delta: <integer>
   expected_in_transaction_delta: <integer>
   actual_candidate_audit_rows: <integer>
-  exact_sequence_allocations_on_pass: <3-or-null>
+  exact_sequence_allocations_on_pass: <15-or-null>
   stopped_sequence_allocations_min: 0
-  stopped_sequence_allocations_max: 4
+  stopped_sequence_allocations_max: 16
   final_count: <integer>
   final_watermark: <integer-or-null>
 cleanup:
@@ -323,7 +323,7 @@ Evidence must not contain raw query rows, names, display names, emails, phone nu
 ## Rollback And Irreversibility
 
 - Data fixtures must be rolled back and their absence independently proven with aggregate prefix-scoped counts.
-- The expected lasting row impact is exactly zero. The only accepted lasting database effect is non-semantic audit identity-sequence allocation: exactly **3** on pass and **0..4** when stopped before complete evidence.
+- The expected lasting row impact is exactly zero. The only accepted lasting database effect is non-semantic audit identity-sequence allocation: exactly **15** on pass and **0..16** when stopped before complete evidence.
 - Existing immutable audit evidence is never altered. If a future authorized design permits lasting audit evidence, it may contain only synthetic opaque identifiers and must declare its exact count in advance.
 - Auth changes are out of scope and have no rollback procedure in this runbook.
 - Applied schema cannot be rolled back by editing or removing migration history. Any deployed schema rollback requires a separately reviewed forward migration and separate authorization.

@@ -507,3 +507,29 @@ The maintainer accepted bounded, non-semantic audit identity-sequence advancemen
 | Rollback boundary | Revert the accepted-sequence-policy edits in the runbook, remove the candidate/residue SQL files, restore the readiness validator, and remove this subsection. No external state is involved. |
 
 Task 5.2 remains open. Athlete/club, calendar, result, profile/Auth immutability, migration-parity, credential-wrapper, and production-execution slices remain pending. Admin navigation remains disabled.
+
+## Work Unit Evidence — Task 5.2 Athlete/Club RLS Candidate Coverage
+**Work unit**: `task-5.2-athlete-club-rls-coverage`; Standard Mode (`strict_tdd: false`); auto-chain; stacked-to-main. Production execution remains unauthorized and the parent-owned native attempt was not acquired or settled here.
+
+### Scope
+- Extended the rollback-only candidate with a privileged synthetic athlete/club graph, all four role paths, consent-qualified public visibility, private contact/identity boundaries, relation reads, editor/admin mutations, editor escalation denial, archive-only club deletion, and exact audit attribution.
+- Extended the independent read-only residue proof to aggregate news, club, contact, athlete, private-detail, consent, category, discipline, membership, and audit residue without emitting fixture rows or identity values.
+- Task 5.2 remains unchecked; no navigation, Auth/profile state, migration parity, credential wrapper, calendar/result slice, database, or external runtime was changed or contacted.
+
+### Work Unit Evidence
+| Evidence | Result |
+|---|---|
+| Focused readiness validator | `node scripts/validate-production-rls-readiness.mjs`: exit 0; **25/25 passed**, including runbook-wide pass/stopped sequence-bound consistency and stale `3`/`0..4` rejection while athlete/club coverage is present. |
+| Static contract assertions | Dependency-free Node contract: exit 0; **19/19 passed**, including four roles, athlete/club tables, synthetic private-detail derivation, exact 15-row ledger, aggregate residue, and unconditional rollback. |
+| Node syntax | `node --check scripts/validate-production-rls-readiness.mjs`: exit 0. |
+| SQL parse | `sqlfluff parse --ignore-local-config --config <temporary parser-only config> --dialect postgres -f none` passed for both candidate and residue; the candidate was actually parsed with `large_file_skip_byte_limit = 0` because it exceeds the parser's default 20,000-byte safety threshold. |
+| Build | `npm run build`: exit 0; Vite transformed **1,495 modules**. Build-generated public metadata was restored and is outside this slice. |
+| Whitespace checks | Explicit untracked-artifact scan: **4/4 passed** for the runbook, validator, candidate, and residue; `git diff --no-index --check -- /dev/null <file>` inspected all four (exit 1 is expected for content differing from `/dev/null`); plain `git diff --check`: exit 0 for tracked changes only. |
+| Runtime harness | **N/A / unauthorized**: the applicable boundary is the separately authorized rollback-only production transaction plus independent residue proof; no database, network, staging, production, or external service was contacted. |
+| Rollback boundary | Revert only `production-rls-validation-runbook.md`, `validate-production-rls-readiness.mjs`, `production-rls-validation-candidate.sql`, `production-rls-validation-residue.sql`, and this evidence subsection. No application source, migration, Auth/profile state, public navigation, or external state changed. |
+| Review budget | **347 authored additions/deletions** relative to launch state: candidate 254, residue 45, validator 10, runbook 12, and this receipt 26; no commit or branch operation was performed. |
+
+### Remaining 5.2 Gaps
+- [ ] Calendar and result/import production-RLS candidate coverage.
+- [ ] Profile/Auth immutability, migration-parity, and non-echoing credential-wrapper evidence.
+- [ ] Separate production execution authorization, approved delivery receipt, authorized rollback-only run, independent residue review, and maintainer acceptance before enabling navigation.
