@@ -34,10 +34,67 @@ const calendarMarkers = [
   'administrator_competition_updated',
   'administrator_calendar_visible',
 ]
+const inactiveCalendarMarkers = [
+  'inactive_venue_visible',
+  'inactive_competition_visible',
+  'inactive_event_visible',
+  'inactive_event_definition_visible',
+  'inactive_event_category_visible',
+  'inactive_calendar_write_denied',
+  'inactive_reorder_denied',
+]
+const editorCalendarMarkers = [
+  'editor_competition_updated',
+  'editor_venue_updated',
+  'editor_event_updated',
+  'editor_event_reordered',
+  'editor_event_definition_visible',
+  'editor_event_category_visible',
+]
+const administratorCalendarMarkers = [
+  'administrator_competition_updated',
+  'administrator_competition_delete_denied',
+  'administrator_event_definition_visible',
+  'administrator_event_category_visible',
+  'administrator_calendar_visible',
+]
 const calendarCoveragePresent = calendarMarkers.every((marker) => candidate.includes(marker))
   && ['venue_id', 'competition_id', 'competition_event_id', 'event_definition_id'].every((marker) => candidate.includes(marker))
   && residue.includes('competition_event_id')
   && runbook.includes('published venues/competitions/event programs')
+const inactiveCalendarCoveragePresent = inactiveCalendarMarkers.every((marker) => candidate.includes(marker))
+const editorCalendarCoveragePresent = editorCalendarMarkers.every((marker) => candidate.includes(marker))
+const administratorCalendarCoveragePresent = administratorCalendarMarkers.every((marker) => candidate.includes(marker))
+const calendarAuditAttributionPresent = [
+  'administrator_setup_attributed = 12',
+  'editor_news_insert_attributed = 1',
+  'editor_updates_attributed = 6',
+  'administrator_updates_attributed = 4',
+].every((marker) => candidate.includes(marker))
+const calendarAuditResiduePresent = [
+  'calendar_fixture_rows',
+  'calendar_audit_rows',
+  "entity_table in ('venues', 'competitions', 'competition_events')",
+].every((marker) => residue.includes(marker))
+const runbookPassSequenceClaims = [...runbook.matchAll(/exactly \*\*(\d+)\*\* allocations on pass/g)].map((match) => Number(match[1]))
+const runbookStoppedSequenceClaims = [...runbook.matchAll(/\*\*0\.\.(\d+)\*\*/g)].map((match) => Number(match[1]))
+const candidatePassSequenceClaim = Number(candidate.match(/then (\d+) else null/)?.[1])
+const candidateStoppedSequenceClaim = Number(candidate.match(/(\d+)::integer as stopped_sequence_allocations_max/)?.[1])
+const residuePassSequenceClaim = Number(residue.match(/(\d+)::integer as accepted_pass_sequence_allocations/)?.[1])
+const calendarSequenceBoundsAligned = runbookPassSequenceClaims.length > 0
+  && runbookPassSequenceClaims.every((value) => value === 24)
+  && runbookStoppedSequenceClaims.length > 0
+  && runbookStoppedSequenceClaims.every((value) => value === 25)
+  && candidatePassSequenceClaim === 24
+  && candidateStoppedSequenceClaim === 25
+  && residuePassSequenceClaim === 24
+const editorProcedure = runbook.slice(
+  runbook.indexOf('### 6. Editor Checks'),
+  runbook.indexOf('### 7. Administrator Checks'),
+)
+const calendarSliceDefersResults = editorProcedure.includes('Do not invoke `commit_result_import`')
+  && !editorProcedure.includes('Prove the manual `commit_result_import`')
+const candidateHasNoDeferredResultWrites = !/\b(commit_result_import|source_documents|import_batches|entries|performances)\b/.test(candidate)
 const sequenceClaimLines = runbookLines.filter((line) =>
   /(sequence|allocation)/i.test(line) && /(pass|stopped|stop|bound)/i.test(line),
 )
@@ -66,15 +123,22 @@ const checks = [
   ['private athlete fixture is synthetic and derived', candidate.includes('private.athlete_details') && candidate.includes('extensions.digest') && candidate.includes("':private-details'" )],
   ['athlete and club audit entities are bounded', ["':public-contact'", "':private-contact'", "':membership'", "':category'", 'administrator_inserts = 12'].every((marker) => candidate.includes(marker))],
   ['calendar role and lifecycle markers are complete', calendarCoveragePresent],
+  ['inactive calendar public reads and denials are complete', inactiveCalendarCoveragePresent],
+  ['editor calendar mutations and references are complete', editorCalendarCoveragePresent],
+  ['administrator calendar lifecycle and deletion guard are complete', administratorCalendarCoveragePresent],
   ['calendar fixture graph is bounded', ["':venue'", "':competition'", "':competition-event'", 'current_setting(\'rlsv.event_definition_id\')'].every((marker) => candidate.includes(marker))],
   ['calendar residue proof is aggregate and aligned', ['public.venues venue', 'public.competitions competition', 'public.competition_events event_row', '24::integer as accepted_pass_sequence_allocations', '25::integer as stopped_sequence_allocations_max'].every((marker) => residue.includes(marker))],
+  ['calendar residue has independent aggregate counters', calendarAuditResiduePresent],
   ['claim changes do not emit UUID values', !/^select\s+set_config/im.test(candidate) && candidate.includes("perform set_config('request.jwt.claim.sub'")],
   ['ledger binds actors actions and fixture entity', candidate.includes('actor_id =') && candidate.includes('entity_id = any(array') && candidate.includes('administrator_updates = 4')],
+  ['ledger attribution binds exact calendar entities', calendarAuditAttributionPresent],
   ['pass requires exact calendar ledger', candidate.includes('actual_rows = 24') && candidate.includes('exact_sequence_allocations_on_pass') && candidate.includes('then 24 else null')],
   ['stopped allocation bound is zero through twenty-five', candidate.includes('0::integer as stopped_sequence_allocations_min') && candidate.includes('25::integer as stopped_sequence_allocations_max')],
   ['runbook pass allocation bounds match calendar coverage', !athleteClubCoveragePresent || passAllocationBoundsAligned],
   ['runbook stopped allocation bounds match calendar coverage', !athleteClubCoveragePresent || stoppedAllocationBoundsAligned],
+  ['runbook/candidate/residue sequence bounds are identical', !athleteClubCoveragePresent || calendarSequenceBoundsAligned],
   ['runbook has no stale sequence claims', !athleteClubCoveragePresent || staleSequenceClaimLines.length === 0],
+  ['calendar slice explicitly defers result writes', calendarSliceDefersResults && candidateHasNoDeferredResultWrites],
   ['runbook/candidate/residue calendar slice cannot drift', calendarCoveragePresent && runbook.includes('Result/import surfaces remain for a later slice.') && residue.includes('false as profile_auth_migration_proof_in_slice')],
   ['candidate emits aggregate-only evidence', candidate.includes('failed_checks') && candidate.includes('candidate_outcome')],
   ['candidate creates no temporary DDL or grants', !/\b(create\s+temporary|grant\s+)/i.test(candidate)],
