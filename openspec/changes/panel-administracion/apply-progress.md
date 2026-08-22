@@ -463,3 +463,47 @@ Production Supabase was not mutated; all database changes were exercised only in
 ### Remaining Tasks
 - [ ] 5.2 Production RLS validation.
 - [ ] 5.3 Approved fixture migration, fallback removal, and operations documentation.
+
+## Work Unit Evidence — Task 5.2 Readiness Preparation
+**Work unit**: `phase-5-task-5.2-production-rls-readiness`; started in Standard Mode under the resolved `auto-chain` / `stacked-to-main` delivery path. Production execution is not authorized, so task 5.2 intentionally remains open.
+
+### Current Status
+- [ ] 5.2 Validate production RLS with administrator, editor, inactive, and anonymous accounts before enabling navigation.
+- [x] Prepared and reviewed the production RLS validation runbook without accessing production or handling credentials.
+
+### Work Unit Evidence
+| Evidence | Result |
+|---|---|
+| Structured apply status | OpenSpec artifacts are present, `phase: apply`, and task 5.2 is the assigned pending task. Strict TDD is disabled by `openspec/config.yaml`. |
+| Focused artifact review | Local static review passed **45/45** assertions: all four roles, rollback-only boundary, zero-lasting-impact requirement, independent residue proof, navigation hold, explicit non-authorization, secret-shape exclusions, and **32/32** repository references. The first harness invocation used the wrong literal for the evidence field and was corrected without changing the runbook. |
+| Navigation hold | Static inspection found no `/admin` link in the public headers or application shell. Protected routes remain directly addressable but are not exposed through public navigation. |
+| RDD mode | `gentle-ai review mode status --json --cwd .` reported effective mode `off` from `clone_local`; repository identity resolution then returned `Access is denied`. This work is therefore `disabled/unmanaged`, with no receipt or approval claim. |
+| Production boundary | Production was not contacted. No credential, token, target identity, raw production value, Auth/profile state, schema, deployment, fixture, or navigation change was used or performed. |
+| Runtime harness | **Blocked / not run**: the applicable runtime boundary is the separately authorized rollback-only production transaction plus independent residue proof. The runbook explicitly does not grant that authorization and no safe credential wrapper or reviewed transaction candidate is available. |
+| Rollback boundary | Remove `production-rls-validation-runbook.md` and this readiness section only. No application source, migration, production state, Auth/profile state, or public navigation behavior changed in this work unit. |
+
+### Completion Blockers
+- A separate, explicit, time-bounded production execution authorization naming the operator, independent reviewer, maintenance window, cleanup owner, stop authority, and escalation contact.
+- An immutable delivered Git candidate and approved delivery receipt with an independently reviewed migration manifest and checksums.
+- Approved pre-provisioned administrator, editor, and inactive validation identities plus a confirmed production target reference supplied through a safe channel.
+- A separately reviewed non-echoing credential mechanism, exact rollback-only transaction candidate, operation ledger, aggregate-only evidence queries, and independent residue procedure.
+
+Task 5.2 must remain unchecked until the authorized run completes with safe evidence and zero residue. Admin navigation remains disabled and requires a separate post-evidence maintainer decision.
+
+### Candidate Admission — Slice 1
+
+The maintainer accepted bounded, non-semantic audit identity-sequence advancement for mutation-bearing validation. This policy change authorizes local candidate preparation only; production execution remains unauthorized.
+
+| Evidence | Result |
+|---|---|
+| Candidate | Added `supabase/tests/production-rls-validation-candidate.sql` for the access/editorial slice. It covers administrator, editor, inactive authenticated, and anonymous roles without printing claim UUIDs. |
+| Operation ledger | Audit evidence is bound to the exact fixture identifier, transaction, table, action, and approved actor role/identity. Pass requires one editor insert, one editor update, and one administrator update. |
+| Sequence bound | A completed pass contributes exactly **3** identity allocations. A stopped run contributes **0..4** because an unexpectedly allowed profile-escalation probe may allocate once before failure; no final aggregate evidence can be interpreted as pass. Reset and trigger disabling remain prohibited. |
+| Rollback | The candidate contains no commit, persistent DDL, grant, persistent profile/Auth mutation, migration, deployment, navigation change, or compensating delete, and ends in unconditional `rollback;`. The editor escalation probe is expected to affect zero rows; any unexpected transactional change fails and rolls back. |
+| Independent residue slice | Added `supabase/tests/production-rls-validation-residue.sql`, a separate read-only aggregate proof for zero synthetic article and audit-row residue. Profile/Auth immutability and migration parity are explicitly deferred to later reviewed proof slices. |
+| Focused static validation | `node scripts/validate-production-rls-readiness.mjs`: exit 0; **18/18 passed** after candidate correction. |
+| SQL parse | `sqlfluff parse --dialect postgres` passed for both candidate files. The residue proof uses transaction-local `transaction_read_only = on` before its first query. |
+| Runtime harness | **N/A / unauthorized**: no database, network, staging, or production contact is permitted in this local slice. |
+| Rollback boundary | Revert the accepted-sequence-policy edits in the runbook, remove the candidate/residue SQL files, restore the readiness validator, and remove this subsection. No external state is involved. |
+
+Task 5.2 remains open. Athlete/club, calendar, result, profile/Auth immutability, migration-parity, credential-wrapper, and production-execution slices remain pending. Admin navigation remains disabled.
