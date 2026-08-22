@@ -529,7 +529,32 @@ Task 5.2 remains open. Athlete/club, calendar, result, profile/Auth immutability
 | Rollback boundary | Revert only `production-rls-validation-runbook.md`, `validate-production-rls-readiness.mjs`, `production-rls-validation-candidate.sql`, `production-rls-validation-residue.sql`, and this evidence subsection. No application source, migration, Auth/profile state, public navigation, or external state changed. |
 | Review budget | **347 authored additions/deletions** relative to launch state: candidate 254, residue 45, validator 10, runbook 12, and this receipt 26; no commit or branch operation was performed. |
 
-### Remaining 5.2 Gaps
+### Remaining 5.2 Gaps Before Calendar Slice
 - [ ] Calendar and result/import production-RLS candidate coverage.
+- [ ] Profile/Auth immutability, migration-parity, and non-echoing credential-wrapper evidence.
+- [ ] Separate production execution authorization, approved delivery receipt, authorized rollback-only run, independent residue review, and maintainer acceptance before enabling navigation.
+
+## Work Unit Evidence — Task 5.2 Calendar RLS Candidate Coverage
+**Work unit**: `task-5.2-calendar-rls-coverage`; Standard Mode (`strict_tdd: false`); auto-chain; stacked-to-main; issue #100; parent-owned native attempt was not acquired or settled here.
+
+### Scope
+- Extended the rollback-only candidate with opaque venue, published competition, active event-definition/category references, ordered event-program checks, editor reorder/lifecycle mutations, administrator lifecycle mutation, and anonymous/inactive write denials.
+- Extended the independent aggregate-only residue proof for venue, competition, event-program, and audit entities; aligned the validator and sequence bounds to the exact **24** pass / **0..25** stopped allocation contract.
+- Task 5.2 remains unchecked; result/import, profile/Auth immutability, migration parity, credential wrapper, and production execution remain out of scope.
+
+### Work Unit Evidence
+| Evidence | Result |
+|---|---|
+| Focused readiness validator | `node scripts/validate-production-rls-readiness.mjs`: exit 0; **29/29 passed**. |
+| Negative drift assertions | Dependency-free in-memory Node assertion: exit 0; **4/4 passed**, rejecting stale runbook, candidate, and residue bounds. |
+| Node syntax | `node --check scripts/validate-production-rls-readiness.mjs`: exit 0. |
+| PostgreSQL parse | `sqlfluff parse --ignore-local-config --config <temporary parser-only config> --dialect postgres -f none` passed for candidate and residue separately; no database was contacted. |
+| Build | `npm run build`: exit 0; Vite transformed **1,495 modules**. Generated public metadata was restored. |
+| Whitespace | Explicit `git diff --no-index --check` scan passed for all four untracked preparation artifacts; exit 1 was treated as expected content-difference status. Tracked `git diff --check` passed. |
+| Runtime harness | **N/A / unauthorized**: the applicable boundary is the separately authorized rollback-only production transaction and independent residue proof; no database, network, staging, production, Auth, credentials, or external service was contacted. |
+| Rollback boundary | Revert only `production-rls-validation-runbook.md`, `validate-production-rls-readiness.mjs`, `production-rls-validation-candidate.sql`, `production-rls-validation-residue.sql`, and this evidence section. Leave migrations, application code, navigation, Auth/profile state, and external state unchanged. |
+
+### Remaining 5.2 Gaps
+- [ ] Result/import production-RLS candidate coverage.
 - [ ] Profile/Auth immutability, migration-parity, and non-echoing credential-wrapper evidence.
 - [ ] Separate production execution authorization, approved delivery receipt, authorized rollback-only run, independent residue review, and maintainer acceptance before enabling navigation.
