@@ -299,6 +299,11 @@ declare
   athlete_visible boolean := false;
   private_contact_hidden boolean := false;
   consents_hidden boolean := false;
+  venue_visible boolean := false;
+  competition_visible boolean := false;
+  event_visible boolean := false;
+  event_definition_visible boolean := false;
+  calendar_category_visible boolean := false;
   athlete_write_denied boolean := false;
   club_write_denied boolean := false;
   venue_write_denied boolean := false;
@@ -348,12 +353,27 @@ begin
       where organization_id = current_setting('rlsv.club_id')::uuid and not is_public;
     select count(*) = 0 into consents_hidden from public.athlete_consents
       where athlete_id = current_setting('rlsv.athlete_id')::uuid;
+    select count(*) = 1 into venue_visible from public.venues
+      where id = current_setting('rlsv.venue_id')::uuid;
+    select count(*) = 1 into competition_visible from public.competitions
+      where id = current_setting('rlsv.competition_id')::uuid;
+    select count(*) = 1 into event_visible from public.competition_events
+      where id = current_setting('rlsv.competition_event_id')::uuid;
+    select count(*) = 1 into event_definition_visible from public.event_definitions
+      where id = current_setting('rlsv.event_definition_id')::uuid;
+    select count(*) = 1 into calendar_category_visible from public.age_categories
+      where id = current_setting('rlsv.category_id')::uuid;
   end if;
   perform set_config('rlsv.inactive_write_denied', denied::text, true);
   perform set_config('rlsv.inactive_own_profile_only', own_profile_only::text, true);
   perform set_config('rlsv.inactive_athlete_visible', athlete_visible::text, true);
   perform set_config('rlsv.inactive_private_contact_hidden', private_contact_hidden::text, true);
   perform set_config('rlsv.inactive_consents_hidden', consents_hidden::text, true);
+  perform set_config('rlsv.inactive_venue_visible', venue_visible::text, true);
+  perform set_config('rlsv.inactive_competition_visible', competition_visible::text, true);
+  perform set_config('rlsv.inactive_event_visible', event_visible::text, true);
+  perform set_config('rlsv.inactive_event_definition_visible', event_definition_visible::text, true);
+  perform set_config('rlsv.inactive_event_category_visible', calendar_category_visible::text, true);
   perform set_config('rlsv.inactive_athlete_write_denied', athlete_write_denied::text, true);
   perform set_config('rlsv.inactive_club_write_denied', club_write_denied::text, true);
   perform set_config('rlsv.inactive_calendar_write_denied',
@@ -373,6 +393,8 @@ declare
   venue_updated boolean := false;
   event_updated boolean := false;
   event_reordered boolean := false;
+  event_definition_visible boolean := false;
+  calendar_category_visible boolean := false;
 begin
   perform set_config('request.jwt.claim.sub', current_setting('rlsv.editor_id'), true);
   if current_setting('rlsv.preflight_ok')::boolean then
@@ -415,6 +437,10 @@ begin
         where id = current_setting('rlsv.competition_event_id')::uuid and sequence_number = 1;
     exception when others then event_reordered := false;
     end;
+    select count(*) = 1 into event_definition_visible from public.event_definitions
+      where id = current_setting('rlsv.event_definition_id')::uuid;
+    select count(*) = 1 into calendar_category_visible from public.age_categories
+      where id = current_setting('rlsv.category_id')::uuid;
     select count(*) = 1 into club_visible from public.organizations
       where id = current_setting('rlsv.club_id')::uuid;
     update public.profiles set role = 'administrator'
@@ -436,6 +462,8 @@ begin
   perform set_config('rlsv.editor_venue_updated', venue_updated::text, true);
   perform set_config('rlsv.editor_event_updated', event_updated::text, true);
   perform set_config('rlsv.editor_event_reordered', event_reordered::text, true);
+  perform set_config('rlsv.editor_event_definition_visible', event_definition_visible::text, true);
+  perform set_config('rlsv.editor_event_category_visible', calendar_category_visible::text, true);
   perform set_config('rlsv.editor_calendar_visible',
     (competition_updated and venue_updated and event_updated and event_reordered)::text, true);
 end
@@ -450,6 +478,9 @@ declare
   club_delete_denied boolean := false;
   competition_updated boolean := false;
   calendar_visible boolean := false;
+  event_definition_visible boolean := false;
+  calendar_category_visible boolean := false;
+  competition_delete_denied boolean := false;
 begin
   perform set_config('request.jwt.claim.sub', current_setting('rlsv.administrator_id'), true);
   if current_setting('rlsv.preflight_ok')::boolean then
@@ -475,12 +506,21 @@ begin
         and event_row.id = current_setting('rlsv.competition_event_id')::uuid
         and event_row.event_definition_id = current_setting('rlsv.event_definition_id')::uuid
         and event_row.category_id = current_setting('rlsv.category_id')::uuid;
+    select count(*) = 1 into event_definition_visible from public.event_definitions
+      where id = current_setting('rlsv.event_definition_id')::uuid;
+    select count(*) = 1 into calendar_category_visible from public.age_categories
+      where id = current_setting('rlsv.category_id')::uuid;
     select count(*) = 1 into athlete_visible from public.athletes
       where id = current_setting('rlsv.athlete_id')::uuid;
     begin
       delete from public.organizations where id = current_setting('rlsv.club_id')::uuid;
     exception when foreign_key_violation then
       club_delete_denied := true;
+    end;
+    begin
+      delete from public.competitions where id = current_setting('rlsv.competition_id')::uuid;
+    exception when foreign_key_violation then
+      competition_delete_denied := true;
     end;
     select count(*) = 3 into profiles_visible
       from public.profiles
@@ -495,6 +535,9 @@ begin
   perform set_config('rlsv.administrator_club_updated', club_updated::text, true);
   perform set_config('rlsv.administrator_club_delete_denied', club_delete_denied::text, true);
   perform set_config('rlsv.administrator_competition_updated', competition_updated::text, true);
+  perform set_config('rlsv.administrator_competition_delete_denied', competition_delete_denied::text, true);
+  perform set_config('rlsv.administrator_event_definition_visible', event_definition_visible::text, true);
+  perform set_config('rlsv.administrator_event_category_visible', calendar_category_visible::text, true);
   perform set_config('rlsv.administrator_calendar_visible',
     (calendar_visible and competition_updated)::text, true);
 end
@@ -532,10 +575,15 @@ with role_checks(passed) as (
     (current_setting('rlsv.anonymous_reorder_denied')::boolean),
     (current_setting('rlsv.inactive_write_denied')::boolean),
     (current_setting('rlsv.inactive_own_profile_only')::boolean),
-    (current_setting('rlsv.inactive_athlete_visible')::boolean),
-    (current_setting('rlsv.inactive_private_contact_hidden')::boolean),
-    (current_setting('rlsv.inactive_consents_hidden')::boolean),
-    (current_setting('rlsv.inactive_athlete_write_denied')::boolean),
+     (current_setting('rlsv.inactive_athlete_visible')::boolean),
+     (current_setting('rlsv.inactive_private_contact_hidden')::boolean),
+     (current_setting('rlsv.inactive_consents_hidden')::boolean),
+     (current_setting('rlsv.inactive_venue_visible')::boolean),
+     (current_setting('rlsv.inactive_competition_visible')::boolean),
+     (current_setting('rlsv.inactive_event_visible')::boolean),
+     (current_setting('rlsv.inactive_event_definition_visible')::boolean),
+     (current_setting('rlsv.inactive_event_category_visible')::boolean),
+     (current_setting('rlsv.inactive_athlete_write_denied')::boolean),
     (current_setting('rlsv.inactive_club_write_denied')::boolean),
     (current_setting('rlsv.inactive_calendar_write_denied')::boolean),
     (current_setting('rlsv.inactive_reorder_denied')::boolean),
@@ -545,17 +593,22 @@ with role_checks(passed) as (
     (current_setting('rlsv.editor_athlete_updated')::boolean),
     (current_setting('rlsv.editor_club_visible')::boolean),
     (current_setting('rlsv.editor_competition_updated')::boolean),
-    (current_setting('rlsv.editor_venue_updated')::boolean),
-    (current_setting('rlsv.editor_event_updated')::boolean),
-    (current_setting('rlsv.editor_event_reordered')::boolean),
-    (current_setting('rlsv.editor_calendar_visible')::boolean),
+     (current_setting('rlsv.editor_venue_updated')::boolean),
+     (current_setting('rlsv.editor_event_updated')::boolean),
+     (current_setting('rlsv.editor_event_reordered')::boolean),
+     (current_setting('rlsv.editor_event_definition_visible')::boolean),
+     (current_setting('rlsv.editor_event_category_visible')::boolean),
+     (current_setting('rlsv.editor_calendar_visible')::boolean),
     (current_setting('rlsv.administrator_profiles_visible')::boolean),
     (current_setting('rlsv.administrator_athlete_visible')::boolean),
     (current_setting('rlsv.administrator_club_updated')::boolean),
-    (current_setting('rlsv.administrator_club_delete_denied')::boolean),
-    (current_setting('rlsv.administrator_competition_updated')::boolean),
-    (current_setting('rlsv.administrator_calendar_visible')::boolean)
-), audit_ledger as (
+     (current_setting('rlsv.administrator_club_delete_denied')::boolean),
+     (current_setting('rlsv.administrator_competition_updated')::boolean),
+     (current_setting('rlsv.administrator_competition_delete_denied')::boolean),
+      (current_setting('rlsv.administrator_event_definition_visible')::boolean),
+       (current_setting('rlsv.administrator_event_category_visible')::boolean),
+       (current_setting('rlsv.administrator_calendar_visible')::boolean)
+ ), audit_ledger as (
   select
     count(*)::integer as actual_rows,
     count(*) filter (
@@ -570,25 +623,76 @@ with role_checks(passed) as (
     count(*) filter (
       where actor_id = current_setting('rlsv.administrator_id')::uuid and action = 'INSERT'
     )::integer as administrator_inserts
+    ,count(*) filter (
+      where actor_id = current_setting('rlsv.administrator_id')::uuid
+        and action = 'INSERT'
+        and (
+          (entity_table = 'organizations' and entity_id = current_setting('rlsv.club_id'))
+          or (entity_table = 'organization_contacts' and entity_id = any(array[
+            md5(current_setting('rlsv.run_id') || ':public-contact'),
+            md5(current_setting('rlsv.run_id') || ':private-contact')
+          ]))
+          or (entity_table = 'venues' and entity_id = current_setting('rlsv.venue_id'))
+          or (entity_table = 'competitions' and entity_id = current_setting('rlsv.competition_id'))
+          or (entity_table = 'competition_events' and entity_id = current_setting('rlsv.competition_event_id'))
+          or (entity_table = 'athletes' and entity_id = current_setting('rlsv.athlete_id'))
+          or (entity_table = 'athlete_consents' and entity_id = any(array[
+            md5(current_setting('rlsv.run_id') || ':public-consent'),
+            md5(current_setting('rlsv.run_id') || ':results-consent')
+          ]))
+           or (entity_table = 'athlete_category_assignments' and entity_id = md5(current_setting('rlsv.run_id') || ':category'))
+           or (entity_table = 'athlete_disciplines' and entity_id = current_setting('rlsv.athlete_id') || ':' || current_setting('rlsv.discipline_id'))
+            or (entity_table = 'athlete_memberships' and entity_id = md5(current_setting('rlsv.run_id') || ':membership'))
+         )
+    )::integer as administrator_setup_attributed
+    ,count(*) filter (
+      where actor_id = current_setting('rlsv.editor_id')::uuid
+        and action = 'INSERT'
+        and entity_table = 'news_articles'
+        and entity_id = current_setting('rlsv.fixture_id')
+    )::integer as editor_news_insert_attributed
+    ,count(*) filter (
+      where actor_id = current_setting('rlsv.editor_id')::uuid
+        and action = 'UPDATE'
+        and (
+          (entity_table = 'news_articles' and entity_id = current_setting('rlsv.fixture_id'))
+           or (entity_table = 'athletes' and entity_id = current_setting('rlsv.athlete_id'))
+           or (entity_table = 'competitions' and entity_id = current_setting('rlsv.competition_id'))
+           or (entity_table = 'venues' and entity_id = current_setting('rlsv.venue_id'))
+           or (entity_table = 'competition_events' and entity_id = current_setting('rlsv.competition_event_id'))
+         )
+    )::integer as editor_updates_attributed
+    ,count(*) filter (
+      where actor_id = current_setting('rlsv.administrator_id')::uuid
+        and action = 'UPDATE'
+        and (
+          (entity_table = 'news_articles' and entity_id = current_setting('rlsv.fixture_id'))
+          or (entity_table = 'athletes' and entity_id = current_setting('rlsv.athlete_id'))
+          or (entity_table = 'organizations' and entity_id = current_setting('rlsv.club_id'))
+          or (entity_table = 'competitions' and entity_id = current_setting('rlsv.competition_id'))
+        )
+    )::integer as administrator_updates_attributed
   from private.admin_audit_log
   where transaction_id = txid_current()
     and entity_table in (
       'news_articles', 'organizations', 'organization_contacts', 'athletes',
       'athlete_consents', 'athlete_memberships', 'athlete_category_assignments',
-      'athlete_disciplines', 'venues', 'competitions', 'competition_events'
+       'athlete_disciplines', 'venues', 'competitions', 'competition_events'
     )
-    and entity_id = any(array[
-      current_setting('rlsv.fixture_id'), current_setting('rlsv.club_id'),
-       current_setting('rlsv.athlete_id'), md5(current_setting('rlsv.run_id') || ':public-contact'),
-      md5(current_setting('rlsv.run_id') || ':private-contact'),
-      md5(current_setting('rlsv.run_id') || ':public-consent'),
-      md5(current_setting('rlsv.run_id') || ':results-consent'),
-      md5(current_setting('rlsv.run_id') || ':membership'),
-      md5(current_setting('rlsv.run_id') || ':category'),
-       current_setting('rlsv.athlete_id') || ':' || current_setting('rlsv.discipline_id'),
-       current_setting('rlsv.venue_id'), current_setting('rlsv.competition_id'),
-       current_setting('rlsv.competition_event_id')
-    ])
+    and (
+      entity_id = any(array[
+        current_setting('rlsv.fixture_id'), current_setting('rlsv.club_id'),
+         current_setting('rlsv.athlete_id'), md5(current_setting('rlsv.run_id') || ':public-contact'),
+        md5(current_setting('rlsv.run_id') || ':private-contact'),
+        md5(current_setting('rlsv.run_id') || ':public-consent'),
+        md5(current_setting('rlsv.run_id') || ':results-consent'),
+        md5(current_setting('rlsv.run_id') || ':membership'),
+        md5(current_setting('rlsv.run_id') || ':category'),
+         current_setting('rlsv.athlete_id') || ':' || current_setting('rlsv.discipline_id'),
+         current_setting('rlsv.venue_id'), current_setting('rlsv.competition_id'),
+         current_setting('rlsv.competition_event_id')
+       ])
+     )
 ), evidence as (
   select
     current_setting('rlsv.preflight_ok')::boolean as preflight_ok,
@@ -600,11 +704,19 @@ with role_checks(passed) as (
       and audit_ledger.administrator_inserts = 12
       and audit_ledger.editor_inserts = 1
       and audit_ledger.editor_updates = 7
-      and audit_ledger.administrator_updates = 4 as ledger_matches
+      and audit_ledger.administrator_updates = 4
+      and audit_ledger.administrator_setup_attributed = 12
+      and audit_ledger.editor_news_insert_attributed = 1
+      and audit_ledger.editor_updates_attributed = 6
+      and audit_ledger.administrator_updates_attributed = 4 as ledger_matches
   from role_checks cross join audit_ledger
   group by audit_ledger.actual_rows, audit_ledger.editor_inserts,
     audit_ledger.editor_updates, audit_ledger.administrator_updates,
-    audit_ledger.administrator_inserts
+      audit_ledger.administrator_inserts,
+    audit_ledger.administrator_setup_attributed,
+    audit_ledger.editor_news_insert_attributed,
+    audit_ledger.editor_updates_attributed,
+    audit_ledger.administrator_updates_attributed
 )
 select
   (case when preflight_ok then 1 else 0 end) +
@@ -619,9 +731,9 @@ select
     then 'pass' else 'fail' end as candidate_outcome,
   actual_rows as actual_candidate_audit_rows,
    case when preflight_ok and setup_ok and role_checks_passed = role_checks_total and ledger_matches
-     then 24 else null end as exact_sequence_allocations_on_pass,
-   0::integer as stopped_sequence_allocations_min,
-   25::integer as stopped_sequence_allocations_max,
+       then 24 else null end as exact_sequence_allocations_on_pass,
+     0::integer as stopped_sequence_allocations_min,
+     25::integer as stopped_sequence_allocations_max,
   (select count(*)::integer from public.news_articles
     where id = current_setting('rlsv.fixture_id')::uuid)
     + (select count(*)::integer from public.organizations
@@ -644,8 +756,8 @@ select
        where id = current_setting('rlsv.venue_id')::uuid)
      + (select count(*)::integer from public.competitions
        where id = current_setting('rlsv.competition_id')::uuid)
-     + (select count(*)::integer from public.competition_events
-       where id = current_setting('rlsv.competition_event_id')::uuid) as in_transaction_fixture_rows
+       + (select count(*)::integer from public.competition_events
+         where id = current_setting('rlsv.competition_event_id')::uuid) as in_transaction_fixture_rows
 from evidence;
 
 rollback;

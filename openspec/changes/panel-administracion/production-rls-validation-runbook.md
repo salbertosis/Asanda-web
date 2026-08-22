@@ -93,8 +93,8 @@ The role matrix uses these repository evidence codes. Paths are repository-relat
 | Athletes: `athletes`, `athlete_consents`, `athlete_category_assignments`, `athlete_disciplines`, `athlete_memberships` | Allow admin read/write subject to consent, category, discipline, and membership constraints (`P`, `C`, `T-ath`) | Allow read/write subject to the same constraints (`P`, `C`, `T-ath`) | Public read only; consents remain hidden; deny writes (`P`, `C`) | Public read only for consent-qualified published athletes and admitted relations; consents remain hidden; deny writes (`P`, `C`, `T-ath`) |
 | Clubs: `organizations`, `organization_contacts` | Allow read/write; hard delete denied and archive required (`P`, `L`, `T-ath`) | Allow read/write; hard delete denied and archive required (`P`, `L`, `T-ath`) | Public read only for published organizations and explicitly public contacts; deny writes (`P`, `T-ath`) | Same public read-only boundary; private contacts hidden; deny writes (`P`, `T-ath`) |
 | Calendar and references: `sports`, `disciplines`, `age_categories`, `event_definitions`, `venues`, `competitions`, `competition_events`; `reorder_competition_events(uuid,uuid[])` | Allow managed venue/competition/event reads and lifecycle writes plus reorder; competition delete denied (`P`, `K`, `T-cal`) | Allow managed venue/competition/event reads and lifecycle writes plus reorder; competition delete denied (`P`, `K`, `T-cal`) | Public/reference read only; deny venue/competition/event writes and reorder because `private.is_content_editor()` is false (`P`, `K`) | Public/reference read only for published calendar and active definitions/categories; function execution/write denied (`P`, `K`) |
-| Result administration: `source_mappings`, `source_documents`, `import_batches`, `entries`, `performances`; both `commit_result_import` signatures | Allow admin reads/writes/import subject to mapping, revision, consent, and atomicity checks (`P`, `C`, `R`, `T-res`) | Allow reads/writes/import subject to the same checks (`P`, `C`, `R`, `T-res`) | Public result reads only; source mappings and non-public import state hidden; import denied by `private.is_content_editor()` (`P`, `C`, `R`) | Source mappings hidden and import functions not executable; public result projection allowed only through `get_published_result_rows(uuid)` and public RLS (`C`, `R`, `T-res`) |
-| Public result projection: `get_published_result_rows(uuid)` | Allow read (`R`, `T-res`) | Allow read (`R`, `T-res`) | Allow filtered read (`R`) | Allow filtered read of official, published, consent-qualified results (`R`, `T-res`) |
+| Result administration (later slice): `source_mappings`, `source_documents`, `import_batches`, `entries`, `performances`; both `commit_result_import` signatures | Allow admin reads/writes/import subject to mapping, revision, consent, and atomicity checks (`P`, `C`, `R`, `T-res`) | Allow reads/writes/import subject to the same checks (`P`, `C`, `R`, `T-res`) | Public result reads only; source mappings and non-public import state hidden; import denied by `private.is_content_editor()` (`P`, `C`, `R`) | Source mappings hidden and import functions not executable; public result projection allowed only through `get_published_result_rows(uuid)` and public RLS (`C`, `R`, `T-res`) |
+| Public result projection (later slice): `get_published_result_rows(uuid)` | Allow read (`R`, `T-res`) | Allow read (`R`, `T-res`) | Allow filtered read (`R`) | Allow filtered read of official, published, consent-qualified results (`R`, `T-res`) |
 
 ### Matrix Interpretation Rules
 
@@ -195,24 +195,24 @@ Concrete invocation syntax is intentionally omitted. The repository proves SQL b
 ### 4. Anonymous Checks
 
 - Enter the anonymous database role with no user claim inside the transaction.
-- Prove writes are denied for one representative managed table and that result-import functions are not executable.
+- Prove calendar writes are denied and note that result-import function checks are deferred to the later result slice.
 - Prove the private audit table, profiles, source mappings, and non-public fixture rows are unreadable.
-- Prove exact public visibility for due news, public club/contact, consent-qualified athlete relations, published venues/competitions/event programs, active event definitions/categories, current featured selection, and the official consent-qualified result projection.
+- Prove exact public visibility for due news, public club/contact, consent-qualified athlete relations, published venues/competitions/event programs, and active event definitions/categories. The official result projection is deferred to the later result slice.
 - Prove draft/private/expired/non-public counterparts are hidden where the fixture graph includes them.
 
 ### 5. Inactive Authenticated Checks
 
 - Set only the transaction-local authenticated role and the approved inactive identity claim.
 - Prove the identity can read only its own profile plus public-policy rows.
-- Prove content insert/update/delete, event reorder, result import, staff mutation, source mapping access, and private audit access are denied.
+- Prove content insert/update/delete, event reorder, staff mutation, source mapping access, and private audit access are denied. Result-import denial is deferred to the later result slice.
 - Do not activate, replace, or otherwise alter the inactive identity.
 
 ### 6. Editor Checks
 
 - Set only the transaction-local authenticated role and approved active editor identity claim.
-- Prove managed-table visibility and bounded mutations across editorial, athlete/club, and calendar surfaces using the synthetic graph; prove ordered event reordering succeeds for the editor. Result/import coverage is deferred.
+- Prove managed-table visibility and bounded mutations across editorial, athlete/club, and calendar surfaces using the synthetic graph; prove ordered event reordering succeeds for the editor. Result/import coverage is deferred to the later result slice.
 - Prove `reorder_competition_events` accepts the complete synthetic event order.
-- Prove the manual `commit_result_import` path accepts one sanitized row with opaque reason/evidence and creates exactly one source document, batch, entry, and performance inside the transaction.
+- Do not invoke `commit_result_import` or mutate result-import tables in this calendar slice; those checks belong to the later result/import candidate.
 - Prove direct profile role escalation affects zero rows or is denied, `organization_staff` mutation is denied, `transition_staff_profile` is not executable, and private audit reads are denied.
 - Inspect only aggregate audit deltas from the maintenance context, not from the editor role.
 

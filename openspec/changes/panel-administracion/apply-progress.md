@@ -534,7 +534,7 @@ Task 5.2 remains open. Athlete/club, calendar, result, profile/Auth immutability
 - [ ] Profile/Auth immutability, migration-parity, and non-echoing credential-wrapper evidence.
 - [ ] Separate production execution authorization, approved delivery receipt, authorized rollback-only run, independent residue review, and maintainer acceptance before enabling navigation.
 
-## Work Unit Evidence — Task 5.2 Calendar RLS Candidate Coverage
+## Preserved Partial Receipt — Task 5.2 Calendar RLS Candidate Coverage
 **Work unit**: `task-5.2-calendar-rls-coverage`; Standard Mode (`strict_tdd: false`); auto-chain; stacked-to-main; issue #100; parent-owned native attempt was not acquired or settled here.
 
 ### Scope
@@ -557,4 +557,33 @@ Task 5.2 remains open. Athlete/club, calendar, result, profile/Auth immutability
 ### Remaining 5.2 Gaps
 - [ ] Result/import production-RLS candidate coverage.
 - [ ] Profile/Auth immutability, migration-parity, and non-echoing credential-wrapper evidence.
+- [ ] Separate production execution authorization, approved delivery receipt, authorized rollback-only run, independent residue review, and maintainer acceptance before enabling navigation.
+
+## Resume Audit — Task 5.2 Calendar RLS Candidate Coverage
+**Work unit**: `task-5.2-calendar-rls-coverage`; resumed on the parent-owned retry after the prior actor's interrupted attempt. Standard Mode (`strict_tdd: false`), auto-chain, stacked-to-main, issue #100. Task 5.2 remains unchecked.
+
+### Preserved-Partial Audit
+- Native runtime history records the aborted actor as generation 37 with **27 changed lines** and no valid result; its preserved calendar mutations were audited before editing.
+- Kept the in-scope venue, published competition, active event-definition/category, ordered event-program, four-role, rollback, residue, and sequence-bound candidate work.
+- Repaired the stale calendar procedure wording that still instructed this slice to invoke `commit_result_import`; result/import writes remain explicitly deferred.
+- Strengthened, without changing migrations or application code, inactive public calendar reads, editor reference reads, administrator competition-delete denial, exact audit entity attribution, independent calendar residue counters, and runbook/candidate/residue bound drift checks.
+- No malformed, out-of-scope, duplicated migration, Auth, credential, navigation, deployment, database, staging, production, or Git operation was retained or introduced.
+
+### Work Unit Evidence
+| Evidence | Result |
+|---|---|
+| Structured apply status | `gentle-ai sdd-status panel-administracion --cwd . --json --instructions`: `applyState: ready`, **25/27** tasks complete, 5.2 and 5.3 pending; strict TDD disabled. The parent-owned token was not reacquired, reset, or settled here. |
+| Focused readiness validator | `node scripts/validate-production-rls-readiness.mjs`: exit 0; **36/36 passed**. |
+| Negative drift checks | In-memory stale-bound injection: exit 0; **4/4 passed**, rejecting stale 3/0..4, 15/0..16, and mismatched candidate/residue claims. |
+| Node syntax | `node --check scripts/validate-production-rls-readiness.mjs`: exit 0. |
+| PostgreSQL parse | `sqlfluff parse --ignore-local-config --config <temporary parser-only config> --dialect postgres -f none` passed for candidate and residue; parser limit was safely set to `large_file_skip_byte_limit = 0` outside the repository. |
+| Build | `npm run build`: exit 0; Vite transformed **1,495 modules**. Build-generated `public/manifest.webmanifest`, `public/robots.txt`, and `public/sitemap.xml` were restored. |
+| Whitespace | Explicit no-index checks covered all four untracked preparation artifacts; tracked `git diff --check` passed. |
+| Runtime harness | **N/A / unauthorized**: this slice has no authorized runtime boundary; no network, Supabase, database, staging, production, Auth, credentials, or external service was contacted. |
+| Rollback boundary | Revert only the calendar hunks in the runbook, readiness validator, candidate SQL, residue SQL, plus this resume section; preserve the prior access/editorial and athlete/club hunks in those shared artifacts. Leave migrations, app/navigation, Auth/profile state, and external state unchanged. |
+| New authored line count | **241 changed lines** relative to the retry reset snapshot: 210 lines in the four preparation artifacts plus 31 apply-progress lines (29 appended and 2 header-replacement lines); below the 400-line bound. |
+
+### Remaining 5.2 Gaps
+- [ ] Result/import production-RLS candidate coverage.
+- [ ] Profile/Auth immutability, migration parity, and non-echoing credential-wrapper evidence.
 - [ ] Separate production execution authorization, approved delivery receipt, authorized rollback-only run, independent residue review, and maintainer acceptance before enabling navigation.
