@@ -23,6 +23,8 @@ with fixture as (
     md5(current_setting('rlsv.run_id') || ':competition')::uuid as competition_id,
     'rlsv-' || substr(current_setting('rlsv.run_id'), 1, 24) || '-competition' as competition_slug,
      md5(current_setting('rlsv.run_id') || ':competition-event')::uuid as competition_event_id,
+    md5(current_setting('rlsv.run_id') || ':event-definition')::uuid as event_definition_id,
+    'rlsv-' || substr(current_setting('rlsv.run_id'), 1, 24) || '-event-definition' as event_definition_code,
     (substr(md5(current_setting('rlsv.run_id') || ':athlete-mapping'), 1, 8) || '-' || substr(md5(current_setting('rlsv.run_id') || ':athlete-mapping'), 9, 4) || '-4' || substr(md5(current_setting('rlsv.run_id') || ':athlete-mapping'), 14, 3) || '-8' || substr(md5(current_setting('rlsv.run_id') || ':athlete-mapping'), 18, 3) || '-' || substr(md5(current_setting('rlsv.run_id') || ':athlete-mapping'), 21, 12))::uuid as athlete_mapping_id,
     (substr(md5(current_setting('rlsv.run_id') || ':club-mapping'), 1, 8) || '-' || substr(md5(current_setting('rlsv.run_id') || ':club-mapping'), 9, 4) || '-4' || substr(md5(current_setting('rlsv.run_id') || ':club-mapping'), 14, 3) || '-8' || substr(md5(current_setting('rlsv.run_id') || ':club-mapping'), 18, 3) || '-' || substr(md5(current_setting('rlsv.run_id') || ':club-mapping'), 21, 12))::uuid as club_mapping_id
 ), residue as (
@@ -49,6 +51,8 @@ with fixture as (
         where venue.id = fixture.venue_id)
       + (select count(*) from public.competitions competition, fixture
         where competition.id = fixture.competition_id or competition.slug = fixture.competition_slug)
+      + (select count(*) from public.event_definitions definition, fixture
+        where definition.id = fixture.event_definition_id or definition.code = fixture.event_definition_code)
         + (select count(*) from public.competition_events event_row, fixture
           where event_row.id = fixture.competition_event_id or event_row.competition_id = fixture.competition_id)
         + (select count(*) from public.source_mappings mapping, fixture
@@ -71,6 +75,8 @@ with fixture as (
        where venue.id = fixture.venue_id)
      + (select count(*) from public.competitions competition, fixture
        where competition.id = fixture.competition_id or competition.slug = fixture.competition_slug)
+     + (select count(*) from public.event_definitions definition, fixture
+       where definition.id = fixture.event_definition_id or definition.code = fixture.event_definition_code)
      + (select count(*) from public.competition_events event_row, fixture
        where event_row.id = fixture.competition_event_id or event_row.competition_id = fixture.competition_id)
        ::integer as calendar_fixture_rows,
@@ -92,12 +98,12 @@ with fixture as (
        where audit.transaction_id is not null
          and audit.entity_id = any(array[
            fixture.id::text, fixture.club_id::text, fixture.athlete_id::text,
-          md5(current_setting('rlsv.run_id') || ':public-contact'),
-          md5(current_setting('rlsv.run_id') || ':private-contact'),
-          md5(current_setting('rlsv.run_id') || ':public-consent'),
-          md5(current_setting('rlsv.run_id') || ':results-consent'),
-           md5(current_setting('rlsv.run_id') || ':membership'),
-           md5(current_setting('rlsv.run_id') || ':category'),
+          md5(current_setting('rlsv.run_id') || ':public-contact')::uuid::text,
+          md5(current_setting('rlsv.run_id') || ':private-contact')::uuid::text,
+          md5(current_setting('rlsv.run_id') || ':public-consent')::uuid::text,
+          md5(current_setting('rlsv.run_id') || ':results-consent')::uuid::text,
+           md5(current_setting('rlsv.run_id') || ':membership')::uuid::text,
+           md5(current_setting('rlsv.run_id') || ':category')::uuid::text,
              fixture.venue_id::text, fixture.competition_id::text,
              fixture.competition_event_id::text,
              fixture.athlete_mapping_id::text, fixture.club_mapping_id::text,

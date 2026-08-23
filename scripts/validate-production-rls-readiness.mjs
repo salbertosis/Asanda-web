@@ -67,14 +67,20 @@ const calendarCoveragePresent = calendarMarkers.every((marker) => candidate.incl
   && ['venue_id', 'competition_id', 'competition_event_id', 'event_definition_id'].every((marker) => candidate.includes(marker))
   && residue.includes('competition_event_id')
   && runbook.includes('published venues/competitions/event programs')
+const selfContainedEventDefinitionPresent = [
+  "md5(run_id || ':event-definition')::uuid",
+  "fixture_slug || '-event-definition'",
+  'insert into public.event_definitions',
+].every((marker) => candidate.includes(marker))
+  && ['event_definition_id', 'event_definition_code', 'public.event_definitions definition'].every((marker) => residue.includes(marker)) && (candidate.match(/md5\(current_setting\('rlsv\.run_id'\) \|\| ':(?:public-contact|private-contact|public-consent|results-consent|membership|category)'\)::uuid::text/g) ?? []).length === 12 && (residue.match(/md5\(current_setting\('rlsv\.run_id'\) \|\| ':(?:public-contact|private-contact|public-consent|results-consent|membership|category)'\)::uuid::text/g) ?? []).length === 6
 const inactiveCalendarCoveragePresent = inactiveCalendarMarkers.every((marker) => candidate.includes(marker))
 const editorCalendarCoveragePresent = editorCalendarMarkers.every((marker) => candidate.includes(marker))
 const administratorCalendarCoveragePresent = administratorCalendarMarkers.every((marker) => candidate.includes(marker))
 const calendarAuditAttributionPresent = [
   'administrator_setup_attributed = 14',
   'editor_news_insert_attributed = 1',
-  'editor_updates_attributed = 6',
-  'administrator_updates_attributed = 4',
+  'editor_updates_attributed = 8',
+  'administrator_updates_attributed = 5',
 ].every((marker) => candidate.includes(marker))
 const calendarAuditResiduePresent = [
   'calendar_fixture_rows',
@@ -103,9 +109,30 @@ const resultMarkers = [
 ]
 const resultCoveragePresent = resultMarkers.every((marker) => candidate.includes(marker))
   && ['anonymous', 'inactive'].every((role) => (candidate.match(new RegExp(`${role}_result_import_evidence_denied`, 'g')) ?? []).length === 3)
+const anonymousResultPrivacyUsesRls = [
+  'select count(*) = 0 from public.source_documents',
+  'select count(*) = 0 from public.import_batches batch',
+  "position('athlete_details' in pg_get_functiondef('public.get_published_result_rows(uuid)'::regprocedure)) = 0",
+].every((marker) => candidate.includes(marker))
+  && !candidate.includes("has_table_privilege('anon', 'public.source_documents'")
+  && !candidate.includes("has_table_privilege('anon', 'public.import_batches'")
 const resultResiduePresent = ['result_fixture_rows', 'result_audit_rows',
   "'source_documents', 'import_batches', 'entries', 'performances', 'competitions'",
 ].every((marker) => residue.includes(marker))
+const roleDiagnosticMatch = candidate.match(
+  /with role_checks\(assertion_name, passed\) as \([\s\S]*?array\[(?<names>[\s\S]*?)\]::text\[\], array\[(?<checks>[\s\S]*?)\]::boolean\[\]\)\s*\), audit_ledger as/,
+)
+const diagnosticRoleNames = [...(roleDiagnosticMatch?.groups?.names ?? '').matchAll(/'([a-z_]+)'/g)]
+  .map((match) => match[1])
+const diagnosticRoleSettings = [...(roleDiagnosticMatch?.groups?.checks ?? '').matchAll(/current_setting\('rlsv\.([^']+)'\)/g)]
+  .map((match) => match[1])
+const boundedRoleDiagnosticPresent = [
+  'role_checks(assertion_name, passed)',
+  "coalesce(string_agg(assertion_name, ',' order by assertion_name)",
+  'failed_role_assertions',
+].every((marker) => candidate.includes(marker))
+  && diagnosticRoleNames.length === 66
+  && diagnosticRoleNames.every((name, index) => name === diagnosticRoleSettings[index])
 const sequenceClaimLines = runbookLines.filter((line) =>
   /(sequence|allocation)/i.test(line) && /(pass|stopped|stop|bound)/i.test(line),
 )
@@ -140,10 +167,11 @@ const checks = [
   ['editor calendar mutations and references are complete', editorCalendarCoveragePresent],
   ['administrator calendar lifecycle and deletion guard are complete', administratorCalendarCoveragePresent],
   ['calendar fixture graph is bounded', ["':venue'", "':competition'", "':competition-event'", 'current_setting(\'rlsv.event_definition_id\')'].every((marker) => candidate.includes(marker))],
+  ['event definition fixture is deterministic and residue-scoped', selfContainedEventDefinitionPresent],
   ['calendar residue proof is aggregate and aligned', ['public.venues venue', 'public.competitions competition', 'public.competition_events event_row', '36::integer as accepted_pass_sequence_allocations', '37::integer as stopped_sequence_allocations_max'].every((marker) => residue.includes(marker))],
   ['calendar residue has independent aggregate counters', calendarAuditResiduePresent],
   ['claim changes do not emit UUID values', !/^select\s+set_config/im.test(candidate) && candidate.includes("perform set_config('request.jwt.claim.sub'")],
-  ['ledger binds actors actions and fixture entity', candidate.includes('actor_id =') && candidate.includes('entity_id = any(array') && candidate.includes('administrator_updates_attributed = 4')],
+  ['ledger binds actors actions and fixture entity', candidate.includes('actor_id =') && candidate.includes('entity_id = any(array') && candidate.includes('administrator_updates_attributed = 5')],
   ['ledger attribution binds exact calendar entities', calendarAuditAttributionPresent],
   ['pass requires exact MVP ledger', candidate.includes('actual_rows = 36') && candidate.includes('exact_sequence_allocations_on_pass') && candidate.includes('then 36 else null')],
   ['stopped allocation bound is zero through thirty-seven', candidate.includes('0::integer as stopped_sequence_allocations_min') && candidate.includes('37::integer as stopped_sequence_allocations_max')],
@@ -152,10 +180,12 @@ const checks = [
   ['runbook/candidate/residue sequence bounds are identical', !athleteClubCoveragePresent || calendarSequenceBoundsAligned],
   ['runbook has no stale sequence claims', !athleteClubCoveragePresent || staleSequenceClaimLines.length === 0],
   ['result/import role, denial, atomicity, and privacy markers are complete', resultCoveragePresent],
+  ['anonymous result privacy is proved through RLS-visible zero rows', anonymousResultPrivacyUsesRls],
   ['result/import residue is aggregate and aligned', resultResiduePresent],
   ['successful imports clear transaction-local audit attribution', (candidate.match(/set_config\('request\.admin_audit_reason', '', true\)/g) ?? []).length === 2 && (candidate.match(/set_config\('request\.admin_audit_evidence', '', true\)/g) ?? []).length === 2],
   ['runbook/candidate/residue MVP scope cannot drift', calendarCoveragePresent && runbook.includes('current candidate covers access/editorial, athlete/club, calendar, and result/import') && residue.includes('false as profile_auth_migration_proof_in_slice')],
   ['candidate emits aggregate-only evidence', candidate.includes('failed_checks') && candidate.includes('candidate_outcome')],
+  ['candidate emits bounded failed role assertion names', boundedRoleDiagnosticPresent],
   ['candidate creates no temporary DDL or grants', !/\b(create\s+temporary|grant\s+)/i.test(candidate)],
   ['candidate ends in rollback and has no commit', /rollback;\s*$/.test(candidate) && !/\bcommit\s*;/i.test(candidate)],
   ['residue proof covers athlete-club aggregates', ['private.athlete_details', 'public.athlete_consents', 'public.athlete_category_assignments', 'public.athlete_disciplines', 'public.athlete_memberships'].every((marker) => residue.includes(marker))],

@@ -28,6 +28,7 @@ declare
   discipline_id uuid;
   sport_id uuid;
   event_definition_id uuid;
+  event_definition_code text;
   checks boolean[];
 begin
   fixture_id := (
@@ -47,6 +48,8 @@ begin
   club_slug := fixture_slug || '-club';
   competition_slug := fixture_slug || '-competition';
   athlete_label := fixture_slug || '-athlete';
+  event_definition_id := md5(run_id || ':event-definition')::uuid;
+  event_definition_code := fixture_slug || '-event-definition';
   select id into category_id from public.age_categories
     where code = 'youth-a' and is_active;
   select discipline.id, discipline.sport_id
@@ -54,18 +57,6 @@ begin
     from public.disciplines discipline
     join public.sports sport on sport.id = discipline.sport_id and sport.is_active
     where discipline.code = 'swimming' and discipline.is_active;
-  select definition.id into event_definition_id
-    from public.event_definitions definition
-    join public.disciplines definition_discipline
-      on definition_discipline.id = definition.discipline_id
-    join public.sports definition_sport
-      on definition_sport.id = definition_discipline.sport_id
-    where definition_discipline.code = 'swimming'
-      and definition_discipline.is_active
-      and definition_sport.is_active
-      and definition.is_active
-    order by definition.code
-    limit 1;
   checks := array[
     run_id ~ '^[a-f0-9]{32}$',
     administrator_id <> editor_id and administrator_id <> inactive_id and editor_id <> inactive_id,
@@ -78,6 +69,8 @@ begin
     (select count(*) = 0 from public.venues where id = venue_id),
     (select count(*) = 0 from public.competitions where id = competition_id or slug = competition_slug),
     (select count(*) = 0 from public.competition_events where id = competition_event_id),
+    (select count(*) = 0 from public.event_definitions
+      where id = event_definition_id or code = event_definition_code),
     (select count(*) = 0 from public.source_mappings
       where id in (athlete_mapping_id, club_mapping_id, missing_mapping_id)
         or source_organization = fixture_slug),
@@ -108,6 +101,7 @@ begin
   perform set_config('rlsv.discipline_id', coalesce(discipline_id::text, ''), true);
   perform set_config('rlsv.sport_id', coalesce(sport_id::text, ''), true);
   perform set_config('rlsv.event_definition_id', coalesce(event_definition_id::text, ''), true);
+  perform set_config('rlsv.event_definition_code', event_definition_code, true);
   perform set_config('rlsv.preflight_ok', (false <> all(checks))::text, true);
   perform set_config('rlsv.preflight_passed', coalesce(array_length(array_remove(checks, false), 1), 0)::text, true);
   perform set_config('rlsv.setup_ok', 'false', true);
@@ -155,6 +149,12 @@ begin
         competition_id, current_setting('rlsv.competition_slug'),
         current_setting('rlsv.competition_slug'), sport_id, club_id, venue_id,
         current_date, current_date + 1, 'recognized', 'scheduled', now()
+      );
+      insert into public.event_definitions (
+        id, discipline_id, code, name, distance_metres, stroke, course
+      ) values (
+        event_definition_id, discipline_id, current_setting('rlsv.event_definition_code'),
+        current_setting('rlsv.event_definition_code'), 50, 'freestyle', 'long_course'
       );
       insert into public.competition_events (
         id, competition_id, event_definition_id, category_id, competitive_sex,
@@ -599,8 +599,11 @@ begin
       where result_id = current_setting('rlsv.performance_id')::uuid
         and athlete_id = current_setting('rlsv.athlete_id')::uuid
         and club_id = current_setting('rlsv.club_id')::uuid;
-    import_private_hidden := not has_table_privilege('anon', 'public.source_documents', 'SELECT')
-      and not has_table_privilege('anon', 'public.import_batches', 'SELECT')
+    import_private_hidden := (select count(*) = 0 from public.source_documents
+        where competition_id = current_setting('rlsv.competition_id')::uuid)
+      and (select count(*) = 0 from public.import_batches batch
+        join public.source_documents document on document.id = batch.source_document_id
+        where document.competition_id = current_setting('rlsv.competition_id')::uuid)
       and position('athlete_details' in pg_get_functiondef('public.get_published_result_rows(uuid)'::regprocedure)) = 0;
   end if;
   perform set_config('rlsv.anonymous_result_visible', result_visible::text, true);
@@ -721,8 +724,32 @@ begin
 end
 $clear_claim$;
 
-with role_checks(passed) as (
-  values
+with role_checks(assertion_name, passed) as (
+  select * from unnest(array[
+    'anonymous_write_denied', 'anonymous_profiles_hidden', 'anonymous_athlete_visible',
+    'anonymous_public_contact_visible', 'anonymous_private_contact_hidden', 'anonymous_consents_hidden',
+    'anonymous_membership_visible', 'anonymous_event_category_visible', 'anonymous_discipline_visible',
+    'anonymous_athlete_write_denied', 'anonymous_club_write_denied', 'anonymous_venue_visible',
+    'anonymous_competition_visible', 'anonymous_event_visible', 'anonymous_event_definition_visible',
+    'anonymous_category_visible', 'anonymous_venue_write_denied', 'anonymous_competition_write_denied',
+    'anonymous_event_write_denied', 'anonymous_calendar_write_denied', 'anonymous_reorder_denied',
+    'anonymous_result_import_denied', 'inactive_write_denied', 'inactive_own_profile_only',
+    'inactive_athlete_visible', 'inactive_private_contact_hidden', 'inactive_consents_hidden',
+    'inactive_venue_visible', 'inactive_competition_visible', 'inactive_event_visible',
+    'inactive_event_definition_visible', 'inactive_event_category_visible', 'inactive_athlete_write_denied',
+    'inactive_club_write_denied', 'inactive_calendar_write_denied', 'inactive_reorder_denied',
+    'inactive_result_import_denied', 'editor_fixture_visible', 'editor_escalation_denied',
+    'editor_audit_denied', 'editor_athlete_updated', 'editor_club_visible',
+    'editor_competition_updated', 'editor_venue_updated', 'editor_event_updated',
+    'editor_event_reordered', 'editor_event_definition_visible', 'editor_event_category_visible',
+    'editor_calendar_visible', 'editor_result_imported', 'result_unresolved_denied',
+    'result_duplicate_denied', 'result_stale_revision_denied', 'result_atomic_failure',
+    'anonymous_result_visible', 'anonymous_result_private_hidden', 'administrator_profiles_visible',
+    'administrator_athlete_visible', 'administrator_club_updated', 'administrator_club_delete_denied',
+    'administrator_competition_updated', 'administrator_competition_delete_denied',
+    'administrator_event_definition_visible', 'administrator_event_category_visible',
+    'administrator_calendar_visible', 'administrator_result_imported'
+  ]::text[], array[
     (current_setting('rlsv.anonymous_write_denied')::boolean),
     (current_setting('rlsv.anonymous_profiles_hidden')::boolean),
     (current_setting('rlsv.anonymous_athlete_visible')::boolean),
@@ -788,7 +815,8 @@ with role_checks(passed) as (
       (current_setting('rlsv.administrator_event_definition_visible')::boolean),
        (current_setting('rlsv.administrator_event_category_visible')::boolean),
         (current_setting('rlsv.administrator_calendar_visible')::boolean)
-        ,(current_setting('rlsv.administrator_result_imported')::boolean)
+         ,(current_setting('rlsv.administrator_result_imported')::boolean)
+  ]::boolean[])
  ), audit_ledger as (
   select
     count(*)::integer as actual_rows,
@@ -810,20 +838,20 @@ with role_checks(passed) as (
         and (
           (entity_table = 'organizations' and entity_id = current_setting('rlsv.club_id'))
           or (entity_table = 'organization_contacts' and entity_id = any(array[
-            md5(current_setting('rlsv.run_id') || ':public-contact'),
-            md5(current_setting('rlsv.run_id') || ':private-contact')
+            md5(current_setting('rlsv.run_id') || ':public-contact')::uuid::text,
+            md5(current_setting('rlsv.run_id') || ':private-contact')::uuid::text
           ]))
           or (entity_table = 'venues' and entity_id = current_setting('rlsv.venue_id'))
           or (entity_table = 'competitions' and entity_id = current_setting('rlsv.competition_id'))
           or (entity_table = 'competition_events' and entity_id = current_setting('rlsv.competition_event_id'))
           or (entity_table = 'athletes' and entity_id = current_setting('rlsv.athlete_id'))
           or (entity_table = 'athlete_consents' and entity_id = any(array[
-            md5(current_setting('rlsv.run_id') || ':public-consent'),
-            md5(current_setting('rlsv.run_id') || ':results-consent')
+            md5(current_setting('rlsv.run_id') || ':public-consent')::uuid::text,
+            md5(current_setting('rlsv.run_id') || ':results-consent')::uuid::text
           ]))
-           or (entity_table = 'athlete_category_assignments' and entity_id = md5(current_setting('rlsv.run_id') || ':category'))
+           or (entity_table = 'athlete_category_assignments' and entity_id = md5(current_setting('rlsv.run_id') || ':category')::uuid::text)
            or (entity_table = 'athlete_disciplines' and entity_id = current_setting('rlsv.athlete_id') || ':' || current_setting('rlsv.discipline_id'))
-            or (entity_table = 'athlete_memberships' and entity_id = md5(current_setting('rlsv.run_id') || ':membership'))
+            or (entity_table = 'athlete_memberships' and entity_id = md5(current_setting('rlsv.run_id') || ':membership')::uuid::text)
             or (entity_table = 'source_mappings' and entity_id = any(array[
               current_setting('rlsv.athlete_mapping_id'), current_setting('rlsv.club_mapping_id')
             ]))
@@ -901,12 +929,12 @@ with role_checks(passed) as (
     and (
       entity_id = any(array[
         current_setting('rlsv.fixture_id'), current_setting('rlsv.club_id'),
-         current_setting('rlsv.athlete_id'), md5(current_setting('rlsv.run_id') || ':public-contact'),
-        md5(current_setting('rlsv.run_id') || ':private-contact'),
-        md5(current_setting('rlsv.run_id') || ':public-consent'),
-        md5(current_setting('rlsv.run_id') || ':results-consent'),
-        md5(current_setting('rlsv.run_id') || ':membership'),
-        md5(current_setting('rlsv.run_id') || ':category'),
+         current_setting('rlsv.athlete_id'), md5(current_setting('rlsv.run_id') || ':public-contact')::uuid::text,
+        md5(current_setting('rlsv.run_id') || ':private-contact')::uuid::text,
+        md5(current_setting('rlsv.run_id') || ':public-consent')::uuid::text,
+        md5(current_setting('rlsv.run_id') || ':results-consent')::uuid::text,
+        md5(current_setting('rlsv.run_id') || ':membership')::uuid::text,
+        md5(current_setting('rlsv.run_id') || ':category')::uuid::text,
          current_setting('rlsv.athlete_id') || ':' || current_setting('rlsv.discipline_id'),
          current_setting('rlsv.venue_id'), current_setting('rlsv.competition_id'),
           current_setting('rlsv.competition_event_id')
@@ -922,6 +950,8 @@ with role_checks(passed) as (
     current_setting('rlsv.setup_ok')::boolean as setup_ok,
     count(*) filter (where passed)::integer as role_checks_passed,
     count(*)::integer as role_checks_total,
+    coalesce(string_agg(assertion_name, ',' order by assertion_name)
+      filter (where not passed), '') as failed_role_assertions,
     audit_ledger.*,
     audit_ledger.actual_rows = 36
       and audit_ledger.administrator_inserts = 16
@@ -930,8 +960,8 @@ with role_checks(passed) as (
       and audit_ledger.administrator_updates = 7
       and audit_ledger.administrator_setup_attributed = 14
       and audit_ledger.editor_news_insert_attributed = 1
-      and audit_ledger.editor_updates_attributed = 6
-      and audit_ledger.administrator_updates_attributed = 4
+      and audit_ledger.editor_updates_attributed = 8
+      and audit_ledger.administrator_updates_attributed = 5
       and audit_ledger.editor_result_attributed = 5
       and audit_ledger.administrator_result_attributed = 5 as ledger_matches
   from role_checks cross join audit_ledger
@@ -956,6 +986,7 @@ select
   ) as failed_checks,
   case when preflight_ok and setup_ok and role_checks_passed = role_checks_total and ledger_matches
     then 'pass' else 'fail' end as candidate_outcome,
+  failed_role_assertions,
   actual_rows as actual_candidate_audit_rows,
    case when preflight_ok and setup_ok and role_checks_passed = role_checks_total and ledger_matches
        then 36 else null end as exact_sequence_allocations_on_pass,
@@ -981,8 +1012,10 @@ select
        where organization_id = current_setting('rlsv.club_id')::uuid)
      + (select count(*)::integer from public.venues
        where id = current_setting('rlsv.venue_id')::uuid)
-     + (select count(*)::integer from public.competitions
-       where id = current_setting('rlsv.competition_id')::uuid)
+      + (select count(*)::integer from public.competitions
+        where id = current_setting('rlsv.competition_id')::uuid)
+       + (select count(*)::integer from public.event_definitions
+         where id = current_setting('rlsv.event_definition_id')::uuid)
        + (select count(*)::integer from public.competition_events
          where id = current_setting('rlsv.competition_event_id')::uuid)
        + (select count(*)::integer from public.source_mappings
