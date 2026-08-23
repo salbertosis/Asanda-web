@@ -39,7 +39,7 @@ Staging evidence demonstrates candidate behavior only. It does not prove product
 Do not start until every item has an approved, non-secret reference.
 
 - [ ] Production target reference or approved target hash: observed `sha256:a984bf1acccaf669f54a7d4a43449a58223c6cf00e7143beab293addc504bcdf`; execution approval `PENDING`
-- [ ] Recovery point or backup reference and timestamp: `BLOCKED` — the read-only CLI audit returned no physical backups and PITR disabled
+- [ ] Recovery point or backup reference and timestamp: `AVAILABLE / NOT ENCRYPTED / RESTORE UNTESTED` — logical backup created `2026-08-23T20:51:55Z`; manifest SHA-256 `f9c9f268919ecb60f28a77d40f8633113a153073b98f35b1400f313e65fa352f`
 - [ ] Production migration manifest parity with the frozen hash: `FAILED` — `15` versions match; remote `20260812211000` is an earlier variant of local `20260812231000`; the other `9` local versions are not applied remotely
 - [ ] Dedicated administrator identity approved without mutation: `PENDING`
 - [ ] Dedicated editor identity approved without mutation: `PENDING`
@@ -68,6 +68,8 @@ Observed at `2026-08-23T19:15:47Z` through Supabase CLI `2.115.0`, without custo
 - non-empty estimates were limited to sports/catalog, organizations, athletes, memberships, calendar, media, and one profile; the editorial, result, event, performance, record, import, award, album, photo, video, staff, and entry tables reported zero estimated rows.
 
 The preferred recovery path is provider-native: enable an eligible daily-backup plan or PITR, wait until the provider exposes a concrete recovery timestamp/reference, and verify it through a fresh read-only `backups list`. Supabase CLI exposes list and restore operations but no command to create an immediate physical snapshot. A logical dump is not a substitute in this envelope unless it receives separate authorization for private-data handling, encrypted storage, and a successful isolated restore drill; the attempted schema-only dump also could not run in this environment because Docker is unavailable.
+
+The maintainer authorized a logical production backup for the Free plan. Native `pg_dump 17.5` created and structurally verified separate custom archives for application data (`public`, `private`, and `supabase_migrations`), Auth, and Storage database metadata. Binary Storage objects are excluded. The password was consumed from the clipboard only in process memory, then both clipboard and environment variable were cleared. No local PostgreSQL server was contacted. The backup directory is outside Git/OneDrive and its ACL is limited to the maintainer, SYSTEM, and local Administrators. The archives are not independently encrypted and no isolated restore has run, so this evidence remains unchecked and does not yet satisfy the recovery gate.
 
 These findings are stop conditions. Do not approve or execute the candidate until a recovery point exists and the migration divergence is reconciled through a separately reviewed plan.
 
