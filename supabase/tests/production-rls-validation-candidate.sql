@@ -1,4 +1,4 @@
--- Production RLS validation candidate, slices 1-3: access, editorial, athlete, club, and calendar authority.
+-- Production RLS validation candidate: MVP access, content, calendar, and result authority.
 -- Planning artifact only. This file does not authorize production execution.
 -- The approved wrapper supplies rlsv.* settings without echoing values and
 -- guarantees rollback on client/session failure.
@@ -19,6 +19,9 @@ declare
   venue_id uuid;
   competition_id uuid;
   competition_event_id uuid;
+  athlete_mapping_id uuid;
+  club_mapping_id uuid;
+  missing_mapping_id uuid;
   competition_slug text;
   athlete_label text;
   category_id uuid;
@@ -38,6 +41,9 @@ begin
   venue_id := md5(run_id || ':venue')::uuid;
   competition_id := md5(run_id || ':competition')::uuid;
   competition_event_id := md5(run_id || ':competition-event')::uuid;
+  athlete_mapping_id := (substr(md5(run_id || ':athlete-mapping'), 1, 8) || '-' || substr(md5(run_id || ':athlete-mapping'), 9, 4) || '-4' || substr(md5(run_id || ':athlete-mapping'), 14, 3) || '-8' || substr(md5(run_id || ':athlete-mapping'), 18, 3) || '-' || substr(md5(run_id || ':athlete-mapping'), 21, 12))::uuid;
+  club_mapping_id := (substr(md5(run_id || ':club-mapping'), 1, 8) || '-' || substr(md5(run_id || ':club-mapping'), 9, 4) || '-4' || substr(md5(run_id || ':club-mapping'), 14, 3) || '-8' || substr(md5(run_id || ':club-mapping'), 18, 3) || '-' || substr(md5(run_id || ':club-mapping'), 21, 12))::uuid;
+  missing_mapping_id := (substr(md5(run_id || ':missing-mapping'), 1, 8) || '-' || substr(md5(run_id || ':missing-mapping'), 9, 4) || '-4' || substr(md5(run_id || ':missing-mapping'), 14, 3) || '-8' || substr(md5(run_id || ':missing-mapping'), 18, 3) || '-' || substr(md5(run_id || ':missing-mapping'), 21, 12))::uuid;
   club_slug := fixture_slug || '-club';
   competition_slug := fixture_slug || '-competition';
   athlete_label := fixture_slug || '-athlete';
@@ -72,10 +78,17 @@ begin
     (select count(*) = 0 from public.venues where id = venue_id),
     (select count(*) = 0 from public.competitions where id = competition_id or slug = competition_slug),
     (select count(*) = 0 from public.competition_events where id = competition_event_id),
+    (select count(*) = 0 from public.source_mappings
+      where id in (athlete_mapping_id, club_mapping_id, missing_mapping_id)
+        or source_organization = fixture_slug),
+    (select count(*) = 0 from public.source_documents document
+      where document.competition_id = md5(run_id || ':competition')::uuid),
     category_id is not null,
     discipline_id is not null,
     sport_id is not null,
     event_definition_id is not null,
+    to_regprocedure('public.commit_result_import(uuid,bigint,jsonb,text,jsonb,text,text,text)') is not null,
+    to_regprocedure('public.get_published_result_rows(uuid)') is not null,
     pg_get_serial_sequence('private.admin_audit_log', 'id') is not null
   ];
   perform set_config('rlsv.fixture_id', fixture_id::text, true);
@@ -88,6 +101,9 @@ begin
   perform set_config('rlsv.competition_id', competition_id::text, true);
   perform set_config('rlsv.competition_slug', competition_slug, true);
   perform set_config('rlsv.competition_event_id', competition_event_id::text, true);
+  perform set_config('rlsv.athlete_mapping_id', athlete_mapping_id::text, true);
+  perform set_config('rlsv.club_mapping_id', club_mapping_id::text, true);
+  perform set_config('rlsv.missing_mapping_id', missing_mapping_id::text, true);
   perform set_config('rlsv.category_id', coalesce(category_id::text, ''), true);
   perform set_config('rlsv.discipline_id', coalesce(discipline_id::text, ''), true);
   perform set_config('rlsv.sport_id', coalesce(sport_id::text, ''), true);
@@ -168,6 +184,10 @@ begin
       insert into public.athlete_memberships
         (id, athlete_id, organization_id, membership_type, status, valid_from)
       values (md5(run_id || ':membership')::uuid, athlete_id, club_id, 'associated', 'active', current_date);
+      insert into public.source_mappings (id, provider, source_organization, external_code, mapping_kind, organization_id, resolution_status)
+      values (current_setting('rlsv.club_mapping_id')::uuid, 'hy-tek', current_setting('rlsv.fixture_slug'), 'CLUB', 'organization', club_id, 'resolved');
+      insert into public.source_mappings (id, provider, source_organization, external_code, mapping_kind, athlete_id, resolution_status)
+      values (current_setting('rlsv.athlete_mapping_id')::uuid, 'hy-tek', current_setting('rlsv.fixture_slug'), 'ATHLETE', 'athlete', athlete_id, 'resolved');
       update public.athletes set publication_status = 'published' where id = athlete_id;
       perform set_config('rlsv.setup_ok', 'true', true);
     exception when others then
@@ -202,6 +222,8 @@ declare
   competition_write_denied boolean := false;
   event_write_denied boolean := false;
   reorder_denied boolean := false;
+  result_import_denied boolean := false;
+  anonymous_result_import_evidence_denied boolean := false;
 begin
   perform set_config('request.jwt.claim.sub', '', true);
   if current_setting('rlsv.preflight_ok')::boolean then
@@ -238,6 +260,14 @@ begin
         array[current_setting('rlsv.competition_event_id')::uuid]
       );
     exception when insufficient_privilege then reorder_denied := true;
+    end;
+    begin
+      perform public.commit_result_import(current_setting('rlsv.competition_id')::uuid, 1, '[]'::jsonb, repeat('0', 64), '[]'::jsonb, null);
+    exception when insufficient_privilege then result_import_denied := true;
+    end;
+    begin
+      perform public.commit_result_import(current_setting('rlsv.competition_id')::uuid, 1, '[]'::jsonb, repeat('0', 64), '[]'::jsonb, null, 'hy3', null);
+    exception when insufficient_privilege then anonymous_result_import_evidence_denied := true;
     end;
     select count(*) = 1 into athlete_visible from public.athletes
       where id = current_setting('rlsv.athlete_id')::uuid;
@@ -286,6 +316,8 @@ begin
   perform set_config('rlsv.anonymous_calendar_write_denied',
     (venue_write_denied and competition_write_denied and event_write_denied)::text, true);
   perform set_config('rlsv.anonymous_reorder_denied', reorder_denied::text, true);
+  perform set_config('rlsv.anonymous_result_import_denied',
+    (result_import_denied and anonymous_result_import_evidence_denied)::text, true);
 end
 $anonymous$;
 
@@ -310,6 +342,8 @@ declare
   competition_write_denied boolean := false;
   event_write_denied boolean := false;
   reorder_denied boolean := false;
+  result_import_denied boolean := false;
+  inactive_result_import_evidence_denied boolean := false;
 begin
   perform set_config('request.jwt.claim.sub', current_setting('rlsv.inactive_id'), true);
   if current_setting('rlsv.preflight_ok')::boolean then
@@ -347,6 +381,14 @@ begin
       );
     exception when insufficient_privilege then reorder_denied := true;
     end;
+    begin
+      perform public.commit_result_import(current_setting('rlsv.competition_id')::uuid, 1, '[]'::jsonb, repeat('0', 64), '[]'::jsonb, null);
+    exception when insufficient_privilege then result_import_denied := true;
+    end;
+    begin
+      perform public.commit_result_import(current_setting('rlsv.competition_id')::uuid, 1, '[]'::jsonb, repeat('0', 64), '[]'::jsonb, null, 'hy3', null);
+    exception when insufficient_privilege then inactive_result_import_evidence_denied := true;
+    end;
     select count(*) = 1 into athlete_visible from public.athletes
       where id = current_setting('rlsv.athlete_id')::uuid;
     select count(*) = 0 into private_contact_hidden from public.organization_contacts
@@ -379,6 +421,8 @@ begin
   perform set_config('rlsv.inactive_calendar_write_denied',
     (venue_write_denied and competition_write_denied and event_write_denied)::text, true);
   perform set_config('rlsv.inactive_reorder_denied', reorder_denied::text, true);
+  perform set_config('rlsv.inactive_result_import_denied',
+    (result_import_denied and inactive_result_import_evidence_denied)::text, true);
 end
 $inactive$;
 
@@ -469,6 +513,103 @@ begin
 end
 $editor$;
 
+do $editor_results$
+declare
+  valid_row jsonb; mappings jsonb;
+  imported_batch_id uuid; imported_source_id uuid; imported_entry_id uuid; imported_performance_id uuid;
+  revision_before bigint; current_revision bigint;
+  editor_checksum text := encode(extensions.digest(current_setting('rlsv.run_id') || ':editor-result', 'sha256'), 'hex');
+  blocked_unresolved boolean := false; blocked_duplicate boolean := false;
+  blocked_stale boolean := false; blocked_atomic boolean := false;
+  counts_unchanged boolean := false; imported boolean := false;
+begin
+  perform set_config('request.jwt.claim.sub', current_setting('rlsv.editor_id'), true);
+  if current_setting('rlsv.preflight_ok')::boolean then
+    valid_row := jsonb_build_object('competition_event_id', current_setting('rlsv.competition_event_id')::uuid,
+      'athlete_id', current_setting('rlsv.athlete_id')::uuid, 'represented_organization_id', current_setting('rlsv.club_id')::uuid,
+      'entry_status', 'confirmed', 'time_ms', 60000, 'place', 1, 'status', 'official', 'notes', 'Synthetic MVP validation result');
+    mappings := jsonb_build_array(jsonb_build_object('id', current_setting('rlsv.athlete_mapping_id')::uuid),
+      jsonb_build_object('id', current_setting('rlsv.club_mapping_id')::uuid));
+    select revision into revision_before from public.competitions where id = current_setting('rlsv.competition_id')::uuid;
+    begin
+      perform public.commit_result_import(current_setting('rlsv.competition_id')::uuid, revision_before, jsonb_build_array(valid_row), repeat('1', 64),
+        jsonb_build_array(jsonb_build_object('id', current_setting('rlsv.missing_mapping_id')::uuid)),
+        null, 'hy3', null);
+    exception when others then blocked_unresolved := sqlerrm like 'Every source mapping must be resolved before import%';
+    end;
+    select public.commit_result_import(current_setting('rlsv.competition_id')::uuid, revision_before, jsonb_build_array(valid_row),
+      editor_checksum, mappings, current_setting('rlsv.fixture_slug'), 'hy3', 'MVP rollback-only result validation') into imported_batch_id;
+    select source_document_id into imported_source_id from public.import_batches where id = imported_batch_id;
+    select id into imported_entry_id from public.entries where competition_event_id = current_setting('rlsv.competition_event_id')::uuid
+      and athlete_id = current_setting('rlsv.athlete_id')::uuid;
+    select id into imported_performance_id from public.performances where entry_id = imported_entry_id;
+    imported := imported_batch_id is not null and imported_source_id is not null and imported_entry_id is not null and imported_performance_id is not null;
+    perform set_config('rlsv.editor_source_document_id', imported_source_id::text, true);
+    perform set_config('rlsv.editor_import_batch_id', imported_batch_id::text, true);
+    perform set_config('rlsv.entry_id', imported_entry_id::text, true);
+    perform set_config('rlsv.performance_id', imported_performance_id::text, true);
+    perform set_config('request.admin_audit_reason', '', true);
+    perform set_config('request.admin_audit_evidence', '', true);
+    select revision into current_revision from public.competitions where id = current_setting('rlsv.competition_id')::uuid;
+    begin
+      perform public.commit_result_import(current_setting('rlsv.competition_id')::uuid, current_revision,
+        jsonb_build_array(valid_row), editor_checksum, mappings, null, 'hy3', null);
+    exception when others then blocked_duplicate := sqlerrm like 'This source checksum was already imported%';
+    end;
+    begin
+      perform public.commit_result_import(current_setting('rlsv.competition_id')::uuid, revision_before,
+        jsonb_build_array(valid_row), repeat('2', 64), mappings, null, 'hy3', null);
+    exception when others then blocked_stale := sqlerrm like 'Competition changed; create a fresh result preview%';
+    end;
+    begin
+      perform public.commit_result_import(current_setting('rlsv.competition_id')::uuid, current_revision,
+        jsonb_build_array(valid_row, jsonb_set(valid_row, '{competition_event_id}',
+          to_jsonb(md5(current_setting('rlsv.run_id') || ':missing-event')::uuid), true)), repeat('3', 64), mappings, null, 'hy3', null);
+    exception when others then blocked_atomic := sqlerrm like 'Result rows failed event, identity, status, or consent validation%';
+    end;
+    select (select count(*) from public.source_documents where competition_id = current_setting('rlsv.competition_id')::uuid) = 1
+      and (select count(*) from public.import_batches batch
+        join public.source_documents document on document.id = batch.source_document_id
+        where document.competition_id = current_setting('rlsv.competition_id')::uuid) = 1
+      and (select count(*) from public.entries
+        where competition_event_id = current_setting('rlsv.competition_event_id')::uuid) = 1
+      and (select count(*) from public.performances performance
+        join public.entries entry on entry.id = performance.entry_id
+        where entry.competition_event_id = current_setting('rlsv.competition_event_id')::uuid) = 1
+      into counts_unchanged;
+  end if;
+  perform set_config('rlsv.editor_result_imported', imported::text, true);
+  perform set_config('rlsv.result_unresolved_denied', blocked_unresolved::text, true);
+  perform set_config('rlsv.result_duplicate_denied', blocked_duplicate::text, true);
+  perform set_config('rlsv.result_stale_revision_denied', blocked_stale::text, true);
+  perform set_config('rlsv.result_atomic_failure', (blocked_atomic and counts_unchanged)::text, true);
+end
+$editor_results$;
+
+reset role;
+set local role anon;
+do $public_results$
+declare
+  result_visible boolean := false; import_private_hidden boolean := false;
+begin
+  perform set_config('request.jwt.claim.sub', '', true);
+  if current_setting('rlsv.preflight_ok')::boolean then
+    select count(*) = 1 into result_visible
+      from public.get_published_result_rows(current_setting('rlsv.competition_id')::uuid)
+      where result_id = current_setting('rlsv.performance_id')::uuid
+        and athlete_id = current_setting('rlsv.athlete_id')::uuid
+        and club_id = current_setting('rlsv.club_id')::uuid;
+    import_private_hidden := not has_table_privilege('anon', 'public.source_documents', 'SELECT')
+      and not has_table_privilege('anon', 'public.import_batches', 'SELECT')
+      and position('athlete_details' in pg_get_functiondef('public.get_published_result_rows(uuid)'::regprocedure)) = 0;
+  end if;
+  perform set_config('rlsv.anonymous_result_visible', result_visible::text, true);
+  perform set_config('rlsv.anonymous_result_private_hidden', import_private_hidden::text, true);
+end
+$public_results$;
+
+reset role;
+set local role authenticated;
 do $administrator$
 declare
   profiles_visible boolean := false;
@@ -481,6 +622,11 @@ declare
   event_definition_visible boolean := false;
   calendar_category_visible boolean := false;
   competition_delete_denied boolean := false;
+  admin_result_imported boolean := false;
+  admin_batch_id uuid;
+  admin_source_id uuid;
+  current_revision bigint;
+  correction_row jsonb;
 begin
   perform set_config('request.jwt.claim.sub', current_setting('rlsv.administrator_id'), true);
   if current_setting('rlsv.preflight_ok')::boolean then
@@ -529,6 +675,30 @@ begin
         current_setting('rlsv.editor_id')::uuid,
         current_setting('rlsv.inactive_id')::uuid
       ]);
+    select revision into current_revision from public.competitions
+      where id = current_setting('rlsv.competition_id')::uuid;
+    correction_row := jsonb_build_object(
+      'competition_event_id', current_setting('rlsv.competition_event_id')::uuid,
+      'athlete_id', current_setting('rlsv.athlete_id')::uuid,
+      'represented_organization_id', current_setting('rlsv.club_id')::uuid,
+      'entry_status', 'confirmed', 'time_ms', 60100, 'place', 1,
+      'status', 'official', 'notes', 'Synthetic administrator correction'
+    );
+    select public.commit_result_import(
+      current_setting('rlsv.competition_id')::uuid, current_revision,
+      jsonb_build_array(correction_row),
+      encode(extensions.digest(current_setting('rlsv.run_id') || ':administrator-result', 'sha256'), 'hex'),
+      '[]'::jsonb, current_setting('rlsv.fixture_slug'), 'manual',
+      'MVP rollback-only result validation'
+    ) into admin_batch_id;
+    select source_document_id into admin_source_id from public.import_batches where id = admin_batch_id;
+    admin_result_imported := admin_batch_id is not null and admin_source_id is not null
+      and (select count(*) = 1 from public.performances
+        where id = current_setting('rlsv.performance_id')::uuid and time_ms = 60100);
+    perform set_config('rlsv.administrator_source_document_id', admin_source_id::text, true);
+    perform set_config('rlsv.administrator_import_batch_id', admin_batch_id::text, true);
+    perform set_config('request.admin_audit_reason', '', true);
+    perform set_config('request.admin_audit_evidence', '', true);
   end if;
   perform set_config('rlsv.administrator_profiles_visible', profiles_visible::text, true);
   perform set_config('rlsv.administrator_athlete_visible', athlete_visible::text, true);
@@ -540,6 +710,7 @@ begin
   perform set_config('rlsv.administrator_event_category_visible', calendar_category_visible::text, true);
   perform set_config('rlsv.administrator_calendar_visible',
     (calendar_visible and competition_updated)::text, true);
+  perform set_config('rlsv.administrator_result_imported', admin_result_imported::text, true);
 end
 $administrator$;
 
@@ -573,6 +744,7 @@ with role_checks(passed) as (
     (current_setting('rlsv.anonymous_event_write_denied')::boolean),
     (current_setting('rlsv.anonymous_calendar_write_denied')::boolean),
     (current_setting('rlsv.anonymous_reorder_denied')::boolean),
+    (current_setting('rlsv.anonymous_result_import_denied')::boolean),
     (current_setting('rlsv.inactive_write_denied')::boolean),
     (current_setting('rlsv.inactive_own_profile_only')::boolean),
      (current_setting('rlsv.inactive_athlete_visible')::boolean),
@@ -587,6 +759,7 @@ with role_checks(passed) as (
     (current_setting('rlsv.inactive_club_write_denied')::boolean),
     (current_setting('rlsv.inactive_calendar_write_denied')::boolean),
     (current_setting('rlsv.inactive_reorder_denied')::boolean),
+    (current_setting('rlsv.inactive_result_import_denied')::boolean),
     (current_setting('rlsv.editor_fixture_visible')::boolean),
     (current_setting('rlsv.editor_escalation_denied')::boolean),
     (current_setting('rlsv.editor_audit_denied')::boolean),
@@ -599,6 +772,13 @@ with role_checks(passed) as (
      (current_setting('rlsv.editor_event_definition_visible')::boolean),
      (current_setting('rlsv.editor_event_category_visible')::boolean),
      (current_setting('rlsv.editor_calendar_visible')::boolean),
+     (current_setting('rlsv.editor_result_imported')::boolean),
+     (current_setting('rlsv.result_unresolved_denied')::boolean),
+     (current_setting('rlsv.result_duplicate_denied')::boolean),
+     (current_setting('rlsv.result_stale_revision_denied')::boolean),
+     (current_setting('rlsv.result_atomic_failure')::boolean),
+     (current_setting('rlsv.anonymous_result_visible')::boolean),
+     (current_setting('rlsv.anonymous_result_private_hidden')::boolean),
     (current_setting('rlsv.administrator_profiles_visible')::boolean),
     (current_setting('rlsv.administrator_athlete_visible')::boolean),
     (current_setting('rlsv.administrator_club_updated')::boolean),
@@ -607,7 +787,8 @@ with role_checks(passed) as (
      (current_setting('rlsv.administrator_competition_delete_denied')::boolean),
       (current_setting('rlsv.administrator_event_definition_visible')::boolean),
        (current_setting('rlsv.administrator_event_category_visible')::boolean),
-       (current_setting('rlsv.administrator_calendar_visible')::boolean)
+        (current_setting('rlsv.administrator_calendar_visible')::boolean)
+        ,(current_setting('rlsv.administrator_result_imported')::boolean)
  ), audit_ledger as (
   select
     count(*)::integer as actual_rows,
@@ -643,6 +824,9 @@ with role_checks(passed) as (
            or (entity_table = 'athlete_category_assignments' and entity_id = md5(current_setting('rlsv.run_id') || ':category'))
            or (entity_table = 'athlete_disciplines' and entity_id = current_setting('rlsv.athlete_id') || ':' || current_setting('rlsv.discipline_id'))
             or (entity_table = 'athlete_memberships' and entity_id = md5(current_setting('rlsv.run_id') || ':membership'))
+            or (entity_table = 'source_mappings' and entity_id = any(array[
+              current_setting('rlsv.athlete_mapping_id'), current_setting('rlsv.club_mapping_id')
+            ]))
          )
     )::integer as administrator_setup_attributed
     ,count(*) filter (
@@ -672,12 +856,47 @@ with role_checks(passed) as (
           or (entity_table = 'competitions' and entity_id = current_setting('rlsv.competition_id'))
         )
     )::integer as administrator_updates_attributed
+    ,count(*) filter (
+      where actor_id = current_setting('rlsv.editor_id')::uuid
+        and reason = current_setting('rlsv.fixture_slug')
+        and evidence = 'MVP rollback-only result validation'
+        and (
+          (action = 'INSERT' and entity_table = 'source_documents'
+            and entity_id = current_setting('rlsv.editor_source_document_id'))
+          or (action = 'INSERT' and entity_table = 'import_batches'
+            and entity_id = current_setting('rlsv.editor_import_batch_id'))
+          or (action = 'INSERT' and entity_table = 'entries'
+            and entity_id = current_setting('rlsv.entry_id'))
+          or (action = 'INSERT' and entity_table = 'performances'
+            and entity_id = current_setting('rlsv.performance_id'))
+          or (action = 'UPDATE' and entity_table = 'competitions'
+            and entity_id = current_setting('rlsv.competition_id'))
+        )
+    )::integer as editor_result_attributed
+    ,count(*) filter (
+      where actor_id = current_setting('rlsv.administrator_id')::uuid
+        and reason = current_setting('rlsv.fixture_slug')
+        and evidence = 'MVP rollback-only result validation'
+        and (
+          (action = 'INSERT' and entity_table = 'source_documents'
+            and entity_id = current_setting('rlsv.administrator_source_document_id'))
+          or (action = 'INSERT' and entity_table = 'import_batches'
+            and entity_id = current_setting('rlsv.administrator_import_batch_id'))
+          or (action = 'UPDATE' and entity_table = 'entries'
+            and entity_id = current_setting('rlsv.entry_id'))
+          or (action = 'UPDATE' and entity_table = 'performances'
+            and entity_id = current_setting('rlsv.performance_id'))
+          or (action = 'UPDATE' and entity_table = 'competitions'
+            and entity_id = current_setting('rlsv.competition_id'))
+        )
+    )::integer as administrator_result_attributed
   from private.admin_audit_log
   where transaction_id = txid_current()
     and entity_table in (
       'news_articles', 'organizations', 'organization_contacts', 'athletes',
       'athlete_consents', 'athlete_memberships', 'athlete_category_assignments',
-       'athlete_disciplines', 'venues', 'competitions', 'competition_events'
+       'athlete_disciplines', 'venues', 'competitions', 'competition_events',
+       'source_mappings', 'source_documents', 'import_batches', 'entries', 'performances'
     )
     and (
       entity_id = any(array[
@@ -690,7 +909,11 @@ with role_checks(passed) as (
         md5(current_setting('rlsv.run_id') || ':category'),
          current_setting('rlsv.athlete_id') || ':' || current_setting('rlsv.discipline_id'),
          current_setting('rlsv.venue_id'), current_setting('rlsv.competition_id'),
-         current_setting('rlsv.competition_event_id')
+          current_setting('rlsv.competition_event_id')
+          ,current_setting('rlsv.athlete_mapping_id'), current_setting('rlsv.club_mapping_id')
+          ,current_setting('rlsv.editor_source_document_id'), current_setting('rlsv.editor_import_batch_id')
+          ,current_setting('rlsv.administrator_source_document_id'), current_setting('rlsv.administrator_import_batch_id')
+          ,current_setting('rlsv.entry_id'), current_setting('rlsv.performance_id')
        ])
      )
 ), evidence as (
@@ -700,15 +923,17 @@ with role_checks(passed) as (
     count(*) filter (where passed)::integer as role_checks_passed,
     count(*)::integer as role_checks_total,
     audit_ledger.*,
-    audit_ledger.actual_rows = 24
-      and audit_ledger.administrator_inserts = 12
-      and audit_ledger.editor_inserts = 1
-      and audit_ledger.editor_updates = 7
-      and audit_ledger.administrator_updates = 4
-      and audit_ledger.administrator_setup_attributed = 12
+    audit_ledger.actual_rows = 36
+      and audit_ledger.administrator_inserts = 16
+      and audit_ledger.editor_inserts = 5
+      and audit_ledger.editor_updates = 8
+      and audit_ledger.administrator_updates = 7
+      and audit_ledger.administrator_setup_attributed = 14
       and audit_ledger.editor_news_insert_attributed = 1
       and audit_ledger.editor_updates_attributed = 6
-      and audit_ledger.administrator_updates_attributed = 4 as ledger_matches
+      and audit_ledger.administrator_updates_attributed = 4
+      and audit_ledger.editor_result_attributed = 5
+      and audit_ledger.administrator_result_attributed = 5 as ledger_matches
   from role_checks cross join audit_ledger
   group by audit_ledger.actual_rows, audit_ledger.editor_inserts,
     audit_ledger.editor_updates, audit_ledger.administrator_updates,
@@ -716,7 +941,9 @@ with role_checks(passed) as (
     audit_ledger.administrator_setup_attributed,
     audit_ledger.editor_news_insert_attributed,
     audit_ledger.editor_updates_attributed,
-    audit_ledger.administrator_updates_attributed
+    audit_ledger.administrator_updates_attributed,
+    audit_ledger.editor_result_attributed,
+    audit_ledger.administrator_result_attributed
 )
 select
   (case when preflight_ok then 1 else 0 end) +
@@ -731,9 +958,9 @@ select
     then 'pass' else 'fail' end as candidate_outcome,
   actual_rows as actual_candidate_audit_rows,
    case when preflight_ok and setup_ok and role_checks_passed = role_checks_total and ledger_matches
-       then 24 else null end as exact_sequence_allocations_on_pass,
+       then 36 else null end as exact_sequence_allocations_on_pass,
      0::integer as stopped_sequence_allocations_min,
-     25::integer as stopped_sequence_allocations_max,
+     37::integer as stopped_sequence_allocations_max,
   (select count(*)::integer from public.news_articles
     where id = current_setting('rlsv.fixture_id')::uuid)
     + (select count(*)::integer from public.organizations
@@ -757,7 +984,19 @@ select
      + (select count(*)::integer from public.competitions
        where id = current_setting('rlsv.competition_id')::uuid)
        + (select count(*)::integer from public.competition_events
-         where id = current_setting('rlsv.competition_event_id')::uuid) as in_transaction_fixture_rows
+         where id = current_setting('rlsv.competition_event_id')::uuid)
+       + (select count(*)::integer from public.source_mappings
+         where id in (current_setting('rlsv.athlete_mapping_id')::uuid,
+           current_setting('rlsv.club_mapping_id')::uuid))
+       + (select count(*)::integer from public.source_documents
+         where competition_id = current_setting('rlsv.competition_id')::uuid)
+       + (select count(*)::integer from public.import_batches
+         where id in (current_setting('rlsv.editor_import_batch_id')::uuid,
+           current_setting('rlsv.administrator_import_batch_id')::uuid))
+       + (select count(*)::integer from public.entries
+         where id = current_setting('rlsv.entry_id')::uuid)
+       + (select count(*)::integer from public.performances
+         where id = current_setting('rlsv.performance_id')::uuid) as in_transaction_fixture_rows
 from evidence;
 
 rollback;
