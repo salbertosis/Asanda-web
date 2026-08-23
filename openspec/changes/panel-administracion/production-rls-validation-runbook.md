@@ -54,6 +54,7 @@ The current candidate covers access/editorial, athlete/club, calendar, and resul
 
 - Use opaque synthetic identifiers and no real athlete, contact, staff, or HY3 data.
 - Create all fixtures inside the rollback-only transaction; no DDL, grants, deployment, or compensating deletes.
+- Create a deterministic active swimming event definition inside the transaction; do not depend on seeded event definitions.
 - Emit aggregate pass/fail evidence only, never UUIDs, rows, claims, credentials, or connection values.
 - Bind audit checks to the expected actor, action, table, and fixture entity.
 - The accepted policy identifier is `accepted-bounded-non-semantic-advancement`.
