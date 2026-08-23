@@ -40,7 +40,7 @@ Do not start until every item has an approved, non-secret reference.
 
 - [ ] Production target reference or approved target hash: observed `sha256:a984bf1acccaf669f54a7d4a43449a58223c6cf00e7143beab293addc504bcdf`; execution approval `PENDING`
 - [ ] Recovery point or backup reference and timestamp: `BLOCKED` — the read-only CLI audit returned no physical backups and PITR disabled
-- [ ] Production migration manifest parity with the frozen hash: `FAILED` — `15` versions match, `10` local versions are absent remotely, and remote version `20260812211000` is absent locally
+- [ ] Production migration manifest parity with the frozen hash: `FAILED` — `15` versions match; remote `20260812211000` is an earlier variant of local `20260812231000`; the other `9` local versions are not applied remotely
 - [ ] Dedicated administrator identity approved without mutation: `PENDING`
 - [ ] Dedicated editor identity approved without mutation: `PENDING`
 - [ ] Dedicated inactive identity approved without mutation: `PENDING`
@@ -60,8 +60,14 @@ Observed at `2026-08-23T19:15:47Z` through Supabase CLI `2.115.0`, without custo
 
 - the linked project is healthy in `us-east-1` and matches the non-secret target hash recorded above;
 - physical backup inventory was empty and PITR was disabled;
-- production reported `16` migration versions: `15` match the local manifest and one remote-only version, `20260812211000`, has no local file;
-- the local manifest contains `10` versions not applied remotely, from `20260812231000` through `20260820152000`.
+- production reported `16` migration versions and `15` version identifiers match the local manifest;
+- a temporary read-only history fetch identified remote `20260812211000_correct_copa_pasion_acuatica_organizer.sql`: it updates the organizer and logo of `copa-pasion-acuatica-2026` and is an earlier SQL variant of local `20260812231000_correct_copa_pasion_acuatica_organizer.sql`;
+- Git forensics found that earlier variant only in an unreachable local tree (`6c2259d59dcc6143decd4adfef77d950dc095446`, blob `4c5a573f2b0192635acf8e0c7785a7e393c8390e`), not in any commit, ref, reflog, or the verified recovery bundle; do not represent it as published history;
+- the remaining `9` local-only versions, from `20260817175000` through `20260820152000`, contain the administrative audit, content, lifecycle, RLS, and result/import work not yet applied to production;
+- aggregate inspection found `29` public application tables and `1` private athlete-detail table; no row contents were retrieved;
+- non-empty estimates were limited to sports/catalog, organizations, athletes, memberships, calendar, media, and one profile; the editorial, result, event, performance, record, import, award, album, photo, video, staff, and entry tables reported zero estimated rows.
+
+The preferred recovery path is provider-native: enable an eligible daily-backup plan or PITR, wait until the provider exposes a concrete recovery timestamp/reference, and verify it through a fresh read-only `backups list`. Supabase CLI exposes list and restore operations but no command to create an immediate physical snapshot. A logical dump is not a substitute in this envelope unless it receives separate authorization for private-data handling, encrypted storage, and a successful isolated restore drill; the attempted schema-only dump also could not run in this environment because Docker is unavailable.
 
 These findings are stop conditions. Do not approve or execute the candidate until a recovery point exists and the migration divergence is reconciled through a separately reviewed plan.
 
