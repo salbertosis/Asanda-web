@@ -38,9 +38,9 @@ Staging evidence demonstrates candidate behavior only. It does not prove product
 
 Do not start until every item has an approved, non-secret reference.
 
-- [ ] Production target reference or approved target hash: `PENDING`
-- [ ] Recovery point or backup reference and timestamp: `PENDING`
-- [ ] Production migration manifest parity with the frozen hash: `PENDING`
+- [ ] Production target reference or approved target hash: observed `sha256:a984bf1acccaf669f54a7d4a43449a58223c6cf00e7143beab293addc504bcdf`; execution approval `PENDING`
+- [ ] Recovery point or backup reference and timestamp: `BLOCKED` — the read-only CLI audit returned no physical backups and PITR disabled
+- [ ] Production migration manifest parity with the frozen hash: `FAILED` — `15` versions match, `10` local versions are absent remotely, and remote version `20260812211000` is absent locally
 - [ ] Dedicated administrator identity approved without mutation: `PENDING`
 - [ ] Dedicated editor identity approved without mutation: `PENDING`
 - [ ] Dedicated inactive identity approved without mutation: `PENDING`
@@ -53,6 +53,17 @@ Do not start until every item has an approved, non-secret reference.
 - [ ] Explicit production execution authorization: `PENDING`
 
 Never record passwords, tokens, connection strings, raw UUIDs, claims, or private athlete data in this file.
+
+### Read-only Production Audit
+
+Observed at `2026-08-23T19:15:47Z` through Supabase CLI `2.115.0`, without custom SQL, account creation, schema changes, or candidate execution:
+
+- the linked project is healthy in `us-east-1` and matches the non-secret target hash recorded above;
+- physical backup inventory was empty and PITR was disabled;
+- production reported `16` migration versions: `15` match the local manifest and one remote-only version, `20260812211000`, has no local file;
+- the local manifest contains `10` versions not applied remotely, from `20260812231000` through `20260820152000`.
+
+These findings are stop conditions. Do not approve or execute the candidate until a recovery point exists and the migration divergence is reconciled through a separately reviewed plan.
 
 ## Authorized Execution Record
 
