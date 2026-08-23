@@ -1,34 +1,34 @@
-# Proposal: Authorized Administration Panel
+# Proposal: ASANDA Administration Panel MVP
 
 ## Intent
 
-Replace code-based content updates with a secure operational panel for authorized ASANDA staff. Administrators manage access and all domains; editors manage and directly publish approved public content without managing accounts.
+Give authorized staff one panel to publish news, athletes, calendars, and results without editing code, with the minimum security needed for production and private athlete data.
 
 ## Scope
 
 ### In Scope
-- Email/password authentication, protected `/admin` routes, session recovery, and role enforcement.
-- Administrator-only account invitation, activation, deactivation, and role assignment.
-- CRUD and publication workflows for news, curated featured athletes, athletes, memberships, categories, clubs, calendars, events, and results.
-- Signed Cloudinary image uploads with database media references.
-- Manual correction and native HY3 result import with sanitized preview, identity reconciliation, atomic commit, audit evidence, and optional CSV fallback.
+- Login and guarded `/admin` routes for administrator and editor roles.
+- Publish and archive news and public athlete records with approved images.
+- Manage supporting clubs, venues, competitions, and event programs.
+- Enter results manually or import sanitized HY3 data after identity reconciliation and preview.
+- RLS, atomic imports, basic audit evidence, backup/rollback, and fixture migration.
 - Responsive, keyboard-operable Spanish administration UI.
 
 ### Out of Scope
-- Public self-registration, club-manager access, athlete logins, and public account profiles.
-- Storing Cloudinary or Supabase service-role secrets in the SPA.
-- Rich HTML authoring, automated athlete rankings, billing, or mobile applications.
-- Persisting exact national IDs, exact birth dates, addresses, phones, emails, guardian contacts, or raw HY3 files in v1.
+- Self-registration, athlete or club-manager accounts, billing, mobile apps, rankings, and rich HTML authoring.
+- Approval machinery beyond one authorization, operator, reviewer, and reproducible record.
+- Private contact/identity data, raw HY3 storage, or secrets in the SPA.
+- Exposing `/admin` in public navigation before production validation and maintainer acceptance.
 
 ## Capabilities
 
 ### New Capabilities
-- `admin-access`: Authorized authentication, roles, account lifecycle, route protection, and auditability.
-- `editorial-management`: News, media, and curated featured-athlete publication.
-- `athlete-administration`: Public athlete records, consent gates, categories, disciplines, and memberships.
-- `club-administration`: Club identity, contacts, logo, and publication lifecycle.
-- `competition-administration`: Calendars, venues, competitions, and event programs.
-- `result-administration`: Manual correction and HY3-first result sanitization, reconciliation, atomic import, media enrichment, and publication; CSV remains a fallback.
+- `admin-access`: Login, roles, protected routes, and auditability.
+- `editorial-management`: News and approved media publication.
+- `athlete-administration`: Consent-gated public athlete records.
+- `club-administration`: Supporting club records and archival.
+- `competition-administration`: Calendars and event programs.
+- `result-administration`: Manual and sanitized HY3 result publication.
 
 ### Modified Capabilities
 
@@ -36,40 +36,33 @@ None.
 
 ## Approach
 
-Keep Supabase Auth and RLS as the authority. Parse HY3 locally without persisting the raw file, discard private fields, reconcile source identifiers to ASANDA entities, then submit only sanitized rows to an atomic database RPC. Use Edge Functions for account administration and signed Cloudinary uploads. Migrate public reads only after each domain is validated.
+Retain the delivered React modules and Supabase authority. Keep secrets server-side, enforce RLS, sanitize HY3 locally, and commit results atomically. Run one bounded production permission check, then migrate public reads after fixture parity.
 
 ## Affected Areas
 
-| Area | Impact | Description |
-|---|---|---|
-| `src/pages/admin/` | New | Login and management screens |
-| `src/services/` | Modified | Auth, writes, media, and migrated reads |
-| `supabase/` | Modified | Schema, RLS, RPCs, functions, tests |
-| `tests/e2e/` | Modified | Authorized and denied workflows |
+| Area | Impact |
+|---|---|
+| `src/admin/`, `src/services/` | Admin UI and services |
+| `supabase/` | Auth, RLS, RPCs, functions, tests |
+| `src/data/`, public routes | Retire accepted fallbacks |
+| `tests/e2e/` | Staff and public workflows |
 
 ## Risks
 
-| Risk | Likelihood | Mitigation |
-|---|---|---|
-| Privilege escalation | Medium | RLS, server-side role checks, no self-registration |
-| Invalid sports data | High | Database invariants and atomic imports |
-| Private-data exposure | Medium | Exclude private details; consent-gated publication |
-| HY3 format drift | Medium | Version detection, sanitized fixtures, fail-closed parser |
+| Risk | Mitigation |
+|---|---|
+| Unauthorized writes | Guarded routes, RLS, denial tests |
+| Invalid/private data | Consent, preview, invariants, atomic import |
+| Production regression | Backup, parity, rollback-only validation |
 
 ## Rollback Plan
 
-Disable admin routes/functions, revoke write policies, and retain public read paths per domain until its migration is accepted. Database migrations use additive tables/functions before fixture removal.
-
-## Dependencies
-
-- Supabase Auth, PostgreSQL, and Edge Functions.
-- Existing Cloudinary account and server-side API secret.
-- Sanitized HY3 fixtures representing the supported Hy-Tek exports.
+Keep fallbacks until each domain passes parity. Disable admin access if validation fails. Correct applied database migrations only through reviewed forward migrations.
 
 ## Success Criteria
 
-- [ ] Unauthorized and inactive users cannot read admin data or perform writes.
-- [ ] Authorized staff manage every requested domain without code deployment.
-- [ ] Raw HY3 private fields never reach public storage, logs, fixtures, or browser-visible responses.
-- [ ] Invalid memberships, consent states, unresolved identities, and result imports fail atomically.
-- [ ] Public pages show only published, approved records.
+- [ ] Administrator and editor can sign in and manage news, athletes, calendars, and results without a code deployment.
+- [ ] Anonymous and inactive identities cannot write; editors cannot manage accounts or elevate privileges.
+- [ ] Published public pages expose only approved records and no private HY3 or athlete data.
+- [ ] Production target, backup, migration parity, rollback-only role checks, and independent zero-residue proof are accepted.
+- [ ] Approved fixtures are migrated domain by domain; accepted fallbacks are removed and recovery operations are documented.

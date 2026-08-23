@@ -1,74 +1,62 @@
-# Tasks: Authorized Administration Panel
+# Tasks: Authorized Administration Panel MVP
 
 ## Review Workload Forecast
 
 | Field | Value |
 |---|---|
-| Estimated changed lines | 3,500–5,500 |
-| 400-line budget risk | High |
-| Chained PRs recommended | Yes |
-| Suggested split | Foundation → Editorial → Athletes/Clubs → Calendar → HY3 Results → Public migration |
-| Delivery strategy | auto-chain (resolved) |
+| Estimated changed lines | Historical implementation: 3,500–5,500; remaining closeout: under 400 |
+| 400-line budget risk | Low for the remaining work |
+| Chained PRs recommended | No for closeout |
+| Delivery strategy | Existing stacked-to-main implementation; direct closeout |
 | Chain strategy | stacked-to-main |
 
 Decision needed before apply: No
-Chained PRs recommended: Yes
+Chained PRs recommended: No
 Chain strategy: stacked-to-main
-400-line budget risk: High
-
-### Suggested Work Units
-
-| Unit | Goal | Likely PR | Focused test command | Runtime harness | Rollback boundary |
-|---|---|---|---|---|---|
-| 1 | Auth, RLS, shell, audit | PR 1 | `npx playwright test tests/e2e/admin-auth.spec.js` | Login/denial E2E | Admin routes, auth services, foundation migration |
-| 2 | Media, news, featured | PR 2 | `npx playwright test tests/e2e/admin-editorial.spec.js` | Publish news E2E | Editorial UI/services and featured migration |
-| 3 | Athletes and clubs | PR 3 | `npx playwright test tests/e2e/admin-athletes.spec.js tests/e2e/admin-clubs.spec.js` | Consent/membership E2E | Roster and club modules |
-| 4 | Calendar and events | PR 4 | `npx playwright test tests/e2e/admin-calendar.spec.js` | Publish competition E2E | Calendar admin module |
-| 5 | Manual and HY3 results | PR 5 | `node scripts/hy3-regression.mjs && npx playwright test tests/e2e/admin-results.spec.js` | Sanitized preview and atomic import E2E | HY3 worker/parser, mappings, RPC, result UI |
-| 6 | Public read migration | PR 6 | `npm run test:e2e` | Full public/admin suite | New read services and fixture removal |
+400-line budget risk: Low
 
 ## Phase 1: Security Foundation
 
-- [x] 1.1 Add RED SQL tests for anonymous and inactive writes, editor account escalation, and audit evidence.
-- [x] 1.2 Add immutable audit storage/triggers and lock current active-role RLS behavior.
-- [x] 1.3 Correct `manage-staff` with serialized profile authority and fail-closed Auth ordering.
-  - [x] 1.3a Add the service-role-only transactional staff profile transition RPC and focused SQL regression.
-  - [x] 1.3b1 Add dependency-injected fail-closed staff orchestration and deterministic recovery tests.
-  - [x] 1.3b2 Wire the Edge Function and prove staging contention, restoration, and cleanup.
-- [x] 1.4 Create `useAdminSession`, `AdminGuard`, lazy `/admin` routes, noindex lifecycle, login, recovery, sign-out, and responsive shell.
-- [x] 1.5 Add featured athletes, publication/consent guards, source mappings, grants, and atomic RPC contracts.
-- [x] 1.6 Create the `sign-media-upload` Edge Function with repeated active-role checks and Cloudinary secret isolation.
+- [x] 1.1 Add SQL denials for anonymous/inactive writes, editor escalation, and protected audit data.
+- [x] 1.2 Add immutable audit records and active-role RLS behavior.
+- [x] 1.3 Implement fail-closed staff role transitions and focused regressions.
+  - [x] 1.3a Add the service-role-only transactional staff-profile RPC and SQL regression.
+  - [x] 1.3b1 Add deterministic staff orchestration and recovery tests.
+  - [x] 1.3b2 Wire the Edge Function and verify staging contention and cleanup.
+- [x] 1.4 Add login, session recovery, guarded `/admin` routes, noindex, sign-out, and responsive shell.
+- [x] 1.5 Add publication, consent, source-mapping, and atomic-write contracts.
+- [x] 1.6 Add server-signed Cloudinary uploads without exposing secrets to the SPA.
 
-## Phase 2: Editorial Operations
+## Phase 2: News
 
-- [x] 2.1a Add the pure editorial domain core (validation, safe body, images, featured windows) with service-level RED tests.
-- [x] 2.1b Add E2E RED tests for editorial workflows (lands with the UI unit).
-- [x] 2.2a Add admin news, media, and featured services with the RLS regression.
-- [x] 2.2b Add the admin news UI (list, editor form, safe-body preview) with loading, empty, and error states.
-- [x] 2.2c Add the admin media UI (asset list and signature upload flow) with loading, empty, and error states.
-- [x] 2.2d Add the admin featured-athletes UI with loading, empty, and error states.
-- [x] 2.3 Migrate homepage and `/noticias` reads to published Supabase articles and add `/noticias/:slug`.
+- [x] 2.1a Add validated news, image, and featured-athlete domain behavior with regressions.
+- [x] 2.1b Add E2E coverage for editorial workflows.
+- [x] 2.2a Add RLS-backed news, media, and featured-athlete services.
+- [x] 2.2b Add news list/editor/preview UI with loading, empty, and error states.
+- [x] 2.2c Add the signed media-upload UI and asset list.
+- [x] 2.2d Add featured-athlete administration UI.
+- [x] 2.3 Read published news from Supabase on public routes.
 
 ## Phase 3: Athletes and Clubs
 
-- [x] 3.1 Add RED SQL/E2E tests for consent gates, category overlap, federation coverage, pre-infant rejection, contacts, and archival.
-- [x] 3.2 Create athlete wizard for public profile, media, consent confirmation, categories, disciplines, and memberships.
-- [x] 3.3 Create club identity, contact, logo, publication, and safe archival workflows.
+- [x] 3.1 Add SQL/E2E coverage for consent, categories, memberships, contacts, and archival.
+- [x] 3.2 Add athlete creation/editing for public profile, photo, consent, categories, disciplines, and club membership.
+- [x] 3.3 Add the supporting club identity, contact, logo, publication, and archival workflow.
 
 ## Phase 4: Calendar and Results
 
-- [x] 4.1 Create synthetic HY3 fixtures and RED tests for A/B/C/D/E/F/H records, Windows-1252, decimal times, relays, DQ notes, malformed versions, and zero private-field leakage.
-- [x] 4.2 Create venue, competition, and ordered event-program administration.
-- [x] 4.3 Create local HY3 worker/parser, checksum, team/athlete reconciliation UI, source mappings, sanitized preview, and optional CSV fallback.
-- [x] 4.4 Add RED SQL/E2E tests for unresolved mappings, results consent, duplicate checksum, revision conflicts, atomic rollback, and media fallbacks.
-- [x] 4.5 Create transactional import RPC, manual correction, audit reason, summary, and public photo/logo-enriched result query.
+- [x] 4.1 Add sanitized HY3 fixtures and parser privacy/error regressions.
+- [x] 4.2 Add venue, competition, and ordered event-program administration.
+- [x] 4.3 Add local HY3 parsing, reconciliation, sanitized preview, and CSV fallback.
+- [x] 4.4 Add SQL/E2E coverage for mappings, consent, duplicates, conflicts, rollback, and media fallbacks.
+- [x] 4.5 Add atomic result import, manual correction, audit reason, summary, and public result query.
 
-## Phase 5: Verification and Rollout
+## Phase 5: MVP Closeout
 
-- [x] 5.1 Run SQL regressions, focused Node checks, `npm run build`, full `npm run test:e2e`, and `git diff --check` for every PR.
-- [ ] 5.2 Validate production RLS with administrator, editor, inactive, and anonymous accounts before enabling navigation.
-- [ ] 5.3 Migrate approved fixtures domain-by-domain, remove accepted fallbacks, and document account, media, HY3 sanitization, reconciliation, and result operations.
+- [x] 5.1 Verify the delivered slices with focused regressions, full E2E, build, SQL checks, migration parity, and residue proof in staging.
+- [ ] 5.2 With explicit authorization, back up and identify production, prove migration parity, validate anonymous/inactive denial plus administrator/editor access to news, athletes, calendar, and results in a rollback-only run, then independently prove zero residue.
+- [ ] 5.3 Migrate approved fixtures for the four public domains, compare public output, remove only accepted static fallbacks, and document login, publishing, HY3 import, recovery, and rollback.
 
-## Delivery Order
+## Closeout Order
 
-Each PR targets `main` and merges only after its focused runtime scenario, baseline checks, and rollback boundary pass. Order: security foundation → editorial → athletes/clubs → calendar → results → public migration.
+Complete 5.2 without enabling public admin navigation. Complete 5.3 domain by domain. Then run the baseline suite, write `verify-report.md`, obtain maintainer acceptance, and archive the change.

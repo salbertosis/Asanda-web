@@ -534,6 +534,23 @@ Task 5.2 remains open. Athlete/club, calendar, result, profile/Auth immutability
 - [ ] Profile/Auth immutability, migration-parity, and non-echoing credential-wrapper evidence.
 - [ ] Separate production execution authorization, approved delivery receipt, authorized rollback-only run, independent residue review, and maintainer acceptance before enabling navigation.
 
+## Phase 5.2 MVP Result/Import RLS Slice — 2026-08-22
+
+**Work unit**: `task-5.2-mvp-result-import-rls-slice`; Standard Mode (`strict_tdd: false`); direct closeout; task 5.2 remains open.
+
+- Added synthetic source mappings, anonymous/inactive import denial, editor HY3 success, administrator manual correction, unresolved/duplicate/stale/atomic denials, public projection/privacy checks, exact audit attribution, and aligned result/import residue coverage.
+- Bound the active audit-trigger contract to exactly **36** allocations on pass and **0..37** when stopped; successful imports explicitly clear transaction-local audit reason/evidence.
+- Required migrations `20260820150000`, `20260820151000`, and `20260820152000` in static readiness validation. No migration, application, Auth/profile, navigation, database, credential, network, staging, or production state changed.
+
+| Work Unit Evidence | Result |
+|---|---|
+| Focused test | Bundled Node `--check` passed; `validate-production-rls-readiness.mjs` passed **40/40**. |
+| SQL contract parse | SQLFluff PostgreSQL full parse passed for candidate and residue with the parser size limit disabled outside the repository. |
+| Runtime harness | **N/A / unauthorized**: runtime is the separately authorized production rollback-only transaction; no database or external service was contacted. |
+| Rollback boundary | Revert only the result/import hunks in candidate, residue, validator, runbook, and this section; preserve prior access/editorial, athlete/club, calendar, and simplified MVP scope. |
+
+Remaining task 5.2 gates: independent candidate review, immutable target/backup/migration receipt, explicit production authorization, rollback-only run, independent zero-residue proof, and maintainer acceptance.
+
 ## Preserved Partial Receipt — Task 5.2 Calendar RLS Candidate Coverage
 **Work unit**: `task-5.2-calendar-rls-coverage`; Standard Mode (`strict_tdd: false`); auto-chain; stacked-to-main; issue #100; parent-owned native attempt was not acquired or settled here.
 
@@ -587,3 +604,21 @@ Task 5.2 remains open. Athlete/club, calendar, result, profile/Auth immutability
 - [ ] Result/import production-RLS candidate coverage.
 - [ ] Profile/Auth immutability, migration parity, and non-echoing credential-wrapper evidence.
 - [ ] Separate production execution authorization, approved delivery receipt, authorized rollback-only run, independent residue review, and maintainer acceptance before enabling navigation.
+
+## Preserved-Partial Review — Task 5.2 Result/Import RLS Slice
+
+**Work unit**: `task-5.2-review-preserved-result-import-slice`; Standard Mode (`strict_tdd: false`). The root-owned attempt was not settled here. Task 5.2 remains open and production execution remains unauthorized.
+
+- Audited the candidate, residue proof, readiness validator, runbook, and prior receipt against migrations `20260820150000`, `20260820151000`, `20260820152000`, plus `admin-result-import-contracts.sql`.
+- Preserved the proven editor/admin success, unresolved mapping, duplicate checksum, stale revision, mixed-event atomic failure, public projection/privacy, reason/evidence cleanup, exact 36-row audit ledger, aggregate residue, and **36 pass / 0..37 stopped** sequence bounds.
+- Corrected two evidenced gaps only: anonymous and inactive runtime denial now exercise both the six-argument compatibility RPC and the eight-argument evidence-aware RPC; stale runbook wording no longer says the already-admitted result slice is pending addition.
+
+| Work Unit Evidence | Result |
+|---|---|
+| Focused test | Bundled Node `--check`: exit 0; readiness validator: exit 0, **40/40 passed**. |
+| SQL contract parse | SQLFluff PostgreSQL full parse: exit 0 for candidate and residue with temporary `large_file_skip_byte_limit = 0`; no database was contacted. |
+| Runtime harness | **N/A / unauthorized**: production rollback-only execution requires separate explicit authorization; no network, DB, credential, staging, production, commit, or push operation occurred. |
+| Whitespace and review budget | `git diff --check`: exit 0. This review changed **37 lines** from its preserved starting snapshot, below the strict 100-line limit. |
+| Rollback boundary | Revert only this review's dual-overload denial assertions, its validator guard, the one runbook wording correction, and this receipt; preserve the admitted result/import slice and all prior domain coverage. |
+
+Remaining task 5.2 gates are unchanged: Profile/Auth immutability, migration parity, safe credential wrapper and immutable receipt, independent review, explicit production authorization, successful rollback-only run, independent zero-residue proof, and maintainer acceptance.
