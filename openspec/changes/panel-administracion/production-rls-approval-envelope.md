@@ -1,21 +1,23 @@
 # Production RLS Approval Envelope — MVP
 
-> **Status: PREPARED / NOT AUTHORIZED**
+> **Status: AUTHORIZED / NOT EXECUTED**
 >
-> This worksheet records the frozen candidate and the approvals still required. It does not authorize a production connection, database mutation, deployment, navigation change, or retry.
+> This worksheet records the exact migration authorization. Execution is permitted only through the frozen fail-closed wrapper; it does not authorize repair, retry, deployment, navigation changes, or the later rollback-only RLS candidate.
 
 ## Frozen Candidate
 
 | Evidence | Frozen value |
 |---|---|
-| Prepared at | `2026-08-24T00:39:03Z` |
+| Prepared at | `2026-08-24T01:02:03Z` |
 | Repository | `salbertosis/Asanda-web` |
-| `main` Git SHA | `19aea476694fd67c5cd7eaeceb50413457596193` |
+| Authorized base `main` Git SHA | `5f7a28a94eb5ba932325dbfd4bbaf10b3f103f41` |
 | Source PRs | `#116`, `#117`, `#118` |
 | Migration count | `27` |
 | Migration tip | `20260823203019_grant_private_schema_usage.sql` |
-| Migration manifest SHA-256 | `7c168bd1686877d2a476bb05e29542f0dbc45b5f41a465de4607f7fa499cf86f` |
-| Migration manifest format | Sorted `<sha256><two spaces><filename>\n` records encoded as UTF-8 |
+| Migration manifest SHA-256 | `da3f3d3babc31b585ffd1f52fa52c3e3028afb8fe3e4730b2b3c2b120e68babf` |
+| Migration manifest format | Sorted `<sha256-of-Git-blob-bytes><two spaces><filename>\n` records from `HEAD`, encoded as UTF-8 |
+| Authorized wrapper | `scripts/invoke-production-migration-batch.ps1`; canonical Git-blob SHA-256 `fd8734961d52d2a3897ad374034ff159a045d7074f5d04cd04b5e999f130f22e` |
+| Approved `psql.exe` | PostgreSQL major `17`; SHA-256 `2e8ff78ed93cd1f8610c240116aa43be3c0969c7372c748e8af1050dad4fcf73`; Authenticode `NotSigned` |
 | Candidate SHA-256 | `f1fbf462a4c9334ef93fa7a285785fe704c3e45c505d8a39630ce2404ed75504` |
 | Residue proof SHA-256 | `cfb1fcb71a4cd89c01b12306081b5fe0047c3af0e93c2676466ffbf1bc177a24` |
 | Readiness validator SHA-256 | `a12d09147c7e264fc1f9384de8845425bf9200b02780109d31500e99115e6890` |
@@ -37,23 +39,26 @@ Staging evidence demonstrates candidate behavior only. It does not prove product
 
 ## Required Production Inputs
 
-Do not start until every item has an approved, non-secret reference.
+For the migration wrapper, every checked operational item below is mandatory. The three dedicated identities remain separate gates for the later rollback-only RLS candidate, not for this migration batch.
 
-- [ ] Production target reference or approved target hash: observed `sha256:a984bf1acccaf669f54a7d4a43449a58223c6cf00e7143beab293addc504bcdf`; execution approval `PENDING`
-- [ ] Recovery point or backup reference and timestamp: `AVAILABLE / ACL-RESTRICTED / RESTORE VERIFIED / NOT INDEPENDENTLY ENCRYPTED` — logical backup created `2026-08-23T20:51:55Z`; isolated restore verified `2026-08-23T21:25:32Z`; manifest SHA-256 `f9c9f268919ecb60f28a77d40f8633113a153073b98f35b1400f313e65fa352f`
-- [ ] Production migration manifest parity with the frozen hash: `FAILED` — all `16` production versions are now preserved locally, but production still lacks the canonical `20260812231000` ledger counterpart, the `9` administrative/RLS/result migrations, and `20260823203019_grant_private_schema_usage.sql`
+- [x] Production target reference or approved target hash: observed and approved through its non-secret SHA-256; wrapper must match it before connecting
+- [x] Recovery point accepted: ACL-restricted, restore-verified logical backup; maintainer explicitly accepted the lack of independent encryption for this window
+- [x] Exact divergence authorized: `20260812231000` ledger-only plus the other `10` forward migrations, with exact pre/post ledger guards
 - [ ] Dedicated administrator identity approved without mutation: `PENDING`
 - [ ] Dedicated editor identity approved without mutation: `PENDING`
 - [ ] Dedicated inactive identity approved without mutation: `PENDING`
-- [ ] Operator: `PENDING`
-- [ ] Independent reviewer: `PENDING`
-- [ ] Maintenance window: `PENDING`
-- [ ] Stop authority: `PENDING`
-- [ ] Cleanup owner: `PENDING`
-- [ ] Non-echoing credential path confirmed: `PENDING`
-- [ ] Explicit production execution authorization: `PENDING`
+- [x] Operator: `Codex`
+- [x] Independent reviewer: `agente Codex separado`
+- [x] Maintenance window: `60 minutes from wrapper-emitted StartedAtUtc`
+- [x] Shared window receipt: non-secret `production-migration-window.json` inside the protected connection-state directory; created atomically only by the first `Preflight`/`Apply`, reused without reset, and required by `Verify`
+- [x] Stop authority: `Codex`
+- [x] Cleanup owner: `Codex`
+- [x] Non-echoing credential path: DPAPI CurrentUser payload; `PG*` values exist only in the child `psql` environment, plaintext byte arrays are cleared, and the managed `String` is nulled without claiming guaranteed memory erasure
+- [x] Explicit production execution authorization: exact `231` ledger-only plus the other `10` migrations; no repair or retry
 
 Never record passwords, tokens, connection strings, raw UUIDs, claims, or private athlete data in this file.
+
+The wrapper emits only sanitized phase tokens after committed boundaries. `STOP_AFTER` identifies the last confirmed ledger/batch token; any later failure leaves that prefix as a stop state and does not authorize repair or retry.
 
 ### Read-only Production Audit
 
@@ -74,7 +79,7 @@ The maintainer authorized a logical production backup for the Free plan. Native 
 
 The maintainer then authorized an isolated restore drill. `Asanda_Staging` was paused without mutation, and a new healthy Free-plan project in `us-east-1` was created through terminal-only Supabase administration; its non-secret target hash is `sha256:e21f05bbf70fa4382d59b9fbf9d2d0ced1788593d430f327135f46b53f958d38`. A preflight proved that `public`, Auth user/identity data, and Storage bucket/object data were empty. The restore preserved the provider-managed Auth and Storage schemas, loaded only the single Auth user and identity, treated empty Storage metadata as a documented no-op, and restored the application schemas and migration ledger. Because the schema-scoped archive does not carry extension prerequisites, `btree_gist` was created from the repository migration declaration before the atomically rolled-back post-data phase was retried.
 
-The isolated verification passed with exact per-table counts across `31` restored tables: `29` public tables, `1` private table, `74` domain rows, and `16` migration rows. It also confirmed `1` Auth user, `1` Auth identity, zero Auth/profile orphans, zero unvalidated constraints, `55` policies, `29` public RLS tables, `24` non-internal triggers, working aggregate queries under both `anon` and `authenticated`, and zero Storage buckets or objects. No identities or row contents were emitted. The restore drill therefore proves archive usability, but the required-production-input checkbox remains open until the maintainer accepts the ACL-only storage posture or supplies an independently encrypted copy.
+The isolated verification passed with exact per-table counts across `31` restored tables: `29` public tables, `1` private table, `74` domain rows, and `16` migration rows. It also confirmed `1` Auth user, `1` Auth identity, zero Auth/profile orphans, zero unvalidated constraints, `55` policies, `29` public RLS tables, `24` non-internal triggers, working aggregate queries under both `anon` and `authenticated`, and zero Storage buckets or objects. No identities or row contents were emitted. The restore drill proves archive usability, and the maintainer accepted its ACL-only storage posture for this migration window.
 
 ### Isolated Migration Rehearsal
 
@@ -84,9 +89,9 @@ The first role regression exposed missing `USAGE` grants on the restored `privat
 
 Final aggregate state is `27` migration rows, `31` public tables, `2` private tables, `31` public RLS tables, `58` public policies, `58` non-internal application triggers, zero invalid constraints, the original `1` Auth user and `1` identity, and the Copa organizer/logo still correct. Production and staging were not contacted.
 
-These findings remain stop conditions. Do not approve or execute the production candidate until the recovery artifact's storage posture is accepted, production ledger alignment is separately authorized, and the remaining identity/operator/window approvals are complete.
+The exact migration alignment is authorized through the frozen wrapper. The later rollback-only RLS candidate remains blocked until its three dedicated identities are approved and the migration execution plus independent aggregate verification have succeeded.
 
-## Authorized Execution Record
+## Authorized Migration Execution Record
 
 Complete this section only during an explicitly authorized window.
 
@@ -94,14 +99,27 @@ Complete this section only during an explicitly authorized window.
 |---|---|
 | Target identity matched approved reference | `NOT RUN` |
 | Recovery point verified | `NOT RUN` |
-| Migration parity matched frozen manifest | `NOT RUN` |
+| Read-only preflight token | `NOT RUN` |
+| Ledger-only `20260812231000` token | `NOT RUN` |
+| Migration batch tokens `1..4` | `NOT RUN` |
+| Exact `27`-version ledger | `NOT RUN` |
+| Aggregate verify: `31/2/31/58/58`, zero invalid constraints and scoped residue | `NOT RUN` |
+| Production contact ended | `NOT RUN` |
+
+Any `STOP_AFTER` token records only the last committed prefix. Stop on any mismatch; do not repair, retry, reset sequences, disable triggers, or issue compensating deletes.
+
+## Later Rollback-only RLS Candidate Record
+
+This candidate is not authorized by the migration approval above.
+
+| Gate | Result |
+|---|---|
 | Candidate hash matched | `NOT RUN` |
 | Administrator/editor/inactive identity states matched | `NOT RUN` |
 | Rollback-only candidate exit | `NOT RUN` |
 | Role assertions | `NOT RUN` |
 | Audit ledger | `NOT RUN` |
 | Independent residue proof | `NOT RUN` |
-| Production contact ended | `NOT RUN` |
 
 Accepted candidate evidence is exactly:
 
@@ -113,7 +131,7 @@ Accepted candidate evidence is exactly:
 - stopped allocation range `0..37`;
 - independent residue counts all zero.
 
-Stop on any mismatch. Do not repair, retry, reset sequences, disable triggers, or issue compensating deletes during the window.
+Stop on any candidate mismatch and obtain its separate authorization; never infer it from successful migration evidence.
 
 ## Final Acceptance
 
