@@ -1,12 +1,30 @@
 import { supabase } from '../supabase';
+import { getCloudinaryUrl } from '../../config/cloudinary';
+
+const MEDIA_SELECT = 'id,provider,public_id,external_url,resource_type,format,width,height,bytes,alt_text,is_public,created_at';
+
+const normalizeMedia = (row) => ({
+  id: row.id, provider: row.provider, publicId: row.public_id, externalUrl: row.external_url,
+  resourceType: row.resource_type, format: row.format, width: row.width, height: row.height,
+  bytes: row.bytes, altText: row.alt_text, isPublic: row.is_public, createdAt: row.created_at,
+});
+
+export const getAdminMediaUrl = (asset, options = {}) => {
+  if (asset?.provider === 'cloudinary' && asset.publicId) return getCloudinaryUrl(asset.publicId, options);
+  return asset?.externalUrl || null;
+};
 
 export const listAdminMedia = async () => {
-  const { data, error } = await supabase.from('media_assets').select('id,provider,public_id,format,width,height,bytes,alt_text,is_public,created_at').order('created_at', { ascending: false });
+  const { data, error } = await supabase.from('media_assets').select(MEDIA_SELECT).order('created_at', { ascending: false });
   if (error) throw error;
-  return (data ?? []).map((row) => ({
-    id: row.id, provider: row.provider, publicId: row.public_id, format: row.format,
-    width: row.width, height: row.height, bytes: row.bytes, altText: row.alt_text, isPublic: row.is_public, createdAt: row.created_at,
-  }));
+  return (data ?? []).map(normalizeMedia);
+};
+
+export const listPublicImageMedia = async () => {
+  const { data, error } = await supabase.from('media_assets').select(MEDIA_SELECT)
+    .eq('resource_type', 'image').eq('is_public', true).order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(normalizeMedia);
 };
 
 export const requestUploadSignature = async (folder) => {

@@ -15,6 +15,7 @@ const newsInput = (input) => ({
   summary: input.summary?.trim(),
   body: input.body,
   category: input.category?.trim(),
+  hero_asset_id: input.heroAssetId || null,
 });
 
 export const listAdminNews = async () => {
