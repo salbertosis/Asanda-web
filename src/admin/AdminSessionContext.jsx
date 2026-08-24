@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import {
   getCurrentSession,
   getStaffProfile,
@@ -6,12 +6,14 @@ import {
   requestPasswordReset,
   signInStaff,
   signOutStaff,
+  updateStaffPassword,
 } from '../services/admin/auth';
 
 const AdminSessionContext = createContext(null);
 
 export const AdminSessionProvider = ({ children }) => {
   const [state, setState] = useState({ status: 'loading', profile: null });
+  const passwordRecoveryActive = useRef(false);
 
   const resolveSession = async (session) => {
     if (!session?.user) {
@@ -36,17 +38,24 @@ export const AdminSessionProvider = ({ children }) => {
   useEffect(() => {
     let active = true;
     getCurrentSession().then(({ data }) => {
-      if (active) resolveSession(data.session);
+      if (active && !passwordRecoveryActive.current) resolveSession(data.session);
     }).catch(() => {
       if (active) setState({ status: 'anonymous', profile: null });
     });
 
     const { data: subscription } = onStaffAuthChange((event, session) => {
       if (!active) return;
+      if (event === 'PASSWORD_RECOVERY') {
+        passwordRecoveryActive.current = true;
+        setState({ status: 'password_recovery', profile: null });
+        return;
+      }
       if (event === 'SIGNED_OUT') {
+        passwordRecoveryActive.current = false;
         setState({ status: 'anonymous', profile: null });
         return;
       }
+      if (passwordRecoveryActive.current) return;
       window.setTimeout(() => {
         if (active) resolveSession(session);
       }, 0);
@@ -74,8 +83,17 @@ export const AdminSessionProvider = ({ children }) => {
     setState({ status: 'anonymous', profile: null });
   };
 
+  const updatePassword = async (password) => {
+    const { error } = await updateStaffPassword(password);
+    if (error) throw error;
+
+    await signOutStaff();
+    passwordRecoveryActive.current = false;
+    setState({ status: 'anonymous', profile: null });
+  };
+
   return (
-    <AdminSessionContext.Provider value={{ ...state, signIn, signOut, requestPasswordReset }}>
+    <AdminSessionContext.Provider value={{ ...state, signIn, signOut, requestPasswordReset, updatePassword }}>
       {children}
     </AdminSessionContext.Provider>
   );

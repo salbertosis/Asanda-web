@@ -18,6 +18,7 @@ export const signInStaff = (email, password) => supabase.auth.signInWithPassword
 export const signOutStaff = () => supabase.auth.signOut({ scope: 'local' });
 export const getCurrentSession = () => supabase.auth.getSession();
 export const onStaffAuthChange = (listener) => supabase.auth.onAuthStateChange(listener);
+export const updateStaffPassword = (password) => supabase.auth.updateUser({ password });
 export const requestPasswordReset = (email) => supabase.auth.resetPasswordForEmail(email, {
   redirectTo: `${window.location.origin}/admin/login`,
 });
