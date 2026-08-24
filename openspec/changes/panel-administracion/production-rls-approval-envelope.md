@@ -1,8 +1,8 @@
 # Production RLS Approval Envelope — MVP
 
-> **Status: AUTHORIZED / NOT EXECUTED**
+> **Status: STOPPED / APPLY CONFIRMED / INDEPENDENT VERIFY FAILED**
 >
-> This worksheet records the exact migration authorization. Execution is permitted only through the frozen fail-closed wrapper; it does not authorize repair, retry, deployment, navigation changes, or the later rollback-only RLS candidate.
+> The authorized wrapper confirmed every committed migration phase, but the separate aggregate verification did not emit its acceptance token. No repair, retry, deployment, navigation change, or later rollback-only RLS candidate is authorized from this stopped state.
 
 ## Frozen Candidate
 
@@ -93,20 +93,24 @@ The exact migration alignment is authorized through the frozen wrapper. The late
 
 ## Authorized Migration Execution Record
 
-Complete this section only during an explicitly authorized window.
+Executed during the shared window `2026-08-24T01:31:58.0514688Z` through `2026-08-24T02:31:58.0514688Z`.
 
 | Gate | Result |
 |---|---|
-| Target identity matched approved reference | `NOT RUN` |
-| Recovery point verified | `NOT RUN` |
-| Read-only preflight token | `NOT RUN` |
-| Ledger-only `20260812231000` token | `NOT RUN` |
-| Migration batch tokens `1..4` | `NOT RUN` |
-| Exact `27`-version ledger | `NOT RUN` |
-| Aggregate verify: `31/2/31/58/58`, zero invalid constraints and scoped residue | `NOT RUN` |
-| Production contact ended | `NOT RUN` |
+| Target identity matched approved reference | `PASS` |
+| Recovery point verified | `ACCEPTED / RESTORE-VERIFIED BEFORE WINDOW` |
+| Read-only preflight token | `ASANDA_PREFLIGHT_OK` |
+| Ledger-only `20260812231000` token | `ASANDA_LEDGER_OK` |
+| Migration batch tokens `1..4` | `ASANDA_BATCH_1_OK` through `ASANDA_BATCH_4_OK` |
+| Apply completion token | `ASANDA_APPLY_OK` |
+| Exact `27`-version ledger | `NOT INDEPENDENTLY CONFIRMED` |
+| Aggregate verify: `31/2/31/58/58`, zero invalid constraints and scoped residue | `STOP / EXIT 1 / NO ASANDA_VERIFY_OK` |
+| Production contact ended | `PASS` |
+| Credential cleanup | `DPAPI PAYLOAD REMOVED; NON-SECRET WINDOW RECEIPT PRESERVED` |
 
 Any `STOP_AFTER` token records only the last committed prefix. Stop on any mismatch; do not repair, retry, reset sequences, disable triggers, or issue compensating deletes.
+
+The independent reviewer used a separate process and connection within the original deadline. Because aggregate verification stopped without its acceptance token, task 5.2 remains open for offline diagnosis and a new explicit authorization; the successful apply tokens must not be treated as final acceptance.
 
 ## Later Rollback-only RLS Candidate Record
 
