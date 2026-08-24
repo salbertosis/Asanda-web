@@ -73,7 +73,7 @@ test('manages a news article through create, publish, and archive', async ({ pag
   let rows = [];
   let nextId = 2;
   const heroAsset = {
-    id: '40000000-0000-4000-8000-000000000002', provider: 'cloudinary', public_id: 'asanda/media/noticia-e2e',
+    id: '40000000-0000-4000-8000-000000000002', provider: 'cloudinary', public_id: 'asanda/noticias/noticia-e2e',
     external_url: null, resource_type: 'image', format: 'jpg', width: 1200, height: 675, bytes: 2048,
     alt_text: 'Piscina durante una competencia', is_public: true, created_at: '2026-08-18T09:00:00Z',
   };
@@ -250,14 +250,14 @@ test('uploads a media asset through the signed flow', async ({ page }) => {
     contentType: 'application/json',
     body: JSON.stringify({
       cloudName: 'xkggetol', apiKey: 'test-key', timestamp: 1787050800,
-      folder: 'asanda/media', signature: 'test-signature',
+      folder: 'asanda/noticias', signature: 'test-signature',
       uploadUrl: 'https://api.cloudinary.com/v1_1/xkggetol/image/upload',
     }),
   }));
   await page.route('**/api.cloudinary.com/**', (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
-    body: JSON.stringify({ public_id: 'asanda/media/e2e-upload', format: 'png', width: 1, height: 1, bytes: 67 }),
+    body: JSON.stringify({ public_id: 'asanda/noticias/e2e-upload', format: 'png', width: 1, height: 1, bytes: 67 }),
   }));
   await signInEditor(page);
 
@@ -269,5 +269,5 @@ test('uploads a media asset through the signed flow', async ({ page }) => {
   await page.getByRole('button', { name: 'Subir imagen' }).click();
   await expect(page.getByRole('status')).toContainText('Imagen publicada en la biblioteca.');
   await expect(page.getByAltText('Imagen E2E')).toBeVisible();
-  await expect(page.getByText('asanda/media/e2e-upload')).toBeVisible();
+  await expect(page.getByText('asanda/noticias/e2e-upload')).toBeVisible();
 });

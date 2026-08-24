@@ -12,7 +12,7 @@ const newsRows = [
     published_at: '2026-08-18T10:00:00Z',
     hero: {
       provider: 'cloudinary',
-      public_id: 'asanda/media/noticia-publicada',
+      public_id: 'asanda/noticias/noticia-publicada',
       external_url: null,
       alt_text: 'Atletas en competencia',
     },
@@ -92,7 +92,7 @@ test('opens a published news detail by slug with safe body rendering', async ({ 
 
   await expect(page.getByRole('main')).toHaveCount(1);
   await expect(page.getByRole('heading', { level: 1, name: 'Noticia publicada' })).toBeVisible();
-  await expect(page.getByAltText('Atletas en competencia')).toHaveAttribute('src', /asanda\/media\/noticia-publicada/);
+  await expect(page.getByAltText('Atletas en competencia')).toHaveAttribute('src', /asanda\/noticias\/noticia-publicada/);
   await expect(page.getByText('Cuerpo seguro')).toBeVisible();
   await expect(page.getByRole('link', { name: 'enlace' })).toHaveAttribute('href', 'https://asanda.org.ve');
 });
