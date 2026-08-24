@@ -65,24 +65,53 @@ const NoticiaPage = () => {
 
   return (
     <article className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <header className="bg-[#0F4C5C] text-white">
-        <div className="mx-auto max-w-4xl px-4 py-14 sm:px-5 sm:py-20">
-          <Link to="/noticias" className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-cyan-100 transition-colors hover:text-white">
+      <header
+        className="relative overflow-hidden border-b-4 border-[#C94B24] bg-[#0F4C5C] text-white"
+        data-testid="news-detail-hero"
+      >
+        <div className="pointer-events-none absolute -right-24 -top-32 h-80 w-80 rounded-full bg-cyan-300/10 blur-3xl" aria-hidden="true" />
+        <div className="relative mx-auto max-w-6xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8 lg:py-10">
+          <Link
+            to="/noticias"
+            className="inline-flex min-h-11 items-center gap-2 rounded-full pr-4 text-sm font-bold text-cyan-100 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          >
             <ArrowLeft size={18} aria-hidden="true" /> Volver a noticias
           </Link>
-          <p className="mt-8 text-xs font-bold uppercase tracking-[0.2em] text-cyan-200">{article.categoria}</p>
-          <h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">{article.titulo}</h1>
-          <p className="mt-5 flex items-center gap-2 text-sm font-medium text-cyan-100">
-            <Calendar size={16} aria-hidden="true" /> {article.fecha}
-          </p>
-          {article.resumen && <p className="mt-6 max-w-3xl text-lg leading-8 text-cyan-50">{article.resumen}</p>}
+
+          <div className="mt-4 grid items-center gap-7 lg:grid-cols-[minmax(0,1.05fr)_minmax(22rem,0.95fr)] lg:gap-10">
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-200">{article.categoria}</p>
+              <h1 className="font-display mt-3 text-3xl font-bold leading-[1.08] tracking-tight text-balance sm:text-4xl lg:text-5xl">
+                {article.titulo}
+              </h1>
+              <p className="mt-4 flex items-center gap-2 text-sm font-medium text-cyan-100">
+                <Calendar size={16} aria-hidden="true" />
+                <time dateTime={article.fechaIso}>{article.fecha}</time>
+              </p>
+              {article.resumen && (
+                <p className="mt-5 max-w-2xl text-base leading-7 text-cyan-50 sm:text-lg sm:leading-8">
+                  {article.resumen}
+                </p>
+              )}
+            </div>
+
+            <figure className="overflow-hidden rounded-2xl border border-white/15 bg-white/10 shadow-2xl shadow-slate-950/25">
+              <img
+                src={article.imagen}
+                alt={article.imagenAlt}
+                width="800"
+                height="450"
+                fetchPriority="high"
+                className="aspect-[16/9] w-full object-cover"
+              />
+            </figure>
+          </div>
         </div>
       </header>
 
-      <div className="mx-auto max-w-4xl px-4 py-10 sm:px-5 lg:py-14">
-        <img src={article.imagen} alt={article.imagenAlt} className="aspect-[16/9] w-full rounded-3xl object-cover shadow-[0_24px_70px_-50px_rgba(15,23,42,0.5)]" />
+      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10 lg:py-12">
         <div
-          className="prose prose-slate mt-8 max-w-none rounded-3xl border border-slate-200 bg-white p-6 text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 sm:p-8"
+          className="max-w-none break-words rounded-2xl border border-slate-200 bg-white p-6 text-lg leading-8 text-slate-700 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 sm:p-9 lg:p-10 [&_a]:font-semibold [&_a]:text-[#087f84] [&_a]:underline [&_a]:decoration-2 [&_a]:underline-offset-4 dark:[&_a]:text-cyan-300 [&_blockquote]:my-8 [&_blockquote]:border-l-4 [&_blockquote]:border-[#C94B24] [&_blockquote]:pl-5 [&_blockquote]:italic [&_h2]:mb-4 [&_h2]:mt-9 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-slate-950 dark:[&_h2]:text-white [&_h3]:mb-3 [&_h3]:mt-7 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:text-slate-950 dark:[&_h3]:text-white [&_li]:my-2 [&_ol]:my-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-5 [&_strong]:font-bold [&_strong]:text-slate-950 dark:[&_strong]:text-white [&_ul]:my-6 [&_ul]:list-disc [&_ul]:pl-6"
           dangerouslySetInnerHTML={{ __html: article.cuerpoHtml }}
         />
       </div>
