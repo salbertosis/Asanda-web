@@ -271,3 +271,55 @@ test('uploads a media asset through the signed flow', async ({ page }) => {
   await expect(page.getByAltText('Imagen E2E')).toBeVisible();
   await expect(page.getByText('asanda/noticias/e2e-upload')).toBeVisible();
 });
+
+test('registers an existing Cloudinary image without uploading bytes', async ({ page }) => {
+  await routeAdminAuth(page);
+  let rows = [];
+  let insertCount = 0;
+  let uploadCount = 0;
+  await page.route('**/api.cloudinary.com/**', (route) => {
+    uploadCount += 1;
+    return route.abort();
+  });
+  await page.route('**/rest/v1/media_assets**', async (route) => {
+    const request = route.request();
+    const wantsObject = request.headers().accept?.includes('application/vnd.pgrst.object+json') ?? false;
+    if (request.method() === 'GET') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) });
+    }
+    insertCount += 1;
+    const payload = JSON.parse(request.postData());
+    const row = {
+      id: '40000000-0000-4000-8000-000000000004',
+      created_at: '2026-08-24T10:00:00Z',
+      external_url: null,
+      ...payload,
+    };
+    rows = [row];
+    return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(wantsObject ? row : [row]) });
+  });
+  await signInEditor(page);
+
+  await page.getByRole('link', { name: 'Imágenes' }).click();
+  const existingForm = page.getByRole('heading', { name: 'Usar una imagen existente de Cloudinary' }).locator('..');
+  await existingForm.getByLabel('Public ID de Cloudinary').fill('https://res.cloudinary.com/foto_cantaura_noti.jpg');
+  await existingForm.getByLabel('Texto alternativo (obligatorio)').fill('Competencia de natación en Cantaura');
+  await existingForm.getByRole('button', { name: 'Registrar imagen' }).click();
+  await expect(page.getByRole('alert')).toContainText('Ingresá un Public ID válido');
+  expect(insertCount).toBe(0);
+
+  await existingForm.getByLabel('Public ID de Cloudinary').fill('  foto_cantaura_noti  ');
+  await existingForm.getByRole('button', { name: 'Registrar imagen' }).click();
+  await expect(page.getByRole('status')).toContainText('Imagen de Cloudinary registrada en la biblioteca.');
+  expect(insertCount).toBe(1);
+  expect(uploadCount).toBe(0);
+  expect(rows[0]).toMatchObject({
+    provider: 'cloudinary',
+    public_id: 'foto_cantaura_noti',
+    resource_type: 'image',
+    alt_text: 'Competencia de natación en Cantaura',
+    is_public: true,
+  });
+  await expect(page.getByAltText('Competencia de natación en Cantaura')).toBeVisible();
+  await expect(page.getByText('foto_cantaura_noti')).toBeVisible();
+});

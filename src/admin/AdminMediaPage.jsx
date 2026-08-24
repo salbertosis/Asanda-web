@@ -1,7 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ImagePlus, RefreshCw, Upload } from 'lucide-react';
 import { getCloudinaryUrl } from '../config/cloudinary';
-import { insertMediaAsset, listAdminMedia, requestUploadSignature } from '../services/admin/media';
+import {
+  insertMediaAsset,
+  listAdminMedia,
+  registerExistingCloudinaryImage,
+  requestUploadSignature,
+} from '../services/admin/media';
 import { validateImageFile } from '../services/admin/editorialLogic';
 
 const UPLOAD_FOLDER = 'asanda/noticias';
@@ -26,6 +31,9 @@ const AdminMediaPage = () => {
   const [file, setFile] = useState(null);
   const [altText, setAltText] = useState('');
   const [busy, setBusy] = useState(false);
+  const [registerBusy, setRegisterBusy] = useState(false);
+  const [publicId, setPublicId] = useState('');
+  const [existingAltText, setExistingAltText] = useState('');
   const [notice, setNotice] = useState(null);
 
   const load = useCallback(async () => {
@@ -85,6 +93,31 @@ const AdminMediaPage = () => {
     }
   };
 
+  const registerExisting = async (event) => {
+    event.preventDefault();
+    setNotice(null);
+    setRegisterBusy(true);
+    try {
+      await registerExistingCloudinaryImage({ publicId, altText: existingAltText });
+      setPublicId('');
+      setExistingAltText('');
+      setNotice({ type: 'success', text: 'Imagen de Cloudinary registrada en la biblioteca.' });
+      await load();
+    } catch (registerError) {
+      const messages = {
+        'invalid-public-id': 'Ingresá un Public ID válido, sin URL, extensión ni caracteres especiales.',
+        'invalid-alt-text': 'Ingresá un texto alternativo de hasta 200 caracteres.',
+        'duplicate-public-id': 'Esta imagen ya está registrada en la biblioteca.',
+      };
+      setNotice({
+        type: 'error',
+        text: messages[registerError?.code] ?? 'No fue posible registrar la imagen. Verificá el Public ID e intentá nuevamente.',
+      });
+    } finally {
+      setRegisterBusy(false);
+    }
+  };
+
   return (
     <section aria-labelledby="admin-media-title">
       <div>
@@ -109,6 +142,7 @@ const AdminMediaPage = () => {
       )}
 
       <form onSubmit={upload} className="mt-6 rounded-[14px] border border-asanda-line bg-white p-5 sm:p-6">
+        <h2 className="font-display text-2xl font-bold text-asanda-ink">Subir una imagen nueva</h2>
         <div className="grid gap-5 sm:grid-cols-2">
           <label className="block text-sm font-bold text-asanda-ink">
             Imagen (JPG, PNG o WebP, hasta 8 MB)
@@ -122,6 +156,47 @@ const AdminMediaPage = () => {
         <button type="submit" disabled={busy} className="mt-5 inline-flex min-h-12 items-center justify-center gap-2 bg-asanda-orange-strong px-5 font-bold text-white transition-colors hover:bg-[#a94320] disabled:cursor-wait disabled:opacity-70">
           <Upload size={18} aria-hidden="true" />
           {busy ? 'Subiendo…' : 'Subir imagen'}
+        </button>
+      </form>
+
+      <form onSubmit={registerExisting} className="mt-6 rounded-[14px] border border-asanda-line bg-white p-5 sm:p-6">
+        <h2 className="font-display text-2xl font-bold text-asanda-ink">Usar una imagen existente de Cloudinary</h2>
+        <p className="mt-2 text-sm leading-6 text-slate-600">
+          Registrá una imagen que ya existe en Cloudinary sin volver a subir el archivo.
+        </p>
+        <div className="mt-5 grid gap-5 sm:grid-cols-2">
+          <label className="block text-sm font-bold text-asanda-ink">
+            Public ID de Cloudinary
+            <input
+              className="mt-2 min-h-12 w-full rounded-md border border-asanda-line px-3 font-normal"
+              type="text"
+              maxLength={255}
+              required
+              value={publicId}
+              onChange={(event) => setPublicId(event.target.value)}
+              placeholder="foto_cantaura_noti"
+              aria-describedby="cloudinary-public-id-help"
+            />
+          </label>
+          <label className="block text-sm font-bold text-asanda-ink">
+            Texto alternativo (obligatorio)
+            <input
+              className="mt-2 min-h-12 w-full rounded-md border border-asanda-line px-3 font-normal"
+              type="text"
+              maxLength={200}
+              required
+              value={existingAltText}
+              onChange={(event) => setExistingAltText(event.target.value)}
+              placeholder="Descripción breve de la imagen"
+            />
+          </label>
+        </div>
+        <p id="cloudinary-public-id-help" className="mt-2 text-xs leading-5 text-slate-500">
+          Copiá únicamente el Public ID, no la URL ni la extensión del archivo.
+        </p>
+        <button type="submit" disabled={registerBusy} className="mt-5 inline-flex min-h-12 items-center justify-center gap-2 bg-asanda-deep px-5 font-bold text-white transition-colors hover:bg-[#006b72] disabled:cursor-wait disabled:opacity-70">
+          <ImagePlus size={18} aria-hidden="true" />
+          {registerBusy ? 'Registrando…' : 'Registrar imagen'}
         </button>
       </form>
 

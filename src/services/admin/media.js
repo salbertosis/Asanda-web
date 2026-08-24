@@ -49,3 +49,50 @@ export const insertMediaAsset = async (asset) => {
   if (error) throw error;
   return data;
 };
+
+const cloudinaryPublicIdPattern = /^[A-Za-z0-9][A-Za-z0-9_/-]*$/;
+
+export const normalizeCloudinaryPublicId = (value) => {
+  const publicId = String(value ?? '').trim();
+  if (
+    !publicId
+    || publicId.length > 255
+    || !cloudinaryPublicIdPattern.test(publicId)
+    || publicId.endsWith('/')
+    || publicId.includes('//')
+  ) {
+    const error = new Error('El Public ID de Cloudinary no es válido.');
+    error.code = 'invalid-public-id';
+    throw error;
+  }
+  return publicId;
+};
+
+export const registerExistingCloudinaryImage = async ({ publicId, altText }) => {
+  const normalizedPublicId = normalizeCloudinaryPublicId(publicId);
+  const normalizedAltText = String(altText ?? '').trim();
+  if (!normalizedAltText || normalizedAltText.length > 200) {
+    const error = new Error('El texto alternativo es obligatorio y debe tener hasta 200 caracteres.');
+    error.code = 'invalid-alt-text';
+    throw error;
+  }
+
+  try {
+    return await insertMediaAsset({
+      publicId: normalizedPublicId,
+      format: null,
+      width: null,
+      height: null,
+      bytes: null,
+      altText: normalizedAltText,
+      isPublic: true,
+    });
+  } catch (error) {
+    if (error?.code === '23505' || /duplicate|unique/i.test(error?.message ?? '')) {
+      const duplicateError = new Error('Esta imagen ya está registrada en la biblioteca.');
+      duplicateError.code = 'duplicate-public-id';
+      throw duplicateError;
+    }
+    throw error;
+  }
+};
