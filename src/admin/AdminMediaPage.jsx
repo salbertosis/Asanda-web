@@ -4,7 +4,7 @@ import { getCloudinaryUrl } from '../config/cloudinary';
 import { insertMediaAsset, listAdminMedia, requestUploadSignature } from '../services/admin/media';
 import { validateImageFile } from '../services/admin/editorialLogic';
 
-const UPLOAD_FOLDER = 'asanda/media';
+const UPLOAD_FOLDER = 'asanda/noticias';
 
 const fileErrors = {
   'file-missing': 'Seleccioná una imagen para subir.',
