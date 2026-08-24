@@ -8,13 +8,14 @@
 
 | Evidence | Frozen value |
 |---|---|
-| Prepared at | `2026-08-23T18:39:15Z` |
+| Prepared at | `2026-08-24T00:39:03Z` |
 | Repository | `salbertosis/Asanda-web` |
 | `main` Git SHA | `19aea476694fd67c5cd7eaeceb50413457596193` |
 | Source PRs | `#116`, `#117`, `#118` |
-| Migration count | `25` |
-| Migration tip | `20260820152000_fix_result_import_entry_conflict.sql` |
-| Migration manifest SHA-256 | `d2a39a38d20a902efa77877109a06d56e30b6ba70420ab90074d7c656b1a4f15` |
+| Migration count | `27` |
+| Migration tip | `20260823203019_grant_private_schema_usage.sql` |
+| Migration manifest SHA-256 | `7c168bd1686877d2a476bb05e29542f0dbc45b5f41a465de4607f7fa499cf86f` |
+| Migration manifest format | Sorted `<sha256><two spaces><filename>\n` records encoded as UTF-8 |
 | Candidate SHA-256 | `f1fbf462a4c9334ef93fa7a285785fe704c3e45c505d8a39630ce2404ed75504` |
 | Residue proof SHA-256 | `cfb1fcb71a4cd89c01b12306081b5fe0047c3af0e93c2676466ffbf1bc177a24` |
 | Readiness validator SHA-256 | `a12d09147c7e264fc1f9384de8845425bf9200b02780109d31500e99115e6890` |
@@ -40,7 +41,7 @@ Do not start until every item has an approved, non-secret reference.
 
 - [ ] Production target reference or approved target hash: observed `sha256:a984bf1acccaf669f54a7d4a43449a58223c6cf00e7143beab293addc504bcdf`; execution approval `PENDING`
 - [ ] Recovery point or backup reference and timestamp: `AVAILABLE / ACL-RESTRICTED / RESTORE VERIFIED / NOT INDEPENDENTLY ENCRYPTED` — logical backup created `2026-08-23T20:51:55Z`; isolated restore verified `2026-08-23T21:25:32Z`; manifest SHA-256 `f9c9f268919ecb60f28a77d40f8633113a153073b98f35b1400f313e65fa352f`
-- [ ] Production migration manifest parity with the frozen hash: `FAILED` — `15` versions match; remote `20260812211000` is an earlier variant of local `20260812231000`; the other `9` local versions are not applied remotely
+- [ ] Production migration manifest parity with the frozen hash: `FAILED` — all `16` production versions are now preserved locally, but production still lacks the canonical `20260812231000` ledger counterpart, the `9` administrative/RLS/result migrations, and `20260823203019_grant_private_schema_usage.sql`
 - [ ] Dedicated administrator identity approved without mutation: `PENDING`
 - [ ] Dedicated editor identity approved without mutation: `PENDING`
 - [ ] Dedicated inactive identity approved without mutation: `PENDING`
@@ -60,10 +61,10 @@ Observed at `2026-08-23T19:15:47Z` through Supabase CLI `2.115.0`, without custo
 
 - the linked project is healthy in `us-east-1` and matches the non-secret target hash recorded above;
 - physical backup inventory was empty and PITR was disabled;
-- production reported `16` migration versions and `15` version identifiers match the local manifest;
+- production reported `16` migration versions; `15` matched the manifest at audit time, and all `16` are now preserved locally after recovering `20260812211000`;
 - a temporary read-only history fetch identified remote `20260812211000_correct_copa_pasion_acuatica_organizer.sql`; its exact SQL is now preserved in the repository alongside the later canonical `20260812231000` correction, because `20260812211000` records production history while `20260812231000` preserves correct chronological replay after the calendar seed;
-- Git forensics found that earlier variant only in an unreachable local tree (`6c2259d59dcc6143decd4adfef77d950dc095446`, blob `4c5a573f2b0192635acf8e0c7785a7e393c8390e`), not in any commit, ref, reflog, or the verified recovery bundle; do not represent it as published history;
-- the remaining `9` local-only versions, from `20260817175000` through `20260820152000`, contain the administrative audit, content, lifecycle, RLS, and result/import work not yet applied to production;
+- Git forensics originally found that variant only in unreachable tree `6c2259d59dcc6143decd4adfef77d950dc095446`; commit `483367e` now preserves the exact recovered blob `4c5a573f2b0192635acf8e0c7785a7e393c8390e` as published migration history;
+- the `11` versions still absent from production are the canonical `20260812231000` ledger counterpart, `9` administrative/RLS/result migrations from `20260817175000` through `20260820152000`, and the private-schema grant correction `20260823203019`;
 - aggregate inspection found `29` public application tables and `1` private athlete-detail table; no row contents were retrieved;
 - non-empty estimates were limited to sports/catalog, organizations, athletes, memberships, calendar, media, and one profile; the editorial, result, event, performance, record, import, award, album, photo, video, staff, and entry tables reported zero estimated rows.
 
@@ -75,7 +76,15 @@ The maintainer then authorized an isolated restore drill. `Asanda_Staging` was p
 
 The isolated verification passed with exact per-table counts across `31` restored tables: `29` public tables, `1` private table, `74` domain rows, and `16` migration rows. It also confirmed `1` Auth user, `1` Auth identity, zero Auth/profile orphans, zero unvalidated constraints, `55` policies, `29` public RLS tables, `24` non-internal triggers, working aggregate queries under both `anon` and `authenticated`, and zero Storage buckets or objects. No identities or row contents were emitted. The restore drill therefore proves archive usability, but the required-production-input checkbox remains open until the maintainer accepts the ACL-only storage posture or supplies an independently encrypted copy.
 
-These findings remain stop conditions. Do not approve or execute the candidate until the recovery artifact's storage posture is accepted and the migration divergence is reconciled through a separately reviewed plan.
+### Isolated Migration Rehearsal
+
+The maintainer authorized mutation only in `Asanda_Restore_Test`. Preflight confirmed ledger version `20260812211000`, no `20260812231000`, one already-correct Copa row, and no administrative-schema residue. The rehearsal recorded `20260812231000` in the ledger without executing its data correction, then applied the `9` pending administrative/RLS/result migrations in three atomic batches so neither the RLS gap nor the intermediate result-import implementation was externally exposed.
+
+The first role regression exposed missing `USAGE` grants on the restored `private` schema. The rehearsal restored the `anon` and `authenticated` grants already declared by the initial migration, then added reviewed forward migration `20260823203019_grant_private_schema_usage.sql` so `service_role` can use its existing `SELECT` grant on `private.admin_audit_log`. All `7` SQL regressions passed with synthetic identities removed afterward and zero audit, featured-athlete, or source-mapping residue.
+
+Final aggregate state is `27` migration rows, `31` public tables, `2` private tables, `31` public RLS tables, `58` public policies, `58` non-internal application triggers, zero invalid constraints, the original `1` Auth user and `1` identity, and the Copa organizer/logo still correct. Production and staging were not contacted.
+
+These findings remain stop conditions. Do not approve or execute the production candidate until the recovery artifact's storage posture is accepted, production ledger alignment is separately authorized, and the remaining identity/operator/window approvals are complete.
 
 ## Authorized Execution Record
 
