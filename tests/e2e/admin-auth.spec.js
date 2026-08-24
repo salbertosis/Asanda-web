@@ -93,3 +93,48 @@ test('restores an active editor session and signs out safely', async ({ page }) 
   await expect(page).toHaveURL(/\/admin\/login$/);
   await expect(page.getByRole('heading', { name: 'Acceso administrativo' })).toBeVisible();
 });
+
+test('completes password recovery and clears the temporary session', async ({ page }) => {
+  let updatedPassword = null;
+  let logoutRequests = 0;
+
+  await page.route('**/auth/v1/user', async (route) => {
+    if (route.request().method() === 'PUT') {
+      updatedPassword = route.request().postDataJSON().password;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(authUser),
+    });
+  });
+  await page.route('**/auth/v1/logout**', (route) => {
+    logoutRequests += 1;
+    return route.fulfill({ status: 204, body: '' });
+  });
+
+  await page.goto(`/admin/login#access_token=${accessToken}&refresh_token=recovery-refresh-token&expires_in=3600&token_type=bearer&type=recovery`);
+
+  await expect(page.getByRole('heading', { name: 'Crear nueva contraseña' })).toBeVisible();
+  const newPasswordInput = page.getByLabel('Nueva contraseña', { exact: true });
+  await newPasswordInput.fill('corta');
+  await page.getByLabel('Confirmar nueva contraseña').fill('corta');
+  await page.getByRole('button', { name: 'Guardar nueva contraseña' }).click();
+  expect(await newPasswordInput.evaluate((input) => input.validity.tooShort)).toBe(true);
+  expect(updatedPassword).toBeNull();
+
+  await page.getByLabel('Nueva contraseña', { exact: true }).fill('clave-corta');
+  await page.getByLabel('Confirmar nueva contraseña').fill('clave-distinta');
+  await page.getByRole('button', { name: 'Guardar nueva contraseña' }).click();
+  await expect(page.getByRole('alert')).toContainText('Las contraseñas no coinciden');
+  expect(updatedPassword).toBeNull();
+
+  await page.getByLabel('Confirmar nueva contraseña').fill('clave-corta');
+  await page.getByRole('button', { name: 'Guardar nueva contraseña' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Acceso administrativo' })).toBeVisible();
+  await expect(page.getByRole('status')).toContainText('Contraseña actualizada');
+  expect(updatedPassword).toBe('clave-corta');
+  expect(logoutRequests).toBe(1);
+  await expect(page.getByLabel('Nueva contraseña', { exact: true })).toHaveCount(0);
+});
