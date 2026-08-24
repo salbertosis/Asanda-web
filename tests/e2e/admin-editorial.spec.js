@@ -72,6 +72,16 @@ test('manages a news article through create, publish, and archive', async ({ pag
   await routeAdminAuth(page);
   let rows = [];
   let nextId = 2;
+  const heroAsset = {
+    id: '40000000-0000-4000-8000-000000000002', provider: 'cloudinary', public_id: 'asanda/media/noticia-e2e',
+    external_url: null, resource_type: 'image', format: 'jpg', width: 1200, height: 675, bytes: 2048,
+    alt_text: 'Piscina durante una competencia', is_public: true, created_at: '2026-08-18T09:00:00Z',
+  };
+  await page.route('**/rest/v1/media_assets**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify([heroAsset]),
+  }));
   await page.route('**/rest/v1/news_articles**', async (route) => {
     const request = route.request();
     const method = request.method();
@@ -104,11 +114,15 @@ if (method === 'POST') {
   await expect(page.getByLabel('Slug')).toHaveValue('noticia-e2e');
   await page.getByLabel('Categoría').fill('Competencias');
   await page.getByLabel('Resumen').fill('Resumen de prueba');
+  await page.getByLabel('Imagen principal').selectOption(heroAsset.id);
+  await expect(page.getByAltText(heroAsset.alt_text)).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Subir una imagen a la biblioteca' })).toHaveAttribute('href', '/admin/media');
   await page.getByLabel('Cuerpo (markdown seguro)').fill('**Cuerpo** con *formato*.');
   await expect(page.getByRole('heading', { name: 'Vista previa' }).locator('..').getByText('Cuerpo')).toBeVisible();
   await page.getByRole('button', { name: 'Guardar' }).click();
   await expect(page.getByRole('status')).toContainText('Cambios guardados.');
   await expect(page).toHaveURL(/\/admin\/noticias\/2$/);
+  expect(rows[0].hero_asset_id).toBe(heroAsset.id);
 
   await page.getByRole('button', { name: 'Publicar' }).click();
   await expect(page.getByRole('status')).toContainText('Noticia publicada.');
@@ -119,6 +133,42 @@ if (method === 'POST') {
   await page.getByRole('button', { name: 'Archivar Noticia E2E' }).click();
   await expect(page.getByText('Archivada')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Publicar Noticia E2E' })).toBeVisible();
+});
+
+test('keeps the current news image when the media library is unavailable', async ({ page }) => {
+  await routeAdminAuth(page);
+  const heroAssetId = '40000000-0000-4000-8000-000000000003';
+  const row = newsRow('existing-news', { hero_asset_id: heroAssetId });
+  let savedPayload = null;
+
+  await page.route('**/rest/v1/media_assets**', (route) => route.fulfill({
+    status: 500,
+    contentType: 'application/json',
+    body: JSON.stringify({ message: 'Biblioteca temporalmente no disponible' }),
+  }));
+  await page.route('**/rest/v1/news_articles**', async (route) => {
+    const request = route.request();
+    const wantsObject = request.headers().accept?.includes('application/vnd.pgrst.object+json') ?? false;
+    if (request.method() === 'GET') {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(wantsObject ? row : [row]),
+      });
+    }
+    savedPayload = JSON.parse(request.postData());
+    Object.assign(row, savedPayload);
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(row) });
+  });
+
+  await signInEditor(page);
+  await page.goto('/admin/noticias/existing-news');
+  await expect(page.getByRole('status')).toContainText('Podés guardar los demás cambios sin modificar la imagen actual.');
+  await expect(page.getByLabel('Imagen principal')).toHaveValue(heroAssetId);
+  await page.getByLabel('Título').fill('Noticia E2E actualizada');
+  await page.getByRole('button', { name: 'Guardar' }).click();
+  await expect(page.getByText('Cambios guardados.', { exact: true })).toBeVisible();
+  expect(savedPayload.hero_asset_id).toBe(heroAssetId);
 });
 
 test('manages featured windows through add, edit, and remove', async ({ page }) => {

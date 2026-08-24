@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, Send } from 'lucide-react';
 import { createNews, getNewsById, publishNews, updateNews } from '../services/admin/news';
 import { renderSafeBody, validateNewsInput } from '../services/admin/editorialLogic';
+import { getAdminMediaUrl, listPublicImageMedia } from '../services/admin/media';
 
 const errorMessages = {
   'title-invalid': 'El título debe tener entre 3 y 120 caracteres.',
@@ -21,12 +22,26 @@ const inputClass = 'mt-2 min-h-12 w-full rounded-md border border-asanda-line px
 const NewsEditorPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ title: '', slug: '', category: '', summary: '', body: '' });
+  const [form, setForm] = useState({ title: '', slug: '', category: '', summary: '', body: '', heroAssetId: '' });
+  const [images, setImages] = useState([]);
+  const [imagesUnavailable, setImagesUnavailable] = useState(false);
   const [currentStatus, setCurrentStatus] = useState(null);
   const [loading, setLoading] = useState(id ? true : false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [saved, setSaved] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    listPublicImageMedia().then((items) => {
+      if (active) setImages(items);
+    }).catch(() => {
+      if (active) setImagesUnavailable(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -37,7 +52,7 @@ const NewsEditorPage = () => {
         navigate('/admin/noticias', { replace: true });
         return;
       }
-      setForm({ title: item.title, slug: item.slug, category: item.category ?? '', summary: item.summary ?? '', body: item.body ?? '' });
+      setForm({ title: item.title, slug: item.slug, category: item.category ?? '', summary: item.summary ?? '', body: item.body ?? '', heroAssetId: item.heroAssetId ?? '' });
       setCurrentStatus(item.status);
       setLoading(false);
     }).catch(() => {
@@ -87,6 +102,8 @@ const NewsEditorPage = () => {
   }
 
   const editing = Boolean(id);
+  const selectedImage = images.find((image) => image.id === form.heroAssetId);
+  const selectedImageUrl = getAdminMediaUrl(selectedImage, { width: 800, height: 450, crop: 'fill' });
 
   return (
     <section aria-labelledby="news-editor-title">
@@ -128,6 +145,26 @@ const NewsEditorPage = () => {
               <input className={inputClass} type="text" maxLength={280} value={form.summary} onChange={setField('summary')} placeholder="Resumen breve para el portal" />
             </label>
           </div>
+          <div>
+            <label className="block text-sm font-bold text-asanda-ink">
+              Imagen principal
+              <select className={inputClass} value={form.heroAssetId} onChange={setField('heroAssetId')}>
+                <option value="">Sin imagen</option>
+                {form.heroAssetId && !selectedImage && <option value={form.heroAssetId}>Imagen actual</option>}
+                {images.map((image) => (
+                  <option key={image.id} value={image.id}>{image.altText || image.publicId || 'Imagen sin descripción'}</option>
+                ))}
+              </select>
+            </label>
+            {imagesUnavailable && (
+              <p role="status" className="mt-2 text-sm text-amber-800">
+                No se pudo cargar la biblioteca. Podés guardar los demás cambios sin modificar la imagen actual.
+              </p>
+            )}
+            <Link to="/admin/media" className="mt-2 inline-flex min-h-10 items-center font-bold text-asanda-deep underline hover:text-asanda-orange">
+              Subir una imagen a la biblioteca
+            </Link>
+          </div>
           <label className="block text-sm font-bold text-asanda-ink">
             Cuerpo (markdown seguro)
             <textarea className={`${inputClass} min-h-64 resize-y leading-6`} maxLength={20000} value={form.body} onChange={setField('body')} placeholder="**Negritas**, *cursivas*, enlaces [texto](https://…), listas con - y párrafos separados por línea vacía." />
@@ -137,6 +174,7 @@ const NewsEditorPage = () => {
         <div className="rounded-[14px] border border-asanda-line bg-white p-5 sm:p-6">
           <h2 className="font-display text-xl font-bold text-asanda-ink">Vista previa</h2>
           <div className="mt-4 min-h-64 rounded-md border border-asanda-line bg-asanda-foam p-4 leading-7 text-slate-700 [&_a]:underline [&_a]:text-asanda-deep [&_strong]:font-bold [&_ul]:list-disc [&_ul]:pl-6 [&_p]:mb-3 [&_p]:last:mb-0">
+            {selectedImageUrl && <img src={selectedImageUrl} alt={selectedImage.altText || form.title || 'Imagen principal de la noticia'} className="mb-4 aspect-video w-full rounded-md object-cover" />}
             <h3 className="font-display text-2xl font-bold text-asanda-ink">{form.title || 'Sin título'}</h3>
             {form.category && <p className="mt-1 text-xs font-bold uppercase tracking-wide text-asanda-deep">{form.category}</p>}
             {form.summary && <p className="mt-3 font-semibold text-slate-800">{form.summary}</p>}
