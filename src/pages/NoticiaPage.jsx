@@ -107,11 +107,12 @@ const NoticiaPage = () => {
             </figure>
           </div>
         </div>
-      </header>
+</header>
 
-      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10 lg:py-12">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-11 lg:px-8 lg:py-14">
         <div
-          className="max-w-none break-words rounded-2xl border border-slate-200 bg-white p-6 text-lg leading-8 text-slate-700 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 sm:p-9 lg:p-10 [&_a]:font-semibold [&_a]:text-[#087f84] [&_a]:underline [&_a]:decoration-2 [&_a]:underline-offset-4 dark:[&_a]:text-cyan-300 [&_blockquote]:my-8 [&_blockquote]:border-l-4 [&_blockquote]:border-[#C94B24] [&_blockquote]:pl-5 [&_blockquote]:italic [&_h2]:mb-4 [&_h2]:mt-9 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-slate-950 dark:[&_h2]:text-white [&_h3]:mb-3 [&_h3]:mt-7 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:text-slate-950 dark:[&_h3]:text-white [&_li]:my-2 [&_ol]:my-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-5 [&_strong]:font-bold [&_strong]:text-slate-950 dark:[&_strong]:text-white [&_ul]:my-6 [&_ul]:list-disc [&_ul]:pl-6"
+          className="prose-news dark:prose-invert"
+          data-testid="news-article-body"
           dangerouslySetInnerHTML={{ __html: article.cuerpoHtml }}
         />
       </div>

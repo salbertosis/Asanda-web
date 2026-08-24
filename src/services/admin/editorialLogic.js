@@ -28,7 +28,7 @@ export function validateNewsInput(input) {
 }
 
 export function assertSafeBody(body) {
-  if (/[<>]/.test(body)) return { ok: false, reason: 'html-forbidden' };
+  if (/<\/?[a-z][\s\S]*?>/i.test(body)) return { ok: false, reason: 'html-forbidden' };
   if (/javascript\s*:/i.test(body)) return { ok: false, reason: 'scheme-forbidden' };
   return { ok: true };
 }
@@ -40,15 +40,15 @@ export function escapeHtml(value) {
 export function renderSafeBody(body) {
   if (!body) return '';
   const escaped = escapeHtml(body)
-    .replace(/\[([^\[\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" rel="noopener noreferrer">$1</a>')
+    .replace(/\[([^\[\]]+)\]\(((?:https?:\/\/|\/|mailto:)[^)\s"]+)\)/g, '<a href="$2" rel="noopener noreferrer">$1</a>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/\*([^*]+)\*/g, '<em>$1</em>');
   return escaped.split(/\n\s*\n/).map((paragraph) => {
-    const lines = paragraph.split('\n');
+    const lines = paragraph.split(/\r?\n/);
     if (lines.every((line) => /^-\s+/.test(line))) {
       return `<ul>${lines.map((line) => `<li>${line.replace(/^-\s+/, '')}</li>`).join('')}</ul>`;
     }
-    return `<p>${lines.join('<br>')}</p>`;
+    return `<p>${lines.join(' ')}</p>`;
   }).join('');
 }
 
@@ -75,12 +75,14 @@ export function featuredWindow(selections, now = new Date()) {
     }
     if (item?.startsAt && item?.endsAt && Date.parse(item.startsAt) >= Date.parse(item.endsAt)) errors.push('window-inverted');
   }
-  const active = (selections ?? []).filter((item) => {
-    if (!item.startsAt || Date.parse(item.startsAt) <= now.getTime()) {
-      return !item.endsAt || Date.parse(item.endsAt) > now.getTime();
-    }
-    return false;
-  });
+  const active = errors.length === 0
+    ? (selections ?? []).filter((item) => {
+        if (!item.startsAt || Date.parse(item.startsAt) <= now.getTime()) {
+          return !item.endsAt || Date.parse(item.endsAt) > now.getTime();
+        }
+        return false;
+      })
+    : [];
   return { ok: errors.length === 0, errors, active };
 }
 

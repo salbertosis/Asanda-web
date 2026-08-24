@@ -24,7 +24,9 @@ check('future publication date is accepted as scheduling', () => {
 check('unsafe body with HTML markup is rejected', () => {
   assert.equal(assertSafeBody('texto <script>alert(1)</script>').ok, false);
   assert.equal(assertSafeBody('texto <b>negrita</b>').ok, false);
-  assert.equal(assertSafeBody('cierra > en texto').ok, false);
+  // loose < and > are now allowed as text (not tags)
+  assert.equal(assertSafeBody('la temperatura bajó < 20°').ok, true);
+  assert.equal(assertSafeBody('me gusta <3').ok, true);
   assert.ok(validateNewsInput({ ...validNews, body: '<img src=x onerror=alert(1)>' }).errors.includes('body-unsafe'));
 });
 check('javascript scheme in body is rejected', () => {
@@ -39,11 +41,21 @@ check('plain text body passes and renders safely', () => {
 check('limited markdown renders bold, italic, and http links', () => {
   assert.equal(renderSafeBody('**negrita** y *cursiva*'), '<p><strong>negrita</strong> y <em>cursiva</em></p>');
   assert.equal(renderSafeBody('[texto](https://asanda.test/x)'), '<p><a href="https://asanda.test/x" rel="noopener noreferrer">texto</a></p>');
+  // relative URLs and mailto now supported
+  assert.equal(renderSafeBody('[texto](/noticias/otra-nota)'), '<p><a href="/noticias/otra-nota" rel="noopener noreferrer">texto</a></p>');
+  assert.equal(renderSafeBody('[contacto](mailto:test@asanda.org.ve)'), '<p><a href="mailto:test@asanda.org.ve" rel="noopener noreferrer">contacto</a></p>');
 });
 check('non-http links and lists stay inert or structured', () => {
   assert.equal(renderSafeBody('[x](javascript:alert(1))'), '<p>[x](javascript:alert(1))</p>');
   assert.equal(renderSafeBody('- uno\n- dos'), '<ul><li>uno</li><li>dos</li></ul>');
   assert.equal(renderSafeBody('párrafo uno\n\npárrafo dos'), '<p>párrafo uno</p><p>párrafo dos</p>');
+});
+check('single line breaks remain prose while blank lines create paragraphs', () => {
+  assert.equal(
+    renderSafeBody('La primera oración termina aquí.\nLa segunda continúa sin alterar la puntuación.\n\nEste es otro párrafo.'),
+    '<p>La primera oración termina aquí. La segunda continúa sin alterar la puntuación.</p><p>Este es otro párrafo.</p>',
+  );
+  assert.equal(renderSafeBody('línea sin punto\nsiguiente línea'), '<p>línea sin punto siguiente línea</p>');
 });
 check('image validation accepts supported images and rejects the rest', () => {
   assert.equal(validateImageFile({ name: 'foto.jpg', type: 'image/jpeg', size: 1024 }).ok, true);
@@ -75,6 +87,17 @@ check('featured windows filter by current time without deleting rows', () => {
   const result = featuredWindow(selections, now);
   assert.deepEqual(result.active.map((item) => item.athleteId), ['activa']);
   assert.equal(result.ok, true);
+});
+check('featured windows returns empty active when validation fails', () => {
+  const now = new Date('2026-08-18T12:00:00Z');
+  // duplicate order -> validation error
+  const selections = [
+    { athleteId: 'a', displayOrder: 1 },
+    { athleteId: 'b', displayOrder: 1 },
+  ];
+  const result = featuredWindow(selections, now);
+  assert.equal(result.ok, false);
+  assert.deepEqual(result.active, []);
 });
 check('scheduled status derives draft, scheduled, and published semantics', () => {
   const now = new Date('2026-08-18T12:00:00Z');

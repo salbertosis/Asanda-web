@@ -7,7 +7,7 @@ body {
   min-width: 320px;
   color: #123047;
   background: #f4fbf8;
-  font-family: 'Aptos', 'Segoe UI', sans-serif;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -23,8 +23,70 @@ body {
 }
 
 .font-display {
-  font-family: 'Bahnschrift Condensed', 'DIN Condensed', 'Aptos Narrow', sans-serif;
+  font-family: 'Barlow Condensed', 'Oswald', sans-serif;
   font-stretch: condensed;
+}
+
+/* Prose/article typography for news bodies */
+.prose-news {
+  @apply prose prose-lg max-w-[68ch] text-left;
+}
+
+/* Sin guiones: las palabras no se cortan, envuelven a la siguiente línea */
+.prose-news :where(p, li):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
+  hyphens: none;
+}
+
+.font-display,
+.prose-news :where(h2, h3):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
+  hyphens: none;
+}
+
+.prose-news :where(p):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
+  @apply text-asanda-ink leading-9;
+  text-wrap: pretty;
+}
+
+.prose-news :where(h2):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
+  @apply font-display text-2xl lg:text-3xl font-bold tracking-tight text-asanda-ink;
+  text-wrap: balance;
+}
+
+.prose-news :where(h3):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
+  @apply font-display text-xl lg:text-2xl font-bold tracking-tight text-asanda-ink;
+  text-wrap: balance;
+}
+
+.prose-news :where(strong):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
+  @apply font-bold text-asanda-ink;
+}
+
+.prose-news :where(a):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
+  @apply font-semibold text-asanda-deep underline decoration-2 underline-offset-4 transition-colors;
+}
+
+.prose-news :where(a):not(:where([class~="not-prose"],[class~="not-prose"] *)):hover {
+  @apply text-asanda-orange;
+}
+
+.prose-news :where(blockquote):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
+  @apply border-l-4 border-asanda-orange pl-5 italic text-asanda-ink my-8;
+}
+
+.prose-news :where(ul):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
+  @apply list-disc pl-6 my-7;
+}
+
+.prose-news :where(ol):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
+  @apply list-decimal pl-6 my-7;
+}
+
+.prose-news :where(li):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
+  @apply my-2;
+}
+
+.prose-news :where(li > p):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
+  @apply my-2;
 }
 
 @layer utilities {
