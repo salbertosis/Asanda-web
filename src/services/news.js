@@ -39,6 +39,7 @@ const normalizePublicNews = (article) => ({
   slug: article.slug,
   titulo: article.title,
   fecha: formatDate(article.published_at),
+  fechaIso: article.published_at,
   categoria: article.category || 'Actualidad',
   imagen: getHeroImage(article.hero),
   imagenAlt: article.hero?.alt_text || article.title,

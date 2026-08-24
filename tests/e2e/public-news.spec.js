@@ -92,9 +92,34 @@ test('opens a published news detail by slug with safe body rendering', async ({ 
 
   await expect(page.getByRole('main')).toHaveCount(1);
   await expect(page.getByRole('heading', { level: 1, name: 'Noticia publicada' })).toBeVisible();
-  await expect(page.getByAltText('Atletas en competencia')).toHaveAttribute('src', /asanda\/noticias\/noticia-publicada/);
+  const hero = page.getByTestId('news-detail-hero');
+  const heroImage = page.getByAltText('Atletas en competencia');
+  await expect(heroImage).toHaveAttribute('src', /asanda\/noticias\/noticia-publicada/);
+  await expect(page.getByText('18 de agosto de 2026')).toHaveAttribute('datetime', '2026-08-18T10:00:00Z');
+  await expect(hero).toBeInViewport();
+  await expect(heroImage).toBeInViewport();
+
+  const heroBox = await hero.boundingBox();
+  expect(heroBox?.height).toBeLessThan(560);
   await expect(page.getByText('Cuerpo seguro')).toBeVisible();
   await expect(page.getByRole('link', { name: 'enlace' })).toHaveAttribute('href', 'https://asanda.org.ve');
+});
+
+test('keeps the news detail compact and free of horizontal overflow on mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await routePublicNews(page);
+
+  await page.goto('/noticias/noticia-publicada');
+
+  const heroImage = page.getByAltText('Atletas en competencia');
+  await expect(page.getByRole('heading', { level: 1, name: 'Noticia publicada' })).toBeVisible();
+  await expect(heroImage).toBeVisible();
+
+  const layout = await page.evaluate(() => ({
+    documentWidth: document.documentElement.scrollWidth,
+    viewportWidth: window.innerWidth,
+  }));
+  expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
 });
 
 test('provides a stable not-found state for unpublished or missing news', async ({ page }) => {
