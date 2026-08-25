@@ -10,6 +10,7 @@ declare
   feature_active uuid;
   feature_expired uuid;
   visible bigint;
+  violated_constraint text;
   audit_start_id bigint := coalesce((select max(id) from private.admin_audit_log), 0);
 begin
   select id into strict editor_id from public.profiles where display_name = 'Editor Staging' and role = 'editor' and is_active;
@@ -22,6 +23,42 @@ begin
   values ('test-programada', 'Noticia programada', 'cuerpo', 'published', now() + interval '1 day') returning id into scheduled_id;
   insert into public.news_articles (slug, title, body, publication_status, published_at)
   values ('test-publicada', 'Noticia publicada', 'cuerpo', 'published', now() - interval '1 hour') returning id into published_id;
+
+  update public.news_articles set body = null where id = draft_id;
+  update public.news_articles set body = '' where id = draft_id;
+  update public.news_articles set body = repeat('x', 20000) where id = draft_id;
+
+  begin
+    update public.news_articles set body = repeat('x', 20001) where id = draft_id;
+    raise exception 'News body longer than 20,000 characters was accepted.';
+  exception when check_violation then
+    get stacked diagnostics violated_constraint = constraint_name;
+    if violated_constraint <> 'news_articles_body_max_length' then
+      raise exception 'Unexpected constraint rejected the oversized news body: %.', violated_constraint;
+    end if;
+  end;
+
+  begin
+    update public.news_articles set body = E'texto <script>\nalert(1)</script>' where id = draft_id;
+    raise exception 'News body with an HTML tag was accepted.';
+  exception when check_violation then
+    get stacked diagnostics violated_constraint = constraint_name;
+    if violated_constraint <> 'news_articles_body_no_html_tags' then
+      raise exception 'Unexpected constraint rejected the HTML news body: %.', violated_constraint;
+    end if;
+  end;
+
+  begin
+    update public.news_articles set body = E'mira javascript\t:alert(1)' where id = draft_id;
+    raise exception 'News body with a javascript scheme was accepted.';
+  exception when check_violation then
+    get stacked diagnostics violated_constraint = constraint_name;
+    if violated_constraint <> 'news_articles_body_no_javascript_scheme' then
+      raise exception 'Unexpected constraint rejected the javascript news body: %.', violated_constraint;
+    end if;
+  end;
+
+  update public.news_articles set body = 'cuerpo' where id = draft_id;
   insert into public.media_assets (provider, public_id, resource_type, format, is_public)
   values ('cloudinary', 'contract-test-image', 'image', 'jpg', true) returning id into media_id;
   insert into public.athletes (display_name) values ('Content contract test') returning id into test_athlete;
