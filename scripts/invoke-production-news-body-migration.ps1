@@ -227,6 +227,7 @@ function Invoke-PsqlBounded {
   }
 }
 
+$managedInvalidConstraintFrom="from pg_constraint constraint_row left join pg_class relation_row on relation_row.oid=constraint_row.conrelid left join pg_namespace relation_schema on relation_schema.oid=relation_row.relnamespace left join pg_type domain_row on domain_row.oid=constraint_row.contypid left join pg_namespace domain_schema on domain_schema.oid=domain_row.typnamespace where not constraint_row.convalidated and (relation_schema.nspname in ('public','private') or domain_schema.nspname in ('public','private'))"
 function Get-GuardSql {
   param([Parameter(Mandatory)][ValidateSet('Preflight','Verify')][string]$Phase)
   $expected = if ($Phase -eq 'Preflight') { $baselineVersions } else { @($baselineVersions)+@('20260825120000') }
@@ -259,15 +260,14 @@ with d as (select
   (select count(*) from pg_tables where schemaname='public' and rowsecurity) rls_tables,
   (select count(*) from pg_policies where schemaname='public') policies,
   (select count(*) from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace where not t.tgisinternal and n.nspname in ('public','private')) triggers,
-  (select count(*) from pg_constraint where not convalidated) invalid_constraints,
-  ((select count(*) from private.admin_audit_log)+(select count(*) from public.featured_athletes)+(select count(*) from public.source_mappings)+(select count(*) from public.source_documents)+(select count(*) from public.import_batches)) scoped_residue,
+  (select count(*) $managedInvalidConstraintFrom) managed_invalid_constraints,
   (has_schema_privilege('anon','private','usage') and has_schema_privilege('authenticated','private','usage') and has_schema_privilege('service_role','private','usage')) private_usage
 ), lines as (select * from d cross join lateral (values
   (1,'ASANDA_DIAG|LEDGER_COUNT|'||ledger_count),(2,'ASANDA_DIAG|LEDGER_OK|'||ledger_ok),(3,'ASANDA_DIAG|LEDGER_ROW_EXACT|'||ledger_row_exact),(4,'ASANDA_DIAG|CONSTRAINT_COUNT|'||constraint_count),(5,'ASANDA_DIAG|VALIDATED_COUNT|'||validated_count),(6,'ASANDA_DIAG|CONSTRAINT_EXACT|'||constraint_exact),
   (7,'ASANDA_DIAG|LENGTH_VIOLATIONS|'||length_violations),(8,'ASANDA_DIAG|HTML_VIOLATIONS|'||html_violations),(9,'ASANDA_DIAG|JAVASCRIPT_VIOLATIONS|'||javascript_violations),
   (10,'ASANDA_DIAG|PUBLIC_TABLES|'||public_tables),(11,'ASANDA_DIAG|PRIVATE_TABLES|'||private_tables),(12,'ASANDA_DIAG|RLS_TABLES|'||rls_tables),(13,'ASANDA_DIAG|POLICIES|'||policies),(14,'ASANDA_DIAG|TRIGGERS|'||triggers),
-  (15,'ASANDA_DIAG|INVALID_CONSTRAINTS|'||invalid_constraints),(16,'ASANDA_DIAG|SCOPED_RESIDUE|'||scoped_residue),(17,'ASANDA_DIAG|PRIVATE_USAGE|'||private_usage),
-  (18,case when ledger_ok and ledger_row_exact and constraint_count=$expectedConstraintCount and constraint_exact and $(if ($Phase -eq 'Preflight') {'validated_count=0'} else {'validated_count=3'}) and length_violations=0 and html_violations=0 and javascript_violations=0 and public_tables=31 and private_tables=2 and rls_tables=31 and policies=58 and triggers=58 and invalid_constraints=0 and scoped_residue=0 and private_usage then '$token' else 'ASANDA_NEWS_BODY_GUARD_FAIL' end)
+  (15,'ASANDA_DIAG|MANAGED_INVALID_CONSTRAINTS|'||managed_invalid_constraints),(16,'ASANDA_DIAG|PRIVATE_USAGE|'||private_usage),
+  (17,case when ledger_ok and ledger_row_exact and constraint_count=$expectedConstraintCount and constraint_exact and $(if ($Phase -eq 'Preflight') {'validated_count=0'} else {'validated_count=3'}) and length_violations=0 and html_violations=0 and javascript_violations=0 and public_tables=31 and private_tables=2 and rls_tables=31 and policies=58 and triggers=58 and managed_invalid_constraints=0 and private_usage then '$token' else 'ASANDA_NEWS_BODY_GUARD_FAIL' end)
 ) v(ord,line)) select line from lines order by ord;
 rollback;
 "@
@@ -308,7 +308,7 @@ do `$guard`$ begin
   if exists(select 1 from public.news_articles where char_length(body)>20000 or body ~* '</?[a-z][^>]*>' or body ~* 'javascript[[:space:]]*:') then raise exception 'body data guard failed'; end if;
   if (select count(*)<>31 from pg_tables where schemaname='public') or (select count(*)<>2 from pg_tables where schemaname='private') or (select count(*)<>31 from pg_tables where schemaname='public' and rowsecurity)
     or (select count(*)<>58 from pg_policies where schemaname='public') or (select count(*)<>58 from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace where not t.tgisinternal and n.nspname in ('public','private'))
-    or exists(select 1 from pg_constraint where not convalidated) or ((select count(*) from private.admin_audit_log)+(select count(*) from public.featured_athletes)+(select count(*) from public.source_mappings)+(select count(*) from public.source_documents)+(select count(*) from public.import_batches))<>0
+    or exists(select 1 $managedInvalidConstraintFrom)
     or not (has_schema_privilege('anon','private','usage') and has_schema_privilege('authenticated','private','usage') and has_schema_privilege('service_role','private','usage')) then raise exception 'structural guard failed'; end if;
 end `$guard`$;
 $migrationSql

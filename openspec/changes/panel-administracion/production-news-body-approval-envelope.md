@@ -1,8 +1,8 @@
 # Production News Body Approval Envelope
 
-> **Status: AUTHORIZED / NOT EXECUTED**
+> **Status: STOPPED / PREFLIGHT CONSUMED / NEW CANDIDATE AND AUTHORIZATION REQUIRED**
 >
-> Issue [#137](https://github.com/salbertosis/Asanda-web/issues/137) and the maintainer's explicit authorization on `2026-08-26` authorize one validation and one atomic production application of the exact migration below, followed by one independent verification. This does not reopen, repair, retry, or replace the stopped production RLS envelope.
+> The read-only Preflight authorized by issue [#137](https://github.com/salbertosis/Asanda-web/issues/137) stopped before Apply. Diagnosis for [#141](https://github.com/salbertosis/Asanda-web/issues/141) proved the single global unvalidated constraint is provider-owned `realtime.messages.messages_payload_exclusive`, outside ASANDA-managed `public`/`private`; the former residue total of `6` consists only of persistent `private.admin_audit_log` rows, while the other counted operational tables are zero. No audit rows are deleted, `realtime` is not changed, and no production mutation is authorized by this correction. The old one-shot candidate/window is consumed; after merge, execution requires a new immutable candidate receipt and fresh explicit authorization. This does not reopen, repair, retry, or replace the stopped production RLS envelope.
 
 ## Frozen scope
 
@@ -14,7 +14,7 @@
 | Migration count before/after | `27` / `28` |
 | Exact 28-file manifest SHA-256 | `e65887b9f9b820d3b27636f5620f4bced9fff28930bf25deee014229791d4be3` |
 | Wrapper | `scripts/invoke-production-news-body-migration.ps1` |
-| Wrapper Git-byte SHA-256 | `5b1e37fd0e41db7ee6e79e7903fca73829348738d1883e71c1d483c05bc4de2c` |
+| Wrapper Git-byte SHA-256 | `3bbe335e297a32449be27f417a7b4f3bbe147a8fe60043ce1e3a61503b8f4182` |
 | Approved production target | non-secret SHA-256 `a984bf1acccaf669f54a7d4a43449a58223c6cf00e7143beab293addc504bcdf` |
 | Approved `psql.exe` | PostgreSQL major `17`; SHA-256 `2e8ff78ed93cd1f8610c240116aa43be3c0969c7372c748e8af1050dad4fcf73` |
 | Backup receipt | `production-news-body-backup.json`; SHA-256 `ed92f24668cf5097f69cd0ceb57e17714df9d7cbaa544824fd96def2a2191bbc` |
@@ -39,7 +39,7 @@ The protected state also contains `project.json` and a DPAPI CurrentUser `db-pas
 
 ## Required sequence
 
-1. Run `Preflight` through the frozen wrapper. It must prove the exact 27-version baseline, absence of the new version and three constraint names, zero existing body violations, and the expected prior structural aggregates. Only `ASANDA_NEWS_BODY_PREFLIGHT_OK` authorizes step 2.
+1. After a new explicit authorization, run `Preflight` through the newly frozen wrapper. It must prove the exact 27-version baseline, absence of the new version and three constraint names, zero existing body violations, expected structural counts, zero unvalidated constraints owned by ASANDA-managed `public`/`private`, and private-schema usage. Persistent audit or unrelated operational row counts are not migration guards. Only `ASANDA_NEWS_BODY_PREFLIGHT_OK` authorizes step 2.
 2. Run `Apply` once. One explicit transaction takes a transaction-scoped advisory lock, repeats every mutable guard, executes the migration from immutable `HEAD`, records its exact SQL in the migration ledger, proves the exact 28-version post-state and three validated constraints, and commits. Only `ASANDA_NEWS_BODY_APPLY_OK` confirms the commit.
 3. A separate agent runs `Verify` in a fresh process and connection within the same window. It must prove the exact 28-version ledger, all three validated constraints, zero violations, and the expected structural aggregates. Only `ASANDA_NEWS_BODY_VERIFY_OK` is acceptance evidence.
 
@@ -53,9 +53,9 @@ Before commit, any SQL failure rolls back both the constraints and ledger insert
 
 | Gate | Result |
 |---|---|
-| Immutable post-merge candidate, wrapper, envelope, manifest, migration, target, `psql`, and backup receipts | `PENDING` |
-| Fresh 60-minute window | `PENDING` |
-| Read-only preflight and individual structural diagnostics | `PENDING` |
+| Immutable post-merge candidate, wrapper, envelope, manifest, migration, target, `psql`, and backup receipts | `PREVIOUS CANDIDATE CONSUMED / REPLACEMENT PENDING` |
+| Fresh 60-minute window | `PREVIOUS PREFLIGHT CONSUMED / REPLACEMENT PENDING` |
+| Read-only preflight and individual structural diagnostics | `STOP / GLOBAL INVALID=1 (realtime) / FORMER RESIDUE=6 (audit only)` |
 | Atomic migration and exact ledger insertion | `PENDING` |
 | Separate-connection verification | `PENDING` |
 | Credential and temporary-file cleanup | `PENDING` |
