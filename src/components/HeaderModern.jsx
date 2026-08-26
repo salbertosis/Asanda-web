@@ -87,7 +87,9 @@ const Header = () => {
   };
 
   return (
-    <header ref={headerRef} className="sticky top-0 z-50" data-testid="site-header" data-compact={scrolled ? 'true' : 'false'}>
+    <>
+      <div aria-hidden="true" className="h-[108px] lg:h-[116px]" data-testid="site-header-spacer" />
+      <header ref={headerRef} className="fixed inset-x-0 top-0 z-50" data-testid="site-header" data-compact={scrolled ? 'true' : 'false'}>
       <div className={`overflow-hidden bg-[#e2612d] text-[#0b2530] transition-[height,border-color] duration-200 motion-reduce:transition-none ${scrolled ? 'h-0 border-transparent' : 'h-8 border-b border-black/10'}`}>
         <div className="mx-auto flex h-8 max-w-7xl items-center justify-center px-4 text-center text-[11px] font-bold uppercase tracking-[0.04em] sm:justify-between sm:px-5 sm:text-[13px]">
           <span>Portal oficial de los deportes acuáticos</span>
@@ -259,7 +261,8 @@ const Header = () => {
           </nav>
         </div>
       )}
-    </header>
+      </header>
+    </>
   );
 };
 

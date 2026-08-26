@@ -302,25 +302,101 @@ test('sets article metadata and restores route metadata after navigation', async
   expect(JSON.parse(await page.locator('script[data-route-jsonld]').textContent())['@type']).toBe('WebPage');
 });
 
-test('compacts the sticky header after scrolling without shrinking the menu target', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.emulateMedia({ reducedMotion: 'reduce' });
+test('keeps the sticky header compact after crossing the scroll threshold', async ({ page }) => {
   await routePublicNews(page);
   await page.goto('/noticias/noticia-publicada');
+
   const header = page.getByTestId('site-header');
   await expect(header).toHaveAttribute('data-compact', 'false');
   await expect(page.getByTestId('news-article-body')).toBeVisible();
   await expect(page.getByTestId('upcoming-events')).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)).toBeGreaterThanOrEqual(500);
+
+  const result = await page.evaluate(async () => {
+    const siteHeader = document.querySelector('[data-testid="site-header"]');
+    const headerSpacer = document.querySelector('[data-testid="site-header-spacer"]');
+    document.documentElement.style.scrollBehavior = 'auto';
+    const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+    const sample = () => ({
+      compact: siteHeader.dataset.compact,
+      scrollHeight: document.documentElement.scrollHeight,
+      scrollY: window.scrollY,
+    });
+
+    await document.fonts.ready;
+    window.scrollTo(0, 0);
+    await nextFrame();
+    const initial = {
+      headerHeight: siteHeader.getBoundingClientRect().height,
+      spacerHeight: headerSpacer.getBoundingClientRect().height,
+      scrollHeight: document.documentElement.scrollHeight,
+    };
+    const samples = [];
+
+    for (let scrollTop = 8; scrollTop <= 16; scrollTop += 1) {
+      window.scrollTo(0, scrollTop);
+      await nextFrame();
+      samples.push(sample());
+    }
+
+    for (let frame = 0; frame < 36; frame += 1) {
+      await nextFrame();
+      samples.push(sample());
+    }
+
+    return {
+      initial,
+      samples,
+      spacerTop: headerSpacer.getBoundingClientRect().top,
+    };
+  });
+
+  const compactIndex = result.samples.findIndex(({ compact }) => compact === 'true');
+  const settledScrollSamples = result.samples.slice(9).map(({ scrollY }) => scrollY);
+  expect(compactIndex).toBeGreaterThanOrEqual(0);
+  expect(result.samples.slice(compactIndex).every(({ compact }) => compact === 'true')).toBe(true);
+  expect(Math.min(...result.samples.slice(compactIndex).map(({ scrollY }) => scrollY))).toBeGreaterThan(12);
+  expect(Math.max(...settledScrollSamples) - Math.min(...settledScrollSamples)).toBeLessThanOrEqual(0.5);
+  expect(settledScrollSamples[0]).toBeGreaterThanOrEqual(16);
+  expect(result.samples.every(({ scrollHeight }) => scrollHeight === result.initial.scrollHeight)).toBe(true);
+  expect(result.initial.headerHeight).toBe(116);
+  expect(result.initial.spacerHeight).toBe(result.initial.headerHeight);
+  expect(result.spacerTop).toBeLessThan(0);
+
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(header).toHaveAttribute('data-compact', 'false');
+  await expect.poll(() => header.evaluate((element) => element.getBoundingClientRect().height)).toBe(116);
+});
+
+test('compacts the sticky header with reduced motion without shrinking the mobile menu target', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await routePublicNews(page);
+  await page.goto('/noticias/noticia-publicada');
+  const header = page.getByTestId('site-header');
+  const spacer = page.getByTestId('site-header-spacer');
+  await expect(header).toHaveAttribute('data-compact', 'false');
+  expect(await header.evaluate((element) => element.getBoundingClientRect().height)).toBe(108);
+  expect(await spacer.evaluate((element) => element.getBoundingClientRect().height)).toBe(108);
+  await expect(page.getByTestId('news-article-body')).toBeVisible();
+  await expect(page.getByTestId('upcoming-events')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)).toBeGreaterThanOrEqual(500);
   await page.evaluate(() => window.scrollTo(0, 500));
   await expect(header).toHaveAttribute('data-compact', 'true');
-  const menuBox = await page.getByRole('button', { name: 'Abrir menú principal' }).boundingBox();
+  expect(await header.evaluate((element) => element.getBoundingClientRect().height)).toBe(68);
+  const menuButton = page.getByRole('button', { name: 'Abrir menú principal' });
+  const menuBox = await menuButton.boundingBox();
   expect(menuBox?.height).toBeGreaterThanOrEqual(44);
   const transitionMs = await header.locator('div').first().evaluate((element) => {
     const duration = getComputedStyle(element).transitionDuration.split(',')[0];
     return parseFloat(duration) * (duration.endsWith('ms') ? 1 : 1000);
   });
   expect(transitionMs).toBeLessThanOrEqual(0.01);
+  await menuButton.click();
+  await expect(page.getByRole('navigation', { name: 'Navegación móvil' })).toBeVisible();
+  expect(await page.locator('body').evaluate((element) => element.style.overflow)).toBe('hidden');
+  await page.getByRole('button', { name: 'Cerrar menú principal' }).click();
+  expect(await page.locator('body').evaluate((element) => element.style.overflow)).toBe('');
 });
 
 test('keeps the news detail compact and free of horizontal overflow on mobile', async ({ page }) => {
