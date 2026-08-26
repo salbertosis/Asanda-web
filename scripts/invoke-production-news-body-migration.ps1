@@ -127,11 +127,11 @@ function Assert-BackupReceipt {
   if ($archives.Count -ne 3 -or ((@($archives.file | Sort-Object) -join ',') -cne ($expectedFiles -join ','))) { throw 'STOP: backup receipt must name the three approved archives.' }
   foreach ($archive in $archives) {
     if ((@($archive.PSObject.Properties.Name | Sort-Object) -join ',') -cne 'bytes,file,sha256') { throw 'STOP: backup archive receipt schema mismatch.' }
-    $hash=[string]$archive.sha256; $matches=@(Get-ChildItem -LiteralPath $StatePath -Directory -Filter 'backup-*' | ForEach-Object { Get-ChildItem -LiteralPath $_.FullName -File -Filter ([string]$archive.file) })
-    if ($matches.Count -ne 1 -or $hash -notmatch '^[0-9a-f]{64}$' -or [long]$archive.bytes -ne $matches[0].Length) {
+    $hash=[string]$archive.sha256; $archiveMatches=@(Get-ChildItem -LiteralPath $StatePath -Directory -Filter 'backup-*' | ForEach-Object { Get-ChildItem -LiteralPath $_.FullName -File -Filter ([string]$archive.file) })
+    if ($archiveMatches.Count -ne 1 -or $hash -notmatch '^[0-9a-f]{64}$' -or [long]$archive.bytes -ne $archiveMatches[0].Length) {
       throw 'STOP: backup archive receipt is incomplete.'
     }
-    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $matches[0].FullName).Hash.ToLowerInvariant() -ne $hash) { throw 'STOP: backup archive hash mismatch.' }
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $archiveMatches[0].FullName).Hash.ToLowerInvariant() -ne $hash) { throw 'STOP: backup archive hash mismatch.' }
   }
   return $createdAt
 }
