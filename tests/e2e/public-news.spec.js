@@ -50,18 +50,44 @@ const statsResponse = {
   asOf: '2026-08-12',
 };
 
+const competitionRows = [
+  { id: 'c1', slug: 'evento-en-curso', name: 'Evento en curso', starts_on: '2026-08-24', ends_on: '2026-08-26', status: 'in_progress', published_at: '2026-08-01T12:00:00Z', recognition_status: 'recognized', venue: { name: 'Piscina Olímpica', city: 'Barcelona', region: 'Anzoátegui' } },
+  { id: 'c2', slug: 'evento-de-hoy', name: 'Evento de hoy', starts_on: '2026-08-26', ends_on: null, status: 'scheduled', published_at: '2026-08-01T12:00:00Z', recognition_status: 'recognized', venue: null },
+  { id: 'c3', slug: 'evento-reprogramado', name: 'Evento reprogramado', starts_on: '2026-09-02', ends_on: null, status: 'postponed', published_at: '2026-08-01T12:00:00Z', recognition_status: 'pending', venue: null },
+  { id: 'c4', slug: 'fuera-del-limite', name: 'Fuera del límite', starts_on: '2026-10-01', ends_on: null, status: 'scheduled', published_at: '2026-08-01T12:00:00Z', recognition_status: 'recognized', venue: null },
+  { id: 'c5', slug: 'evento-pasado', name: 'Evento pasado', starts_on: '2026-08-20', ends_on: '2026-08-25', status: 'scheduled', published_at: '2026-08-01T12:00:00Z', recognition_status: 'recognized', venue: null },
+  { id: 'c6', slug: 'evento-cancelado', name: 'Evento cancelado', starts_on: '2026-09-03', ends_on: null, status: 'cancelled', published_at: '2026-08-01T12:00:00Z', recognition_status: 'recognized', venue: null },
+  { id: 'c7', slug: 'evento-no-publicado', name: 'Evento no publicado', starts_on: '2026-09-04', ends_on: null, status: 'scheduled', published_at: null, recognition_status: 'recognized', venue: null },
+];
+
 const publishedRows = () => newsRows.filter((row) => (
   row.publication_status === 'published' && row.published_at && Date.parse(row.published_at) <= Date.now()
 ));
 
-const routePublicNews = (page) => page.route('**/rest/v1/news_articles*', (route) => {
-  const url = new URL(route.request().url());
-  const slugFilter = url.searchParams.get('slug');
-  const rows = slugFilter
-    ? publishedRows().filter((row) => row.slug === slugFilter.replace(/^eq\./, ''))
-    : publishedRows();
+const routePublicNews = (page, { competitions = [], competitionStatus = 200, competitionHandler } = {}) => Promise.all([
+  page.route('**/rest/v1/news_articles*', (route) => {
+    const url = new URL(route.request().url());
+    const slugFilter = url.searchParams.get('slug');
+    const rows = slugFilter
+      ? publishedRows().filter((row) => row.slug === slugFilter.replace(/^eq\./, ''))
+      : publishedRows();
 
-  route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) });
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) });
+  }),
+  page.route('**/rest/v1/competitions*', competitionHandler || ((route) => route.fulfill({
+    status: competitionStatus,
+    contentType: 'application/json',
+    body: JSON.stringify(competitions),
+  }))),
+]);
+
+const fixBrowserDate = (page) => page.addInitScript(() => {
+  const NativeDate = Date;
+  const fixedNow = '2026-08-26T12:00:00';
+  window.Date = class extends NativeDate {
+    constructor(...args) { super(...(args.length ? args : [fixedNow])); }
+    static now() { return new NativeDate(fixedNow).getTime(); }
+  };
 });
 
 const routeStats = (page) => page.route('**/rest/v1/rpc/get_homepage_stats', (route) => (
@@ -140,6 +166,55 @@ const bodyLayout = await articleBody.evaluate((element) => ({
   expect(bodyLayout.width).toBeLessThanOrEqual(760);
   expect(bodyLayout.documentWidth).toBeLessThanOrEqual(bodyLayout.viewportWidth);
   expect(bodyLayout.textAlign).toBe('left');
+});
+
+test('shows only the next three eligible events after the article on mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await fixBrowserDate(page);
+  await routePublicNews(page, { competitions: competitionRows });
+
+  await page.goto('/noticias/noticia-publicada');
+
+  const module = page.getByTestId('upcoming-events');
+  await expect(module.getByRole('heading', { name: 'Próximos eventos' })).toBeVisible();
+  await expect(module.getByRole('link')).toHaveCount(3);
+  await expect(module.getByRole('link', { name: /Evento en curso/ })).toHaveAttribute('href', '/calendario/evento-en-curso');
+  await expect(module).toContainText('Piscina Olímpica, Barcelona, Anzoátegui');
+  await expect(module).toContainText('Evento de hoy');
+  await expect(module).toContainText('Evento reprogramado');
+  await expect(module).not.toContainText('Evento pasado');
+  await expect(module).not.toContainText('Evento cancelado');
+  await expect(module).not.toContainText('Evento no publicado');
+  await expect(module).not.toContainText('Fuera del límite');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});
+
+test('keeps the article stable while upcoming events load or fail', async ({ page }) => {
+  let releaseResponse;
+  const responseGate = new Promise((resolve) => { releaseResponse = resolve; });
+  await fixBrowserDate(page);
+  await routePublicNews(page, {
+    competitionHandler: async (route) => {
+      await responseGate;
+      await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+    },
+  });
+
+  await page.goto('/noticias/noticia-publicada');
+  await expect(page.getByRole('heading', { level: 1, name: 'Noticia publicada' })).toBeVisible();
+  const loading = page.getByRole('status', { name: 'Cargando próximos eventos' });
+  await expect(loading).toBeVisible();
+  await expect(loading).toHaveAttribute('aria-busy', 'true');
+  releaseResponse();
+  await expect(page.getByTestId('upcoming-events')).toHaveCount(0);
+  await expect(page.getByTestId('news-article-body')).toContainText('Cuerpo seguro');
+
+  await page.unroute('**/rest/v1/competitions*');
+  await page.route('**/rest/v1/competitions*', (route) => route.fulfill({ status: 500, body: '{}' }));
+  await page.reload();
+  await expect(page.getByRole('heading', { level: 1, name: 'Noticia publicada' })).toBeVisible();
+  await expect(page.getByTestId('upcoming-events')).toHaveCount(0);
+  await expect(page.getByTestId('news-article-body')).toContainText('Cuerpo seguro');
 });
 
 test('reserves the news geometry while loading and transitions without horizontal overflow', async ({ page }) => {
@@ -234,6 +309,9 @@ test('compacts the sticky header after scrolling without shrinking the menu targ
   await page.goto('/noticias/noticia-publicada');
   const header = page.getByTestId('site-header');
   await expect(header).toHaveAttribute('data-compact', 'false');
+  await expect(page.getByTestId('news-article-body')).toBeVisible();
+  await expect(page.getByTestId('upcoming-events')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)).toBeGreaterThanOrEqual(500);
   await page.evaluate(() => window.scrollTo(0, 500));
   await expect(header).toHaveAttribute('data-compact', 'true');
   const menuBox = await page.getByRole('button', { name: 'Abrir menú principal' }).boundingBox();

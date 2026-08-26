@@ -1,5 +1,6 @@
 import { getCloudinaryUrl } from '../config/cloudinary';
 import { supabase } from './supabase';
+import { getLocalIsoDay, selectUpcomingCompetitions } from './competitionSelection';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
@@ -12,6 +13,7 @@ const COMPETITIONS_SELECT = `
   ends_on,
   recognition_status,
   status,
+  published_at,
   logo:media_assets!competitions_logo_asset_id_fkey(
     provider,
     public_id,
@@ -57,6 +59,8 @@ const normalizeCompetition = (competition) => {
     slug: competition.slug,
     nombre: competition.name,
     descripcion: competition.description,
+    startsOn: competition.starts_on,
+    endsOn: competition.ends_on,
     fechaInicio: getDayOfMonth(competition.starts_on),
     fechaFin: competition.ends_on ? getDayOfMonth(competition.ends_on) : getDayOfMonth(competition.starts_on),
     mes: MONTHS[startsOn.getMonth()],
@@ -64,6 +68,7 @@ const normalizeCompetition = (competition) => {
     organizador: competition.organizer?.short_name || competition.organizer?.name || 'Organización por confirmar',
     organizadorSlug: competition.organizer?.slug || null,
     ubicacion: venueParts || 'Sede por confirmar',
+    sede: venueParts,
     logoUrl: getLogoUrl(competition.logo),
     logoAlt: competition.logo?.alt_text || null,
     reconocido: competition.recognition_status === 'recognized',
@@ -84,6 +89,18 @@ export const getPublishedCompetitions = async (signal) => {
   if (error) throw error;
 
   return data.map(normalizeCompetition);
+};
+
+export const getUpcomingCompetitions = async ({ today = getLocalIsoDay(), limit = 3, signal } = {}) => {
+  let query = buildCompetitionQuery()
+    .in('status', ['scheduled', 'in_progress', 'postponed'])
+    .order('starts_on');
+
+  if (signal) query = query.abortSignal(signal);
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return selectUpcomingCompetitions(data, today, limit).map(normalizeCompetition);
 };
 
 export const getCompetenciaBySlugRemote = async (slug, signal) => {

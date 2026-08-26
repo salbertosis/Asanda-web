@@ -4,6 +4,7 @@ import { ArrowLeft, Calendar, Share2 } from 'lucide-react';
 import { useRouteHeadMetadata } from '../components/layout/RouteHead';
 import { buildNewsArticleMetadata } from '../seo/routeMetadata';
 import { getPublishedNewsBySlug } from '../services/news';
+import UpcomingEvents from '../components/UpcomingEvents';
 
 const NoticiaPage = () => {
   const { slug } = useParams();
@@ -185,6 +186,7 @@ const NoticiaPage = () => {
           data-testid="news-article-body"
           dangerouslySetInnerHTML={{ __html: article.cuerpoHtml }}
         />
+        <UpcomingEvents />
       </div>
     </article>
   );
