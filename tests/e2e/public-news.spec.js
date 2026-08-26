@@ -2,6 +2,23 @@ import { expect, test } from '@playwright/test';
 
 const newsRows = [
   {
+    id: '50000000-0000-4000-8000-000000000004',
+    slug: 'noticia-mas-reciente',
+    title: 'Noticia más reciente',
+    summary: 'La actualidad más reciente de ASANDA.',
+    body: 'Contenido de la noticia más reciente.',
+    category: 'Actualidad',
+    publication_status: 'published',
+    published_at: '2026-08-22T10:00:00Z',
+    updated_at: null,
+    hero: {
+      provider: 'cloudinary',
+      public_id: 'asanda/noticias/noticia-reciente',
+      external_url: null,
+      alt_text: 'Nadadores durante un encuentro regional',
+    },
+  },
+  {
     id: '50000000-0000-4000-8000-000000000001',
     slug: 'noticia-publicada',
     title: 'Noticia publicada',
@@ -119,10 +136,31 @@ test('renders only due published news on the homepage and news list', async ({ p
   await expect(homeNews).not.toContainText('Noticia programada privada');
 
   await page.goto('/noticias');
-  await expect(page.getByRole('heading', { name: 'Últimas Noticias' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
+  await expect(page.getByRole('heading', { level: 1, name: 'Noticias' })).toBeVisible();
+  const featuredNews = page.getByTestId('featured-news');
+  await expect(featuredNews.getByRole('link', { name: 'Noticia más reciente' })).toBeVisible();
+  await expect(featuredNews.locator('time')).toHaveAttribute('datetime', '2026-08-22T10:00:00Z');
+  await expect(page.locator('#noticias').getByRole('link', { name: 'Ver todas' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: /Noticia publicada/ })).toBeVisible();
+  await expect(page.locator('#noticias time[datetime]')).toHaveCount(2);
   await expect(page.getByText('Noticia borrador privada')).toHaveCount(0);
   await expect(page.getByText('Noticia programada privada')).toHaveCount(0);
+
+  await featuredNews.getByRole('link', { name: 'Noticia más reciente' }).click();
+  await expect(page).toHaveURL(/\/noticias\/noticia-mas-reciente$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Noticia más reciente' })).toBeVisible();
+});
+
+test('keeps the news archive free of horizontal overflow on mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await routePublicNews(page);
+
+  await page.goto('/noticias');
+
+  await expect(page.getByTestId('featured-news')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Noticia publicada' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
 
 test('opens a published news detail by slug with safe body rendering', async ({ page }) => {
@@ -223,7 +261,11 @@ test('reserves the news geometry while loading and transitions without horizonta
   const responseGate = new Promise((resolve) => { releaseResponse = resolve; });
   await page.route('**/rest/v1/news_articles*', async (route) => {
     await responseGate;
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(publishedRows()) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(publishedRows().filter((row) => row.slug === 'noticia-publicada')),
+    });
   });
 
   await page.goto('/noticias/noticia-publicada');
