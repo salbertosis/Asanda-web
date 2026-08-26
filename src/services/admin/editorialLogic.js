@@ -39,16 +39,24 @@ export function escapeHtml(value) {
 
 export function renderSafeBody(body) {
   if (!body) return '';
-  const escaped = escapeHtml(body)
+  const renderInline = (value) => escapeHtml(value)
     .replace(/\[([^\[\]]+)\]\(((?:https?:\/\/|\/|mailto:)[^)\s"]+)\)/g, '<a href="$2" rel="noopener noreferrer">$1</a>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/\*([^*]+)\*/g, '<em>$1</em>');
-  return escaped.split(/\n\s*\n/).map((paragraph) => {
-    const lines = paragraph.split(/\r?\n/);
-    if (lines.every((line) => /^-\s+/.test(line))) {
-      return `<ul>${lines.map((line) => `<li>${line.replace(/^-\s+/, '')}</li>`).join('')}</ul>`;
+  return body.split(/\r?\n\s*\r?\n/).map((block) => {
+    const lines = block.split(/\r?\n/);
+    const heading = lines.length === 1 && /^(##|###)\s+(.+)$/.exec(lines[0]);
+    if (heading) {
+      const level = heading[1].length;
+      return `<h${level}>${renderInline(heading[2])}</h${level}>`;
     }
-    return `<p>${lines.join(' ')}</p>`;
+    if (lines.every((line) => /^>\s?/.test(line))) {
+      return `<blockquote><p>${renderInline(lines.map((line) => line.replace(/^>\s?/, '')).join(' '))}</p></blockquote>`;
+    }
+    if (lines.every((line) => /^-\s+/.test(line))) {
+      return `<ul>${lines.map((line) => `<li>${renderInline(line.replace(/^-\s+/, ''))}</li>`).join('')}</ul>`;
+    }
+    return `<p>${renderInline(lines.join(' '))}</p>`;
   }).join('');
 }
 

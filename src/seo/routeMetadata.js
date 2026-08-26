@@ -3,6 +3,7 @@ import { approvedPublicSite, toPublicUrl } from '../config/publicSite.js';
 export const routeMetadata = Object.freeze([
   { path: '/', title: 'ASANDA - Portal de Resultados de Natación Estadal', description: 'Resultados, calendario, récords y actualidad de los deportes acuáticos de Anzoátegui.', indexable: true },
   { path: '/noticias', title: 'Noticias', description: 'Noticias y actualidad de ASANDA.', indexable: true },
+  { path: '/noticias/:slug', title: 'Noticia', description: 'Detalle de una noticia publicada por ASANDA.', indexable: true },
   { path: '/videos', title: 'Videos', description: 'Videos destacados de los deportes acuáticos de ASANDA.', indexable: true },
   { path: '/fotos', title: 'Fotos', description: 'Galería fotográfica de ASANDA.', indexable: true },
   { path: '/fotos/album/:id', title: 'Álbum de fotos', description: 'Álbum fotográfico de ASANDA.', indexable: true },
@@ -33,4 +34,39 @@ export function buildRouteMetadata(pathname, site = approvedPublicSite, search =
   const openGraph = { title: route.title, description: route.description, url: canonicalUrl, image };
   const jsonLd = canonicalUrl ? { '@context': 'https://schema.org', '@type': 'WebPage', name: route.title, description: route.description, url: canonicalUrl, image } : null;
   return { ...route, noindex: isDemoRoute(pathname, search) || !route.indexable, canonicalUrl, openGraph, jsonLd };
+}
+
+export function buildNewsArticleMetadata(article, pathname, site = approvedPublicSite) {
+  const canonicalUrl = toPublicUrl(pathname, site.canonicalOrigin);
+  const image = article.imagenSeo?.startsWith('/') ? toPublicUrl(article.imagenSeo, site.canonicalOrigin) : article.imagenSeo;
+  const description = article.resumen || article.titulo;
+  const jsonLd = canonicalUrl ? {
+    '@context': 'https://schema.org',
+    '@type': 'NewsArticle',
+    headline: article.titulo,
+    description,
+    url: canonicalUrl,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalUrl },
+    datePublished: article.fechaIso,
+    author: { '@type': 'Organization', name: 'Redacción ASANDA' },
+    publisher: { '@type': 'Organization', name: 'ASANDA' },
+    ...(article.actualizadaIso ? { dateModified: article.actualizadaIso } : {}),
+    ...(image ? { image } : {}),
+  } : null;
+  return {
+    title: article.titulo,
+    description,
+    canonicalUrl,
+    noindex: false,
+    openGraph: {
+      title: article.titulo,
+      description,
+      url: canonicalUrl,
+      image,
+      type: 'article',
+      publishedTime: article.fechaIso,
+      modifiedTime: article.actualizadaIso,
+    },
+    jsonLd,
+  };
 }

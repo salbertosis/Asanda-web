@@ -57,6 +57,14 @@ check('single line breaks remain prose while blank lines create paragraphs', () 
   );
   assert.equal(renderSafeBody('línea sin punto\nsiguiente línea'), '<p>línea sin punto siguiente línea</p>');
 });
+check('headings and blockquotes render as safe standalone blocks', () => {
+  assert.equal(
+    renderSafeBody('## Título **seguro**\n\n### Apartado\n\n> Primera línea\n> segunda con *énfasis*.'),
+    '<h2>Título <strong>seguro</strong></h2><h3>Apartado</h3><blockquote><p>Primera línea segunda con <em>énfasis</em>.</p></blockquote>',
+  );
+  assert.equal(renderSafeBody('## <img src=x>'), '<h2>&lt;img src=x&gt;</h2>');
+  assert.equal(renderSafeBody('Texto\n## no es otro bloque'), '<p>Texto ## no es otro bloque</p>');
+});
 check('image validation accepts supported images and rejects the rest', () => {
   assert.equal(validateImageFile({ name: 'foto.jpg', type: 'image/jpeg', size: 1024 }).ok, true);
   assert.equal(validateImageFile({ name: 'foto.webp', type: 'image/webp', size: 8 * 1024 * 1024 }).ok, true);

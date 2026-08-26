@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Calendar } from 'lucide-react';
+import { useRouteHeadMetadata } from '../components/layout/RouteHead';
+import { buildNewsArticleMetadata } from '../seo/routeMetadata';
 import { getPublishedNewsBySlug } from '../services/news';
 
 const NoticiaPage = () => {
   const { slug } = useParams();
   const [article, setArticle] = useState(null);
   const [status, setStatus] = useState('loading');
+  useRouteHeadMetadata(article ? buildNewsArticleMetadata(article, `/noticias/${slug}`) : null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -64,7 +67,7 @@ const NoticiaPage = () => {
   }
 
   return (
-    <article className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <article className="min-h-screen bg-slate-50 dark:bg-slate-950" itemScope itemType="https://schema.org/NewsArticle">
       <header
         className="relative overflow-hidden border-b-4 border-[#C94B24] bg-[#0F4C5C] text-white"
         data-testid="news-detail-hero"
@@ -80,16 +83,18 @@ const NoticiaPage = () => {
 
           <div className="mt-4 grid items-center gap-7 lg:grid-cols-[minmax(0,1.05fr)_minmax(22rem,0.95fr)] lg:gap-10">
             <div className="min-w-0">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-200">{article.categoria}</p>
-              <h1 className="font-display mt-3 text-3xl font-bold leading-[1.08] tracking-tight text-balance sm:text-4xl lg:text-5xl">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-200" itemProp="articleSection">{article.categoria}</p>
+              <h1 className="font-display mt-3 text-3xl font-bold leading-[1.08] tracking-tight text-balance sm:text-4xl lg:text-5xl" itemProp="headline">
                 {article.titulo}
               </h1>
-              <p className="mt-4 flex items-center gap-2 text-sm font-medium text-cyan-100">
+              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-medium text-cyan-100">
                 <Calendar size={16} aria-hidden="true" />
-                <time dateTime={article.fechaIso}>{article.fecha}</time>
-              </p>
+                <span>Publicada el <time dateTime={article.fechaIso} itemProp="datePublished">{article.fecha}</time></span>
+                {article.actualizadaIso && <span>Actualizada el <time dateTime={article.actualizadaIso} itemProp="dateModified">{article.actualizada}</time></span>}
+              </div>
+              <p className="mt-3 text-sm font-bold text-white">Por <span itemProp="author" itemScope itemType="https://schema.org/Organization"><span itemProp="name">Redacción ASANDA</span></span></p>
               {article.resumen && (
-                <p className="mt-5 max-w-2xl text-base leading-7 text-cyan-50 sm:text-lg sm:leading-8">
+                <p className="mt-5 max-w-2xl text-base leading-7 text-cyan-50 sm:text-lg sm:leading-8" itemProp="description">
                   {article.resumen}
                 </p>
               )}
@@ -99,6 +104,7 @@ const NoticiaPage = () => {
               <img
                 src={article.imagen}
                 alt={article.imagenAlt}
+                itemProp="image"
                 width="800"
                 height="450"
                 fetchPriority="high"

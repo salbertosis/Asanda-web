@@ -6,10 +6,11 @@ const newsRows = [
     slug: 'noticia-publicada',
     title: 'Noticia publicada',
     summary: 'Resumen visible para visitantes.',
-    body: '**Cuerpo seguro** con [enlace](https://asanda.org.ve).\nEsta línea continúa el mismo párrafo.\n\nSegundo párrafo editorial.',
+    body: '**Cuerpo seguro** con [enlace](https://asanda.org.ve).\nEsta línea continúa el mismo párrafo.\n\n## Desarrollo\n\n### Resultados\n\n> Una cita editorial destacada.\n\nSegundo párrafo editorial.',
     category: 'Competencias',
     publication_status: 'published',
     published_at: '2026-08-18T10:00:00Z',
+    updated_at: '2026-08-20T12:30:00Z',
     hero: {
       provider: 'cloudinary',
       public_id: 'asanda/noticias/noticia-publicada',
@@ -96,6 +97,8 @@ test('opens a published news detail by slug with safe body rendering', async ({ 
   const heroImage = page.getByAltText('Atletas en competencia');
   await expect(heroImage).toHaveAttribute('src', /asanda\/noticias\/noticia-publicada/);
   await expect(page.getByText('18 de agosto de 2026')).toHaveAttribute('datetime', '2026-08-18T10:00:00Z');
+  await expect(page.getByText('20 de agosto de 2026')).toHaveAttribute('datetime', '2026-08-20T12:30:00Z');
+  await expect(page.getByText('Redacción ASANDA')).toBeVisible();
   await expect(hero).toBeInViewport();
   await expect(heroImage).toBeInViewport();
 
@@ -105,9 +108,12 @@ test('opens a published news detail by slug with safe body rendering', async ({ 
   await expect(page.getByRole('link', { name: 'enlace' })).toHaveAttribute('href', 'https://asanda.org.ve');
 
   const articleBody = page.getByTestId('news-article-body');
-  await expect(articleBody.locator('p')).toHaveCount(2);
+  await expect(articleBody.locator(':scope > p')).toHaveCount(2);
   await expect(articleBody.locator('p').first()).toContainText('Esta línea continúa el mismo párrafo.');
   await expect(articleBody.locator('br')).toHaveCount(0);
+  await expect(articleBody.getByRole('heading', { level: 2, name: 'Desarrollo' })).toBeVisible();
+  await expect(articleBody.getByRole('heading', { level: 3, name: 'Resultados' })).toBeVisible();
+  await expect(articleBody.locator('blockquote')).toContainText('Una cita editorial destacada.');
 
 const bodyLayout = await articleBody.evaluate((element) => ({
     width: element.getBoundingClientRect().width,
@@ -115,12 +121,48 @@ const bodyLayout = await articleBody.evaluate((element) => ({
     documentWidth: document.documentElement.scrollWidth,
     textAlign: getComputedStyle(element).textAlign,
   }));
-  // Deriva el límite del mismo valor que usa el CSS (68ch), en vez de un número suelto.
-  // 1ch ≈ 0.5–0.6em según la fuente; para la fuente actual a 17px esto da ~740-760px.
-  // Si cambia max-w-[68ch] o el font-size del prose, actualizar este comentario y el valor.
+  // Deriva el límite del mismo valor que usa el CSS (66ch), en vez de un número suelto.
+  // Para la fuente efectiva del navegador, 66ch mantiene la columna por debajo de 760px.
+  // Si cambia max-w-[66ch] o el font-size del prose, actualizar este comentario y el valor.
   expect(bodyLayout.width).toBeLessThanOrEqual(760);
   expect(bodyLayout.documentWidth).toBeLessThanOrEqual(bodyLayout.viewportWidth);
   expect(bodyLayout.textAlign).toBe('left');
+});
+
+test('sets article metadata and restores route metadata after navigation', async ({ page }) => {
+  await routePublicNews(page);
+  await page.goto('/noticias/noticia-publicada');
+  await expect(page).toHaveTitle('Noticia publicada | ASANDA');
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://asanda-web.vercel.app/noticias/noticia-publicada');
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', 'Resumen visible para visitantes.');
+  await expect(page.locator('meta[property="og:type"]')).toHaveAttribute('content', 'article');
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /asanda\/noticias\/noticia-publicada/);
+  await expect(page.locator('meta[name="twitter:image"]')).toHaveAttribute('content', /asanda\/noticias\/noticia-publicada/);
+  await expect(page.locator('meta[property="article:published_time"]')).toHaveAttribute('content', '2026-08-18T10:00:00Z');
+  await expect(page.locator('meta[property="article:modified_time"]')).toHaveAttribute('content', '2026-08-20T12:30:00Z');
+  const jsonLd = JSON.parse(await page.locator('script[data-route-jsonld]').textContent());
+  expect(jsonLd).toMatchObject({ '@type': 'NewsArticle', headline: 'Noticia publicada', datePublished: '2026-08-18T10:00:00Z', dateModified: '2026-08-20T12:30:00Z', author: { name: 'Redacción ASANDA' }, publisher: { name: 'ASANDA' } });
+  await page.getByRole('link', { name: 'Volver a noticias' }).click();
+  await expect(page).toHaveTitle('Noticias | ASANDA');
+  expect(JSON.parse(await page.locator('script[data-route-jsonld]').textContent())['@type']).toBe('WebPage');
+});
+
+test('compacts the sticky header after scrolling without shrinking the menu target', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await routePublicNews(page);
+  await page.goto('/noticias/noticia-publicada');
+  const header = page.getByTestId('site-header');
+  await expect(header).toHaveAttribute('data-compact', 'false');
+  await page.evaluate(() => window.scrollTo(0, 500));
+  await expect(header).toHaveAttribute('data-compact', 'true');
+  const menuBox = await page.getByRole('button', { name: 'Abrir menú principal' }).boundingBox();
+  expect(menuBox?.height).toBeGreaterThanOrEqual(44);
+  const transitionMs = await header.locator('div').first().evaluate((element) => {
+    const duration = getComputedStyle(element).transitionDuration.split(',')[0];
+    return parseFloat(duration) * (duration.endsWith('ms') ? 1 : 1000);
+  });
+  expect(transitionMs).toBeLessThanOrEqual(0.01);
 });
 
 test('keeps the news detail compact and free of horizontal overflow on mobile', async ({ page }) => {

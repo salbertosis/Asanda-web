@@ -2,7 +2,7 @@ import React, { Suspense } from 'react';
 import Header from '../Header';
 import Footer from '../Footer';
 import SkipLink from './SkipLink';
-import RouteHead from './RouteHead';
+import { RouteHeadProvider } from './RouteHead';
 
 const LoadingShell = () => (
   <main id="main-content" tabIndex={-1}>
@@ -11,15 +11,14 @@ const LoadingShell = () => (
 );
 
 const AppShell = ({ children }) => (
-  <>
-    <RouteHead />
+  <RouteHeadProvider>
     <SkipLink />
     <Header />
     <Suspense fallback={<LoadingShell />}>
       <main id="main-content" tabIndex={-1}>{children}</main>
       <Footer />
     </Suspense>
-  </>
+  </RouteHeadProvider>
 );
 
 export default AppShell;

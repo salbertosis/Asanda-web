@@ -29,7 +29,7 @@ body {
 
 /* Prose/article typography for news bodies */
 .prose-news {
-  @apply prose prose-lg max-w-[68ch] text-left;
+  @apply prose prose-lg max-w-[66ch] text-left;
 }
 
 /* Sin guiones: las palabras no se cortan, envuelven a la siguiente línea */

@@ -34,7 +34,7 @@ const Header = () => {
   const headerRef = useRef(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState(null);
-  const [scrolled, setScrolled] = useState(false);
+  const [scrolled, setScrolled] = useState(() => window.scrollY > 12);
 
   const closeMenus = () => {
     setMobileOpen(false);
@@ -87,8 +87,8 @@ const Header = () => {
   };
 
   return (
-    <header ref={headerRef} className="sticky top-0 z-50">
-      <div className="border-b border-black/10 bg-[#e2612d] text-[#0b2530]">
+    <header ref={headerRef} className="sticky top-0 z-50" data-testid="site-header" data-compact={scrolled ? 'true' : 'false'}>
+      <div className={`overflow-hidden bg-[#e2612d] text-[#0b2530] transition-[height,border-color] duration-200 motion-reduce:transition-none ${scrolled ? 'h-0 border-transparent' : 'h-8 border-b border-black/10'}`}>
         <div className="mx-auto flex h-8 max-w-7xl items-center justify-center px-4 text-center text-[11px] font-bold uppercase tracking-[0.04em] sm:justify-between sm:px-5 sm:text-[13px]">
           <span>Portal oficial de los deportes acuáticos</span>
           <span className="hidden sm:inline">Anzoátegui · Venezuela</span>
@@ -100,7 +100,7 @@ const Header = () => {
           scrolled ? 'shadow-[0_12px_30px_rgba(22,70,184,0.14)]' : ''
         }`}
       >
-        <div className="mx-auto flex h-[72px] max-w-7xl items-center gap-5 px-4 sm:px-5 lg:h-20">
+        <div className={`mx-auto flex max-w-7xl items-center gap-5 px-4 transition-[height] duration-200 motion-reduce:transition-none sm:px-5 ${scrolled ? 'h-16' : 'h-[72px] lg:h-20'}`}>
           <Link
             to="/"
             aria-label="ASANDA, ir al inicio"
@@ -113,7 +113,7 @@ const Header = () => {
               }
             }}
           >
-            <img src="/asanda.png" alt="" className="h-auto w-[210px] max-w-full object-contain sm:h-12 sm:w-auto lg:h-14" />
+            <img src="/asanda.png" alt="" className={`h-auto max-w-full object-contain transition-[width,height] duration-200 motion-reduce:transition-none sm:w-auto ${scrolled ? 'w-[180px] sm:h-10' : 'w-[210px] sm:h-12 lg:h-14'}`} />
             <span className="hidden border-l border-asanda-line pl-3 2xl:block">
               <span className="font-display block text-lg font-bold uppercase leading-none tracking-wide text-asanda-ink">
                 ASANDA
@@ -233,7 +233,7 @@ const Header = () => {
       </div>
 
       {mobileOpen && (
-        <div id="mobile-navigation" className="max-h-[calc(100vh-72px)] overflow-y-auto border-b border-asanda-line bg-white shadow-xl sm:max-h-[calc(100vh-104px)] xl:hidden">
+        <div id="mobile-navigation" className={`${scrolled ? 'max-h-[calc(100vh-64px)]' : 'max-h-[calc(100vh-104px)]'} overflow-y-auto border-b border-asanda-line bg-white shadow-xl xl:hidden`}>
           <nav aria-label="Navegación móvil" className="mx-auto max-w-7xl px-4 py-5 sm:px-5">
             <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Explorar</p>
             <div className="grid gap-px overflow-hidden border border-asanda-line bg-asanda-line sm:grid-cols-2">

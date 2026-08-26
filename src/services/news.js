@@ -10,6 +10,7 @@ const NEWS_SELECT = `
   body,
   category,
   published_at,
+  updated_at,
   hero:media_assets!news_articles_hero_asset_id_fkey(
     provider,
     public_id,
@@ -27,25 +28,31 @@ const formatDate = (value) => new Intl.DateTimeFormat('es-VE', {
 }).format(new Date(value));
 
 const getHeroImage = (hero) => {
-  if (!hero) return fallbackImage;
+  if (!hero) return null;
   if (hero.provider === 'cloudinary' && hero.public_id) {
     return getCloudinaryUrl(hero.public_id, { width: 800, height: 450, crop: 'fill' });
   }
-  return hero.external_url || fallbackImage;
+  return hero.external_url || null;
 };
 
-const normalizePublicNews = (article) => ({
-  id: article.id,
-  slug: article.slug,
-  titulo: article.title,
-  fecha: formatDate(article.published_at),
-  fechaIso: article.published_at,
-  categoria: article.category || 'Actualidad',
-  imagen: getHeroImage(article.hero),
-  imagenAlt: article.hero?.alt_text || article.title,
-  resumen: article.summary || '',
-  cuerpoHtml: renderSafeBody(article.body || ''),
-});
+const normalizePublicNews = (article) => {
+  const heroImage = getHeroImage(article.hero);
+  return {
+    id: article.id,
+    slug: article.slug,
+    titulo: article.title,
+    fecha: formatDate(article.published_at),
+    fechaIso: article.published_at,
+    actualizada: article.updated_at ? formatDate(article.updated_at) : null,
+    actualizadaIso: article.updated_at || null,
+    categoria: article.category || 'Actualidad',
+    imagen: heroImage || fallbackImage,
+    imagenSeo: heroImage,
+    imagenAlt: article.hero?.alt_text || article.title,
+    resumen: article.summary || '',
+    cuerpoHtml: renderSafeBody(article.body || ''),
+  };
+};
 
 const buildPublishedNewsQuery = () => supabase
   .from('news_articles')

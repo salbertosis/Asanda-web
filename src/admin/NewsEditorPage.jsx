@@ -167,13 +167,14 @@ const NewsEditorPage = () => {
           </div>
           <label className="block text-sm font-bold text-asanda-ink">
             Cuerpo (markdown seguro)
-            <textarea className={`${inputClass} min-h-64 resize-y leading-6`} maxLength={20000} value={form.body} onChange={setField('body')} placeholder="**Negritas**, *cursivas*, enlaces [texto](https://…), listas con - y párrafos separados por línea vacía." />
+            <textarea className={`${inputClass} min-h-64 resize-y leading-6`} maxLength={20000} value={form.body} onChange={setField('body')} aria-describedby="body-hint" placeholder="## Subtítulo\n\nTexto del artículo\n\n> Cita destacada" />
           </label>
+          <p id="body-hint" className="text-xs leading-5 text-slate-500">Usá ## para subtítulos, ### para apartados y &gt; para citas. También admite **negritas**, *cursivas*, enlaces, listas con - y bloques separados por una línea vacía. No admite HTML.</p>
         </div>
 
         <div className="rounded-[14px] border border-asanda-line bg-white p-5 sm:p-6">
           <h2 className="font-display text-xl font-bold text-asanda-ink">Vista previa</h2>
-          <div className="mt-4 min-h-64 rounded-md border border-asanda-line bg-asanda-foam p-4 leading-7 text-slate-700 [&_a]:underline [&_a]:text-asanda-deep [&_strong]:font-bold [&_ul]:list-disc [&_ul]:pl-6 [&_p]:mb-3 [&_p]:last:mb-0">
+          <div className="mt-4 min-h-64 rounded-md border border-asanda-line bg-asanda-foam p-4 leading-7 text-slate-700 [&_a]:underline [&_a]:text-asanda-deep [&_blockquote]:border-l-4 [&_blockquote]:border-asanda-orange [&_blockquote]:pl-4 [&_h2]:mt-5 [&_h2]:text-2xl [&_h2]:font-bold [&_h3]:mt-4 [&_h3]:text-xl [&_h3]:font-bold [&_strong]:font-bold [&_ul]:list-disc [&_ul]:pl-6 [&_p]:mb-3 [&_p]:last:mb-0">
             {selectedImageUrl && <img src={selectedImageUrl} alt={selectedImage.altText || form.title || 'Imagen principal de la noticia'} className="mb-4 aspect-video w-full rounded-md object-cover" />}
             <h3 className="font-display text-2xl font-bold text-asanda-ink">{form.title || 'Sin título'}</h3>
             {form.category && <p className="mt-1 text-xs font-bold uppercase tracking-wide text-asanda-deep">{form.category}</p>}

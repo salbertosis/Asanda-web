@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { access } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { approvedPublicSite } from '../src/config/publicSite.js';
-import { buildRouteMetadata, isDemoRoute, routeMetadata } from '../src/seo/routeMetadata.js';
+import { buildNewsArticleMetadata, buildRouteMetadata, isDemoRoute, routeMetadata } from '../src/seo/routeMetadata.js';
 import { createPublicAssets } from '../scripts/generate-public-assets.mjs';
 import { comparePerformance, median } from '../scripts/performance-regression.mjs';
 import { registerWebVitals } from '../src/metrics/webVitals.js';
@@ -17,13 +17,17 @@ assert.deepEqual(approvedPublicSite.criticalAssets, ['/favicon.svg', '/assets/he
 
 const paths = routeMetadata.map((route) => route.path);
 assert.equal(new Set(paths).size, paths.length, 'route metadata paths must be unique');
-for (const path of ['/', '/noticias', '/videos', '/fotos', '/fotos/album/:id', '/calendario', '/resultados', '/atletas', '/atletas-asociados', '/atletas-federados', '/clubes', '/record-estadal', '/legal', '/privacidad', '/publicidad/demo/:slug']) assert(paths.includes(path), `missing route metadata: ${path}`);
+for (const path of ['/', '/noticias', '/noticias/:slug', '/videos', '/fotos', '/fotos/album/:id', '/calendario', '/resultados', '/atletas', '/atletas-asociados', '/atletas-federados', '/clubes', '/record-estadal', '/legal', '/privacidad', '/publicidad/demo/:slug']) assert(paths.includes(path), `missing route metadata: ${path}`);
 
 const metadata = buildRouteMetadata('/resultados', site);
 for (const url of [metadata.canonicalUrl, metadata.openGraph.url, metadata.openGraph.image, metadata.jsonLd.url, metadata.jsonLd.image]) assert(url.startsWith(origin), `metadata escaped canonical origin: ${url}`);
 assert.equal(isDemoRoute('/publicidad/demo/aquaflow-demo'), true);
 assert.equal(isDemoRoute('/', '?ads=demo'), true);
 assert.equal(isDemoRoute('/'), false);
+const articleMetadata = buildNewsArticleMetadata({ titulo: 'Noticia real', resumen: 'Resumen real', fechaIso: '2026-08-18T10:00:00Z', actualizadaIso: null, imagenSeo: null }, '/noticias/noticia-real', site);
+assert.equal(articleMetadata.jsonLd['@type'], 'NewsArticle');
+assert.equal(articleMetadata.jsonLd.dateModified, undefined, 'missing updated_at must not invent dateModified');
+assert.equal(articleMetadata.jsonLd.image, undefined, 'missing hero must not invent an article image');
 
 const assets = createPublicAssets(site);
 assert.match(assets.robots, new RegExp(`Sitemap: ${origin}/sitemap\\.xml`));
