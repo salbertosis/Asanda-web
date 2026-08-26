@@ -14,7 +14,7 @@
 | Migration count before/after | `27` / `28` |
 | Exact 28-file manifest SHA-256 | `e65887b9f9b820d3b27636f5620f4bced9fff28930bf25deee014229791d4be3` |
 | Wrapper | `scripts/invoke-production-news-body-migration.ps1` |
-| Wrapper Git-byte SHA-256 | `4adba92729d80adaadf9104d732233ca5be42ca8e9aae08106006e35275a7e0d` |
+| Wrapper Git-byte SHA-256 | `5b1e37fd0e41db7ee6e79e7903fca73829348738d1883e71c1d483c05bc4de2c` |
 | Approved production target | non-secret SHA-256 `a984bf1acccaf669f54a7d4a43449a58223c6cf00e7143beab293addc504bcdf` |
 | Approved `psql.exe` | PostgreSQL major `17`; SHA-256 `2e8ff78ed93cd1f8610c240116aa43be3c0969c7372c748e8af1050dad4fcf73` |
 | Backup receipt | `production-news-body-backup.json`; SHA-256 `ed92f24668cf5097f69cd0ceb57e17714df9d7cbaa544824fd96def2a2191bbc` |
