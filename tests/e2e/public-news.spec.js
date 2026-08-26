@@ -68,6 +68,19 @@ const routeStats = (page) => page.route('**/rest/v1/rpc/get_homepage_stats', (ro
   route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(statsResponse) })
 ));
 
+const installShare = (page, outcome = 'success') => page.addInitScript((shareOutcome) => {
+  window.__sharePayloads = [];
+  Object.defineProperty(navigator, 'share', {
+    configurable: true,
+    writable: true,
+    value: async (payload) => {
+      window.__sharePayloads.push(payload);
+      if (shareOutcome === 'cancel') throw new DOMException('Share canceled', 'AbortError');
+      if (shareOutcome === 'error') throw new DOMException('Share unavailable', 'NotAllowedError');
+    },
+  });
+}, outcome);
+
 test('renders only due published news on the homepage and news list', async ({ page }) => {
   await routeStats(page);
   await routePublicNews(page);
@@ -127,6 +140,73 @@ const bodyLayout = await articleBody.evaluate((element) => ({
   expect(bodyLayout.width).toBeLessThanOrEqual(760);
   expect(bodyLayout.documentWidth).toBeLessThanOrEqual(bodyLayout.viewportWidth);
   expect(bodyLayout.textAlign).toBe('left');
+});
+
+test('reserves the news geometry while loading and transitions without horizontal overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  let releaseResponse;
+  const responseGate = new Promise((resolve) => { releaseResponse = resolve; });
+  await page.route('**/rest/v1/news_articles*', async (route) => {
+    await responseGate;
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(publishedRows()) });
+  });
+
+  await page.goto('/noticias/noticia-publicada');
+  const skeleton = page.getByTestId('news-detail-skeleton');
+  await expect(skeleton).toBeVisible();
+  await expect(skeleton).toHaveAttribute('aria-busy', 'true');
+  await expect(page.getByRole('status')).toContainText('Cargando noticia…');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+
+  releaseResponse();
+  await expect(page.getByRole('heading', { level: 1, name: 'Noticia publicada' })).toBeVisible();
+  await expect(skeleton).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});
+
+test('shares the normalized article payload through the Web Share API', async ({ page }) => {
+  await installShare(page);
+  await routePublicNews(page);
+  await page.goto('/noticias/noticia-publicada');
+
+  const shareButton = page.getByRole('button', { name: 'Compartir noticia' });
+  await expect(shareButton).toBeVisible();
+  const buttonBox = await shareButton.boundingBox();
+  expect(buttonBox?.width).toBeGreaterThanOrEqual(44);
+  expect(buttonBox?.height).toBeGreaterThanOrEqual(44);
+  await shareButton.click();
+
+  expect(await page.evaluate(() => window.__sharePayloads)).toEqual([{
+    title: 'Noticia publicada',
+    text: 'Resumen visible para visitantes.',
+    url: 'https://asanda-web.vercel.app/noticias/noticia-publicada',
+  }]);
+});
+
+test('hides sharing when the Web Share API is unavailable', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
+  });
+  await routePublicNews(page);
+  await page.goto('/noticias/noticia-publicada');
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Noticia publicada' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Compartir noticia' })).toHaveCount(0);
+});
+
+test('ignores share cancellation and announces real share failures', async ({ page }) => {
+  await installShare(page, 'cancel');
+  await routePublicNews(page);
+  await page.goto('/noticias/noticia-publicada');
+
+  await page.getByRole('button', { name: 'Compartir noticia' }).click();
+  await expect(page.getByText('No pudimos abrir las opciones para compartir.')).toHaveCount(0);
+
+  await page.evaluate(() => {
+    navigator.share = async () => { throw new DOMException('Share unavailable', 'NotAllowedError'); };
+  });
+  await page.getByRole('button', { name: 'Compartir noticia' }).click();
+  await expect(page.getByRole('status')).toContainText('No pudimos abrir las opciones para compartir. Intentá nuevamente.');
 });
 
 test('sets article metadata and restores route metadata after navigation', async ({ page }) => {
