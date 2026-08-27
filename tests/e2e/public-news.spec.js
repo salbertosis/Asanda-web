@@ -152,6 +152,22 @@ test('renders only due published news on the homepage and news list', async ({ p
   await expect(page.getByRole('heading', { level: 1, name: 'Noticia más reciente' })).toBeVisible();
 });
 
+test('uses automatic Cloudinary gravity and reserves a 16:9 homepage image', async ({ page }) => {
+  await routeStats(page);
+  await routePublicNews(page);
+
+  await page.goto('/');
+  const image = page.locator('#noticias').getByRole('img', { name: 'Nadadores durante un encuentro regional' });
+  await expect(image).toBeVisible();
+  await expect(image).toHaveAttribute('src', /\/w_800,h_450,c_fill,g_auto,q_auto,f_auto\//);
+
+  const mediaRatio = await image.locator('..').evaluate((element) => {
+    const { width, height } = element.getBoundingClientRect();
+    return width / height;
+  });
+  expect(mediaRatio).toBeCloseTo(16 / 9, 2);
+});
+
 test('keeps the news archive free of horizontal overflow on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await routePublicNews(page);

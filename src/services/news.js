@@ -30,7 +30,7 @@ const formatDate = (value) => new Intl.DateTimeFormat('es-VE', {
 const getHeroImage = (hero) => {
   if (!hero) return null;
   if (hero.provider === 'cloudinary' && hero.public_id) {
-    return getCloudinaryUrl(hero.public_id, { width: 800, height: 450, crop: 'fill' });
+    return getCloudinaryUrl(hero.public_id, { width: 800, height: 450, crop: 'fill', gravity: 'auto' });
   }
   return hero.external_url || null;
 };

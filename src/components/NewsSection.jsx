@@ -65,7 +65,7 @@ const NewsSection = () => {
               key={noticia.id}
               className="group overflow-hidden rounded-[14px] border border-t-4 border-[#d3e9ea] border-t-transparent bg-white shadow-[0_18px_45px_-34px_rgba(8,127,132,0.55)] transition-[transform,box-shadow,border-color] hover:border-t-asanda-orange hover:shadow-[0_24px_55px_-32px_rgba(8,127,132,0.45)] motion-safe:hover:-translate-y-0.5"
             >
-              <div className="relative h-48 overflow-hidden">
+              <div className="relative aspect-video overflow-hidden">
                 <img
                   src={noticia.imagen}
                   alt={noticia.imagenAlt}
