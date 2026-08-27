@@ -1,96 +1,64 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, Award, Trophy } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import { getFeaturedAthletes } from '../services/athletes';
 
-const AthletesSection = ({ atletas, onAtletaClick }) => {
-  // Obtener los mejores atletas (top 6)
-  const atletasDestacados = atletas
-    .sort((a, b) => {
-      // Ordenar por número de medallas de oro
-      const medallasA = a.medallas?.filter(m => m === 'Oro').length || 0;
-      const medallasB = b.medallas?.filter(m => m === 'Oro').length || 0;
-      return medallasB - medallasA;
-    })
-    .slice(0, 6);
+const AthletesSection = () => {
+  const [athletes, setAthletes] = useState([]);
+  const [status, setStatus] = useState('loading');
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+
+    getFeaturedAthletes(controller.signal)
+      .then((featuredAthletes) => {
+        if (!active) return;
+        setAthletes(featuredAthletes);
+        setStatus('ready');
+      })
+      .catch(() => {
+        if (active) setStatus('error');
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, []);
 
   return (
-    <section id="atletas" className="py-12 bg-white">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between mb-8">
+    <section id="atletas" aria-labelledby="featured-athletes-title" aria-busy={status === 'loading'} className="bg-white py-12 dark:bg-slate-950">
+      <div className="container mx-auto min-w-0 px-4">
+        <div className="mb-8 flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Atletas Destacados</h2>
-            <p className="text-gray-600">Los mejores nadadores del estado</p>
+            <h2 id="featured-athletes-title" className="mb-2 text-3xl font-bold text-gray-900 dark:text-white">Atletas Destacados</h2>
+            <p className="text-gray-600 dark:text-slate-300">Atletas seleccionados por ASANDA</p>
           </div>
-          <Link to="/atletas" className="text-blue-600 hover:text-blue-700 font-medium">
-            Ver todos →
+          <Link to="/atletas" className="inline-flex min-h-11 items-center gap-2 font-medium text-blue-700 transition-colors hover:text-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:text-cyan-400 dark:hover:text-cyan-300">
+            Ver todos <ArrowRight size={18} aria-hidden="true" />
           </Link>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {atletasDestacados.map((atleta) => (
-            <div
-              key={atleta.id}
-              onClick={() => onAtletaClick(atleta)}
-              className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-all cursor-pointer group border border-gray-100"
-            >
-              <div className="relative h-64 overflow-hidden">
-                <img
-                  src={atleta.foto}
-                  alt={atleta.nombre}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute top-4 right-4">
-                  {atleta.medallas && atleta.medallas.length > 0 && (
-                    <div className="flex items-center gap-1 bg-black/60 backdrop-blur-sm px-3 py-1 rounded-full">
-                      <Award className="text-yellow-400" size={16} />
-                      <span className="text-white text-sm font-semibold">{atleta.medallas.length}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4">
-                  <h3 className="text-white font-bold text-lg mb-1">{atleta.nombre}</h3>
-                  <p className="text-white/80 text-sm">{atleta.club}</p>
-                </div>
+        {status === 'loading' && <p role="status" className="min-h-64 rounded-xl border border-gray-200 bg-gray-50 p-6 text-gray-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">Cargando atletas destacados…</p>}
+        {status === 'error' && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-6 font-medium text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200">No pudimos cargar los atletas destacados. Intentá nuevamente más tarde.</p>}
+        {status === 'ready' && athletes.length === 0 && <p role="status" className="rounded-xl border border-gray-200 bg-gray-50 p-6 text-gray-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">Todavía no hay atletas destacados publicados.</p>}
+        {status === 'ready' && athletes.length > 0 && <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {athletes.map((athlete) => (
+            <article key={athlete.id} className="min-w-0 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
+              <div className="h-64 overflow-hidden bg-gray-100 dark:bg-slate-800">
+                <img src={athlete.photoUrl} alt={athlete.photoAlt} className="h-full w-full object-cover" />
               </div>
               <div className="p-6">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
-                    {atleta.categoria}
-                  </span>
-                  <div className="flex items-center gap-1 text-blue-600">
-                    <Clock size={16} />
-                    <span className="text-sm font-semibold">{atleta.tiempo}</span>
-                  </div>
-                </div>
-                <p className="text-gray-700 font-medium mb-2">{atleta.evento}</p>
-                {atleta.medallas && atleta.medallas.length > 0 && (
-                  <div className="flex items-center gap-2 mt-3">
-                    <Trophy className="text-yellow-500" size={18} />
-                    <div className="flex gap-1">
-                      {atleta.medallas.map((medalla, index) => (
-                        <span
-                          key={index}
-                          className={`text-xs font-semibold px-2 py-0.5 rounded ${
-                            medalla === 'Oro'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : medalla === 'Plata'
-                              ? 'bg-gray-200 text-gray-700'
-                              : 'bg-orange-100 text-orange-800'
-                          }`}
-                        >
-                          {medalla}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <p className="text-sm font-semibold uppercase tracking-wider text-blue-700 dark:text-cyan-400">{athlete.organization}</p>
+                <h3 className="mt-2 text-xl font-bold text-gray-900 dark:text-white">{athlete.name}</h3>
+                <p className="mt-3 text-sm text-gray-600 dark:text-slate-300"><span className="font-semibold">Categoría:</span> {athlete.category}</p>
               </div>
-            </div>
+            </article>
           ))}
-        </div>
+        </div>}
       </div>
     </section>
   );
 };
 
 export default AthletesSection;
-

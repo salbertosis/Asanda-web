@@ -1,9 +1,7 @@
-import React, { lazy, Suspense, useState } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Link, Navigate, Routes, Route, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowRight, CalendarDays, Trophy } from 'lucide-react';
-import { atletas } from './data/atletas';
 import AppShell from './components/layout/AppShell';
-import AthleteModal from './components/AthleteModal';
 import NewsSection from './components/NewsSection';
 import VideoSection from './components/VideoSection';
 import PhotoGallery from './components/PhotoGallery';
@@ -60,19 +58,6 @@ function AdminCalendarRoute({ view = 'calendar' }) {
 }
 
 function HomePage() {
-  const [atletaSeleccionado, setAtletaSeleccionado] = useState(null);
-  const [modalAbierto, setModalAbierto] = useState(false);
-
-  const abrirModal = (atleta) => {
-    setAtletaSeleccionado(atleta);
-    setModalAbierto(true);
-  };
-
-  const cerrarModal = () => {
-    setModalAbierto(false);
-    setAtletaSeleccionado(null);
-  };
-
   return (
     <>
       <section
@@ -132,7 +117,7 @@ function HomePage() {
         </div>
 
         {/* Sección de Atletas Destacados */}
-        <AthletesSection atletas={atletas} onAtletaClick={abrirModal} />
+        <AthletesSection />
 
         {/* Banner Ad Principal */}
         <div className="container mx-auto px-4 py-3 sm:py-4">
@@ -145,12 +130,6 @@ function HomePage() {
       {/* Galería de Fotos */}
       <PhotoGallery />
 
-      {/* Modal de Detalles del Atleta */}
-      <AthleteModal
-        atleta={atletaSeleccionado}
-        isOpen={modalAbierto}
-        onClose={cerrarModal}
-      />
     </>
   );
 }
