@@ -29,7 +29,7 @@ const AthleteDirectory = ({ membershipType }) => {
   }, [membershipType]);
 
   const clubs = useMemo(() => [...new Map(
-    athletes.map((athlete) => [athlete.clubId, {
+    athletes.filter((athlete) => athlete.clubId).map((athlete) => [athlete.clubId, {
       id: athlete.clubId,
       name: athlete.clubShortName || athlete.clubName,
     }])
@@ -39,9 +39,9 @@ const AthleteDirectory = ({ membershipType }) => {
     ? athletes
     : athletes.filter((athlete) => athlete.clubId === activeClub);
 
-  const emptyMessage = isFederatedPage
-    ? 'No hay atletas federados publicados para este club.'
-    : 'No hay atletas asociados publicados para este club.';
+  const emptyMessage = membershipType
+    ? `No hay atletas ${isFederatedPage ? 'federados' : 'asociados'} publicados para este club.`
+    : 'No hay atletas publicados disponibles.';
 
   if (status === 'loading') {
     return <div className="flex min-h-64 items-center justify-center text-slate-700 dark:text-slate-200" role="status">Cargando atletas…</div>;

@@ -101,9 +101,9 @@ export const getPublishedAthletes = async (membershipType, signal) => {
   const { data, error } = await query;
   if (error) throw error;
 
-  return data.flatMap((athlete) => {
+  return (data ?? []).flatMap((athlete) => {
     const membershipsByClub = new Map();
-    athlete.memberships.forEach((membership) => {
+    (athlete.memberships ?? []).forEach((membership) => {
       if (!membership.organization) return;
       const current = membershipsByClub.get(membership.organization.id) || {
         organization: membership.organization,
@@ -112,6 +112,30 @@ export const getPublishedAthletes = async (membershipType, signal) => {
       current.types.add(membership.membership_type);
       membershipsByClub.set(membership.organization.id, current);
     });
+
+    if (!membershipType) {
+      const currentMembership = [...membershipsByClub.values()]
+        .sort((a, b) => a.organization.name.localeCompare(b.organization.name)
+          || a.organization.id.localeCompare(b.organization.id))[0];
+
+      return [{
+        id: athlete.id,
+        athleteId: athlete.id,
+        name: athlete.preferred_name || athlete.display_name,
+        fullName: athlete.display_name,
+        sex: normalizeSex(athlete.competitive_sex),
+        photoUrl: getPhotoUrl(athlete.photo),
+        photoAlt: athlete.photo?.alt_text || `Retrato de ${athlete.display_name}`,
+        clubId: currentMembership?.organization.id ?? null,
+        clubName: currentMembership?.organization.name || 'Sin club publicado',
+        clubShortName: currentMembership?.organization.short_name,
+        category: athlete.categories?.[0]?.category?.name || 'Sin categoría',
+        disciplines: (athlete.disciplines ?? [])
+          .map(({ discipline }) => discipline?.name)
+          .filter(Boolean),
+        isFederated: currentMembership?.types.has('federated') ?? false,
+      }];
+    }
 
     return [...membershipsByClub.values()]
       .filter(({ types }) => types.has(membershipType))

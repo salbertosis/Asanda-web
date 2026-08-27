@@ -31,11 +31,38 @@ const athletesResponse = [
     disciplines: [{ discipline: { code: 'swimming', name: 'Natación' } }],
     categories: [{ category: { code: 'infant-a', name: 'Infantil A', sort_order: 40 } }],
   },
+  {
+    id: 'without-membership',
+    display_name: 'Atleta Sin Membresía',
+    preferred_name: null,
+    competitive_sex: 'open',
+    photo: null,
+    memberships: [],
+    disciplines: [],
+    categories: [],
+  },
 ];
 
-const routeAthletes = (page, response = athletesResponse, status = 200) => page.route('**/rest/v1/athletes*', (route) => (
-  route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(response) })
-));
+const routeAthletes = (page, response = athletesResponse, status = 200, onRequest) => page.route('**/rest/v1/athletes*', (route) => {
+  onRequest?.(route.request());
+  return route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(response) });
+});
+
+test('shows every published athlete once on the public directory without legacy or private data', async ({ page }) => {
+  let requestUrl;
+  await routeAthletes(page, athletesResponse, 200, (request) => { requestUrl = new URL(request.url()); });
+
+  await page.goto('/atletas');
+
+  await expect(page.getByRole('heading', { name: 'Gustavo Idrogo' })).toHaveCount(1);
+  await expect(page.getByRole('heading', { name: 'Atleta Sin Membresía' })).toBeVisible();
+  await expect(page.getByText('Sin club publicado').first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Carlos Mendoza' })).toHaveCount(0);
+  await expect(page.getByText('24/09/2008')).toHaveCount(0);
+  await expect(page.getByText('32.625.806')).toHaveCount(0);
+  await expect(page.getByText('52.34', { exact: true })).toHaveCount(0);
+  expect(requestUrl.searchParams.get('publication_status')).toBe('eq.published');
+});
 
 test('shows Gustavo on associated and federated directories without private identity data', async ({ page }) => {
   await routeAthletes(page);
@@ -67,15 +94,29 @@ test('filters associated athletes by club with an accessible pressed state', asy
 
 test('renders an accessible athlete error state', async ({ page }) => {
   await routeAthletes(page, { message: 'Unavailable' }, 500);
-  await page.goto('/atletas-federados');
+  await page.goto('/atletas');
   await expect(page.getByRole('alert')).toContainText('No pudimos cargar los atletas');
+});
+
+test('renders public athlete loading and empty states', async ({ page }) => {
+  let releaseResponse;
+  await page.route('**/rest/v1/athletes*', async (route) => {
+    await new Promise((resolve) => { releaseResponse = resolve; });
+    await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+  });
+
+  await page.goto('/atletas');
+  await expect(page.getByRole('status')).toHaveText('Cargando atletas…');
+  await expect.poll(() => typeof releaseResponse).toBe('function');
+  releaseResponse();
+  await expect(page.getByRole('status')).toHaveText('No hay atletas publicados disponibles.');
 });
 
 test('keeps athlete cards within a mobile viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ colorScheme: 'dark' });
   await routeAthletes(page);
-  await page.goto('/atletas-asociados');
+  await page.goto('/atletas');
 
   await expect(page.getByRole('heading', { name: 'Gustavo Idrogo' })).toBeVisible();
   const pageWidth = await page.evaluate(() => document.documentElement.scrollWidth);

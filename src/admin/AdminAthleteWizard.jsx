@@ -154,7 +154,7 @@ const AdminAthleteWizard = ({ athleteId }) => {
     <section aria-labelledby="athlete-wizard-title" className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <button type="button" onClick={() => navigate('/admin')} className="inline-flex min-h-10 items-center gap-2 font-bold text-asanda-deep hover:text-asanda-orange dark:text-slate-100 dark:hover:text-asanda-orange"><ArrowLeft size={17} aria-hidden="true" /> Volver al panel</button>
+          <button type="button" onClick={() => navigate('/admin/atletas')} className="inline-flex min-h-10 items-center gap-2 font-bold text-asanda-deep hover:text-asanda-orange dark:text-slate-100 dark:hover:text-asanda-orange"><ArrowLeft size={17} aria-hidden="true" /> Volver a atletas</button>
           <p className="mt-5 text-xs font-bold uppercase tracking-[0.16em] text-asanda-deep dark:text-slate-300">Asistente de atleta</p>
           <h1 id="athlete-wizard-title" className="mt-2 font-display text-3xl font-bold sm:text-4xl">{title}</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">Completá únicamente información pública aprobada. Los datos privados no forman parte de este formulario.</p>

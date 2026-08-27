@@ -30,7 +30,20 @@ const athlete = {
   publication_status: 'draft',
 };
 
+const publishedAthlete = {
+  ...athlete,
+  id: 'athlete-published',
+  display_name: 'Atleta publicado',
+  preferred_name: 'Preferido',
+  publication_status: 'published',
+};
+
 const json = (body) => ({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+const isAthleteListRequest = (request) => {
+  const query = new URL(request.url()).searchParams;
+  return query.get('select') === 'id,display_name,preferred_name,competitive_sex,publication_status'
+    && query.get('order') === 'display_name.asc';
+};
 
 const routeAdminAuth = async (page) => {
   await page.route('**/auth/v1/token**', (route) => route.fulfill(json({
@@ -87,12 +100,13 @@ test('creates a draft through one atomic athlete RPC', async ({ page }) => {
   });
   await page.route('**/rest/v1/athletes**', (route) => {
     if (route.request().method() !== 'GET') legacyWrites += 1;
-    return route.fulfill(json(athlete));
+    return route.fulfill(json(isAthleteListRequest(route.request()) ? [] : athlete));
   });
   await page.route('**/rest/v1/media_assets**', (route) => route.fulfill(json([])));
   await page.route(/\/rest\/v1\/(age_categories|disciplines|organizations).*/, (route) => route.fulfill(json([])));
   await signInEditor(page);
   await page.getByRole('link', { name: 'Atletas' }).click();
+  await page.getByRole('link', { name: 'Nuevo atleta' }).click();
   await page.getByLabel('Nombre público').fill('Atleta nuevo');
   await page.getByRole('button', { name: 'Guardar borrador' }).click();
   await expect(page).toHaveURL(/\/admin\/atletas\/created-athlete$/);
@@ -120,12 +134,13 @@ test('publishes through one atomic athlete RPC and keeps errors safe', async ({ 
   });
   await page.route('**/rest/v1/athletes**', (route) => {
     if (route.request().method() !== 'GET') legacyWrites += 1;
-    return route.fulfill(json(athlete));
+    return route.fulfill(json(isAthleteListRequest(route.request()) ? [] : athlete));
   });
   await page.route('**/rest/v1/media_assets**', (route) => route.fulfill(json([])));
   await page.route(/\/rest\/v1\/(age_categories|disciplines|organizations).*/, (route) => route.fulfill(json([])));
   await signInEditor(page);
   await page.getByRole('link', { name: 'Atletas' }).click();
+  await page.getByRole('link', { name: 'Nuevo atleta' }).click();
   await page.getByLabel('Nombre público').fill('Atleta publicado');
   await page.getByLabel('Consentimiento de perfil público').check();
   await page.getByRole('button', { name: 'Publicar atleta' }).click();
@@ -141,6 +156,47 @@ test('publishes through one atomic athlete RPC and keeps errors safe', async ({ 
   await expect(page.getByRole('alert')).toContainText('actualización necesaria');
   await expect(page.getByRole('alert')).not.toContainText('leaked-private-id-123');
   expect(calls).toBe(2);
+});
+
+test('lists athletes and exposes loading, error, retry, empty, create, and edit states', async ({ page }) => {
+  let mode = 'list';
+  let releaseList;
+  const pendingList = new Promise((resolve) => { releaseList = resolve; });
+  await routeAdminAuth(page);
+  await page.route('**/rest/v1/athletes**', async (route) => {
+    expect(isAthleteListRequest(route.request())).toBe(true);
+    if (mode === 'list') {
+      await pendingList;
+      return route.fulfill(json([athlete, publishedAthlete]));
+    }
+    if (mode === 'error') {
+      mode = 'empty';
+      return route.fulfill({ ...json({ message: 'private details' }), status: 500 });
+    }
+    return route.fulfill(json([]));
+  });
+
+  await signInEditor(page);
+  await page.getByRole('link', { name: 'Atletas' }).click();
+  await expect(page).toHaveURL(/\/admin\/atletas$/);
+  await expect(page.getByRole('status')).toHaveText('Cargando atletas…');
+  releaseList();
+
+  await expect(page.getByRole('heading', { name: athlete.display_name })).toBeVisible();
+  await expect(page.getByText('Borrador', { exact: true })).toBeVisible();
+  await expect(page.getByText('Nombre preferido: Preferido')).toBeVisible();
+  await expect(page.getByText('Publicado', { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Nuevo atleta' })).toHaveAttribute('href', '/admin/atletas/nuevo');
+  await expect(page.getByRole('link', { name: `Editar ${publishedAthlete.display_name}` })).toHaveAttribute('href', `/admin/atletas/${publishedAthlete.id}`);
+  await expect(page.getByText('athlete-published')).toHaveCount(0);
+
+  mode = 'error';
+  await page.goto('/admin/noticias');
+  await page.getByRole('link', { name: 'Atletas' }).click();
+  await expect(page.getByRole('alert')).toContainText('No fue posible cargar los atletas');
+  await expect(page.getByRole('alert')).not.toContainText('private details');
+  await page.getByRole('button', { name: 'Reintentar' }).click();
+  await expect(page.getByText('Todavía no hay atletas.')).toBeVisible();
 });
 
 test('preserves category values when overlapping periods are rejected', async ({ page }) => {

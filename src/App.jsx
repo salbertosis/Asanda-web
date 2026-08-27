@@ -23,7 +23,7 @@ const AlbumPage = lazy(() => import('./pages/AlbumPage.jsx'));
 const CalendarioPage = lazy(() => import('./pages/CalendarioPage.jsx'));
 const CompetenciaPage = lazy(() => import('./pages/CompetenciaPage.jsx'));
 const ResultadosPage = lazy(() => import('./pages/ResultadosPage.jsx'));
-const AtletasPage = lazy(() => import('./pages/AtletasPage.jsx'));
+const AtletasPublicadosPage = lazy(() => import('./pages/AtletasPublicadosPage.jsx'));
 const RecordEstadalPage = lazy(() => import('./pages/RecordEstadalPage.jsx'));
 const AtletasAsociadosPage = lazy(() => import('./pages/AtletasAsociadosPage.jsx'));
 const AtletasFederadosPage = lazy(() => import('./pages/AtletasFederadosPage.jsx'));
@@ -37,6 +37,7 @@ const AdminNewsPage = lazy(() => import('./admin/AdminNewsPage.jsx'));
 const NewsEditorPage = lazy(() => import('./admin/NewsEditorPage.jsx'));
 const AdminMediaPage = lazy(() => import('./admin/AdminMediaPage.jsx'));
 const AdminFeaturedPage = lazy(() => import('./admin/AdminFeaturedPage.jsx'));
+const AdminAthletesPage = lazy(() => import('./admin/AdminAthletesPage.jsx'));
 const AdminAthleteWizard = lazy(() => import('./admin/AdminAthleteWizard.jsx'));
 const AdminClubManager = lazy(() => import('./admin/AdminClubManager.jsx'));
 const AdminCalendarPage = lazy(() => import('./admin/AdminCalendarPage.jsx'));
@@ -160,7 +161,7 @@ function PublicApplication() {
         <Route path="/calendario" element={<CalendarioPage />} />
         <Route path="/calendario/:slug" element={<CompetenciaPage />} />
         <Route path="/resultados" element={<ResultadosPage />} />
-        <Route path="/atletas" element={<AtletasPage />} />
+        <Route path="/atletas" element={<AtletasPublicadosPage />} />
         <Route path="/atletas-asociados" element={<AtletasAsociadosPage />} />
         <Route path="/atletas-federados" element={<AtletasFederadosPage />} />
         <Route path="/clubes" element={<ClubesPage />} />
@@ -184,6 +185,7 @@ function AdminApplication() {
             <Route path="noticias/:id" element={<NewsEditorPage />} />
             <Route path="media" element={<AdminMediaPage />} />
             <Route path="destacados" element={<AdminFeaturedPage />} />
+            <Route path="atletas" element={<AdminAthletesPage />} />
             <Route path="atletas/nuevo" element={<AdminAthleteRoute />} />
             <Route path="atletas/:athleteId" element={<AdminAthleteRoute />} />
             <Route path="clubes" element={<AdminClubRoute listOnly />} />

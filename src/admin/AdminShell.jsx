@@ -42,7 +42,7 @@ const AdminShell = () => {
             <Star size={17} aria-hidden="true" />
             Destacados
           </NavLink>
-          <NavLink to="/admin/atletas/nuevo" className={navItem}>
+          <NavLink to="/admin/atletas" className={navItem}>
             <Users size={17} aria-hidden="true" />
             Atletas
           </NavLink>

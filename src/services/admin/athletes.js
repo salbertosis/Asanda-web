@@ -1,6 +1,7 @@
 import { supabase } from '../supabase';
 
 const ATHLETE_COLUMNS = 'id,display_name,preferred_name,competitive_sex,birth_year_public,photo_asset_id,publication_status';
+const ATHLETE_LIST_COLUMNS = 'id,display_name,preferred_name,competitive_sex,publication_status';
 
 const asArray = (value) => (Array.isArray(value) ? value.filter((item) => item && typeof item === 'object') : []);
 
@@ -97,6 +98,13 @@ const normalizeConsentMap = (rows) => Object.fromEntries(asArray(rows).map((row)
   row.consent_type,
   row.status === 'granted' && (!row.expires_at || new Date(row.expires_at).getTime() > Date.now()),
 ]));
+
+export const listAdminAthletes = async () => {
+  const athletes = await readRequired(
+    supabase.from('athletes').select(ATHLETE_LIST_COLUMNS).order('display_name'),
+  );
+  return asArray(athletes).map(normalizeAthlete);
+};
 
 export const getAthleteReferences = async () => {
   const [media, categories, disciplines, organizations] = await Promise.all([
