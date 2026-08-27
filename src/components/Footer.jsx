@@ -15,13 +15,13 @@ const Footer = () => {
   const whatsapp = approvedPublicSite.social.find(({ label }) => label === 'WhatsApp');
 
   return (
-    <footer className="bg-asanda-navy text-white">
+    <footer data-testid="site-footer" className="border-t-4 border-asanda-orange bg-asanda-ink text-white">
       <section className="border-y border-asanda-line bg-asanda-foam text-asanda-ink dark:border-slate-700 dark:bg-slate-100" aria-labelledby="global-sponsors-title">
         <div className="mx-auto grid max-w-7xl gap-6 px-4 py-10 sm:px-5 lg:grid-cols-[190px_minmax(0,1fr)] lg:items-center lg:py-12">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-asanda-blue">Aliados ASANDA</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-asanda-deep">Aliados ASANDA</p>
             <h2 id="global-sponsors-title" className="mt-2 text-lg font-bold tracking-wide text-asanda-ink">Patrocinadores globales</h2>
-            <p className="mt-2 text-xs leading-5 text-teal-800/70">Identidades ficticias de demostración.</p>
+            <p className="mt-2 text-xs leading-5 text-asanda-deep/80">Identidades ficticias de demostración.</p>
           </div>
           <PartnerGridSlot />
         </div>
@@ -38,7 +38,7 @@ const Footer = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Seguir a ASANDA en Instagram"
-                className="inline-flex size-11 items-center justify-center rounded-full border border-white/30 text-white transition-colors hover:border-asanda-orange hover:bg-asanda-orange/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-asanda-orange focus-visible:ring-offset-2 focus-visible:ring-offset-asanda-navy"
+                className="inline-flex size-11 items-center justify-center rounded-full border border-white/30 text-white transition-colors hover:border-asanda-orange hover:bg-asanda-orange/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-asanda-orange focus-visible:ring-offset-2 focus-visible:ring-offset-asanda-ink"
               >
                 <Instagram size={24} aria-hidden="true" />
               </a>
@@ -49,7 +49,7 @@ const Footer = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Contactar a ASANDA por WhatsApp"
-                  className="inline-flex size-11 items-center justify-center rounded-full border border-white/30 text-white transition-colors hover:border-asanda-cyan hover:bg-asanda-cyan/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-asanda-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-asanda-navy"
+                  className="inline-flex size-11 items-center justify-center rounded-full border border-white/30 text-white transition-colors hover:border-asanda-cyan hover:bg-asanda-cyan/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-asanda-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-asanda-ink"
                 >
                   <WhatsAppIcon />
                 </a>
@@ -58,7 +58,7 @@ const Footer = () => {
           </div>
         )}
 
-        {approvedPublicSite.copyright && <div className="mt-6 border-t border-white/20 pt-6 text-center text-sm text-blue-100"><p>{approvedPublicSite.copyright.notice}</p>{approvedPublicSite.legal.legalApproved && approvedPublicSite.legal.privacyApproved && <div className="mt-2 flex justify-center gap-4"><Link to="/legal" className="inline-flex min-h-11 min-w-11 items-center justify-center transition-colors hover:text-orange-200">Legal</Link><Link to="/privacidad" className="inline-flex min-h-11 min-w-11 items-center justify-center transition-colors hover:text-orange-200">Privacidad</Link></div>}</div>}
+        {approvedPublicSite.copyright && <div className="mt-6 border-t border-white/20 pt-6 text-center text-sm text-white/75"><p>{approvedPublicSite.copyright.notice}</p>{approvedPublicSite.legal.legalApproved && approvedPublicSite.legal.privacyApproved && <div className="mt-2 flex justify-center gap-4"><Link to="/legal" className="inline-flex min-h-11 min-w-11 items-center justify-center transition-colors hover:text-asanda-orange">Legal</Link><Link to="/privacidad" className="inline-flex min-h-11 min-w-11 items-center justify-center transition-colors hover:text-asanda-orange">Privacidad</Link></div>}</div>}
       </div>
     </footer>
   );

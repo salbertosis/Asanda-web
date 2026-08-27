@@ -13,7 +13,7 @@ const PageHero = ({ title, backgroundImage, subtitle, compact = false }) => {
         }}
       >
         {/* Overlay oscuro para mejorar legibilidad */}
-        <div className="absolute inset-0 bg-gradient-to-b from-blue-900/80 via-blue-800/70 to-blue-900/80"></div>
+        <div data-testid="page-hero-overlay" className="absolute inset-0 bg-gradient-to-b from-asanda-ink/95 via-asanda-deep to-asanda-ink/95"></div>
       </div>
       
       {/* Título centrado */}
@@ -21,7 +21,7 @@ const PageHero = ({ title, backgroundImage, subtitle, compact = false }) => {
         <h1 className={`${compact ? 'text-4xl md:text-6xl' : 'text-5xl md:text-7xl lg:text-8xl'} font-bold text-white drop-shadow-2xl`}>
           {title}
         </h1>
-        {subtitle && <p className="mx-auto mt-4 max-w-2xl text-base font-medium text-blue-50 md:text-lg">{subtitle}</p>}
+        {subtitle && <p className="mx-auto mt-4 max-w-2xl text-base font-medium text-white/90 md:text-lg">{subtitle}</p>}
       </div>
     </section>
   );

@@ -50,6 +50,20 @@ test('exposes footer link targets of at least 44 by 44 pixels', async ({ page })
   }
 });
 
+test('uses the ASANDA palette for page heroes and the global footer', async ({ page }) => {
+  await page.goto('/noticias');
+
+  const overlayBackground = await page.getByTestId('page-hero-overlay').evaluate((element) => getComputedStyle(element).backgroundImage);
+  expect(overlayBackground).toContain('rgba(18, 48, 71, 0.95)');
+  expect(overlayBackground).toContain('rgb(8, 127, 132)');
+
+  const footerColors = await page.getByTestId('site-footer').evaluate((element) => {
+    const styles = getComputedStyle(element);
+    return { background: styles.backgroundColor, topBorder: styles.borderTopColor };
+  });
+  expect(footerColors).toEqual({ background: 'rgb(18, 48, 71)', topBorder: 'rgb(201, 88, 45)' });
+});
+
 test('keeps approved legal links navigating to coherent legal routes', async ({ page }) => {
   await injectApprovedPublicSite(page);
   await page.goto('/');
