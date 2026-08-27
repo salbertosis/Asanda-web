@@ -77,28 +77,70 @@ const routeAthleteEditor = async (page, handlers = {}) => {
   await page.route('**/rest/v1/athlete_memberships**', handlers.membership || ((route) => route.fulfill(json([]))));
 };
 
-test('preserves public profile and media values when consent gates reject publication', async ({ page }) => {
+test('creates a draft through one atomic athlete RPC', async ({ page }) => {
+  const writes = [];
+  let legacyWrites = 0;
   await routeAdminAuth(page);
-  await page.route('**/rest/v1/media_assets**', (route) => route.fulfill(json([
-    { id: 'athlete-photo', alt_text: 'Foto sintética aprobada', is_public: true },
-  ])));
+  await page.route('**/rest/v1/rpc/save_admin_athlete', async (route) => {
+    writes.push(route.request().postDataJSON());
+    return route.fulfill(json([{ ...athlete, id: 'created-athlete', display_name: 'Atleta nuevo' }]));
+  });
+  await page.route('**/rest/v1/athletes**', (route) => {
+    if (route.request().method() !== 'GET') legacyWrites += 1;
+    return route.fulfill(json(athlete));
+  });
+  await page.route('**/rest/v1/media_assets**', (route) => route.fulfill(json([])));
   await page.route(/\/rest\/v1\/(age_categories|disciplines|organizations).*/, (route) => route.fulfill(json([])));
   await signInEditor(page);
   await page.getByRole('link', { name: 'Atletas' }).click();
+  await page.getByLabel('Nombre público').fill('Atleta nuevo');
+  await page.getByRole('button', { name: 'Guardar borrador' }).click();
+  await expect(page).toHaveURL(/\/admin\/atletas\/created-athlete$/);
+  expect(writes).toEqual([{
+    requested_athlete_id: null, requested_display_name: 'Atleta nuevo', requested_preferred_name: null,
+    requested_competitive_sex: null, requested_birth_year_public: null, requested_photo_asset_id: null,
+    requested_publication_status: 'draft', requested_profile_consent: false,
+    requested_photo_consent: false, requested_results_consent: false,
+  }]);
+  expect(legacyWrites).toBe(0);
+});
 
-  await expect(page).toHaveURL(/\/admin\/atletas\/nuevo$/);
-  await expect(page.getByRole('heading', { name: 'Nuevo atleta' })).toBeVisible();
-  await page.getByLabel('Nombre público').fill('Atleta con consentimiento pendiente');
-  await page.getByRole('button', { name: 'Publicar atleta' }).click();
-  await expect(page.getByRole('alert')).toContainText('consentimiento de perfil');
-  await expect(page.getByLabel('Nombre público')).toHaveValue('Atleta con consentimiento pendiente');
-
+test('publishes through one atomic athlete RPC and keeps errors safe', async ({ page }) => {
+  let calls = 0;
+  let legacyWrites = 0;
+  let publishedPayload;
+  await routeAdminAuth(page);
+  await page.route('**/rest/v1/rpc/save_admin_athlete', (route) => {
+    calls += 1;
+    if (calls === 1) {
+      publishedPayload = route.request().postDataJSON();
+      return route.fulfill(json([{ ...athlete, id: 'published-athlete', display_name: 'Atleta publicado', publication_status: 'published' }]));
+    }
+    return route.fulfill({ ...json({ code: 'PGRST202', message: 'schema cache leaked-private-id-123' }), status: 404 });
+  });
+  await page.route('**/rest/v1/athletes**', (route) => {
+    if (route.request().method() !== 'GET') legacyWrites += 1;
+    return route.fulfill(json(athlete));
+  });
+  await page.route('**/rest/v1/media_assets**', (route) => route.fulfill(json([])));
+  await page.route(/\/rest\/v1\/(age_categories|disciplines|organizations).*/, (route) => route.fulfill(json([])));
+  await signInEditor(page);
+  await page.getByRole('link', { name: 'Atletas' }).click();
+  await page.getByLabel('Nombre público').fill('Atleta publicado');
   await page.getByLabel('Consentimiento de perfil público').check();
-  await page.getByLabel('Imagen vinculada').selectOption('athlete-photo');
   await page.getByRole('button', { name: 'Publicar atleta' }).click();
-  await expect(page.getByRole('alert')).toContainText('consentimiento de foto');
-  await expect(page.getByLabel('Nombre público')).toHaveValue('Atleta con consentimiento pendiente');
-  await expect(page.getByLabel('Imagen vinculada')).toHaveValue('athlete-photo');
+  await expect(page).toHaveURL(/\/admin\/atletas\/published-athlete$/);
+  expect(calls).toBe(1);
+  expect(publishedPayload.requested_publication_status).toBe('published');
+  expect(publishedPayload.requested_profile_consent).toBe(true);
+  expect(legacyWrites).toBe(0);
+
+  await page.goto('/admin/atletas/nuevo');
+  await page.getByLabel('Nombre público').fill('Otro atleta');
+  await page.getByRole('button', { name: 'Guardar borrador' }).click();
+  await expect(page.getByRole('alert')).toContainText('actualización necesaria');
+  await expect(page.getByRole('alert')).not.toContainText('leaked-private-id-123');
+  expect(calls).toBe(2);
 });
 
 test('preserves category values when overlapping periods are rejected', async ({ page }) => {

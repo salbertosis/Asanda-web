@@ -146,59 +146,24 @@ export const validateAthletePublication = ({ publicationStatus, profileConsent, 
   if (publicationStatus === 'published' && !profileGranted) throw new Error('PUBLIC_PROFILE_CONSENT_REQUIRED');
 };
 
-const consentRows = (athleteId, values) => {
-  const now = new Date().toISOString();
-  return [
-    ['public_profile', consentValue(values.profileConsent)],
-    ['photo', consentValue(values.photoConsent)],
-    ['results_publication', consentValue(values.resultsConsent)],
-  ].map(([consent_type, granted]) => ({
-    athlete_id: athleteId,
-    consent_type,
-    status: granted ? 'granted' : 'withdrawn',
-    granted_at: granted ? now : null,
-    expires_at: null,
-  }));
-};
-
-const saveConsents = async (athleteId, values) => {
-  const { error } = await supabase.from('athlete_consents').upsert(consentRows(athleteId, values), {
-    onConflict: 'athlete_id,consent_type',
-  });
-  if (error) throw error;
-};
-
-const publicPayload = (values, publicationStatus) => ({
-  display_name: String(values.displayName || '').trim(),
-  preferred_name: String(values.preferredName || '').trim() || null,
-  competitive_sex: publicSex(values.competitiveSex),
-  birth_year_public: publicYear(values.birthYearPublic),
-  photo_asset_id: values.photoAssetId ? requiredId(values.photoAssetId, 'INVALID_MEDIA_REFERENCE') : null,
-  publication_status: publicationStatus,
-});
-
 export const saveAdminAthlete = async (values) => {
   const displayName = String(values.displayName || '').trim();
   if (!displayName) throw new Error('DISPLAY_NAME_REQUIRED');
   validateAthletePublication(values);
-  const finalStatus = values.publicationStatus;
-  const draftPayload = publicPayload(values, 'draft');
-  const athleteId = values.id ? requiredId(values.id, 'ATHLETE_ID_REQUIRED') : null;
-  const stored = athleteId
-    ? await readRequired(supabase.from('athletes').update(draftPayload).eq('id', athleteId).select(ATHLETE_COLUMNS).single())
-    : await readRequired(supabase.from('athletes').insert(draftPayload).select(ATHLETE_COLUMNS).single());
-  const athlete = normalizeAthlete(stored);
-
-  await saveConsents(athlete.id, values);
-
-  if (finalStatus === 'published') {
-    const published = await readRequired(
-      supabase.from('athletes').update({ publication_status: 'published' }).eq('id', athlete.id).select(ATHLETE_COLUMNS).single(),
-    );
-    return normalizeAthlete(published);
-  }
-
-  return athlete;
+  const { data, error } = await supabase.rpc('save_admin_athlete', {
+    requested_athlete_id: values.id ? requiredId(values.id, 'ATHLETE_ID_REQUIRED') : null,
+    requested_display_name: displayName,
+    requested_preferred_name: String(values.preferredName || '').trim() || null,
+    requested_competitive_sex: publicSex(values.competitiveSex),
+    requested_birth_year_public: publicYear(values.birthYearPublic),
+    requested_photo_asset_id: values.photoAssetId ? requiredId(values.photoAssetId, 'INVALID_MEDIA_REFERENCE') : null,
+    requested_publication_status: values.publicationStatus,
+    requested_profile_consent: consentValue(values.profileConsent),
+    requested_photo_consent: consentValue(values.photoConsent),
+    requested_results_consent: consentValue(values.resultsConsent),
+  });
+  if (error) throw error;
+  return normalizeAthlete(Array.isArray(data) ? data[0] : data);
 };
 
 const insertRelation = async (table, payload, select) => {
@@ -243,14 +208,23 @@ export const removeAthleteRelation = (table, filters) => {
 };
 
 export const formatAthleteError = (error) => {
-  const code = error?.message || String(error || '');
+  const code = `${error?.code || ''} ${error?.message || String(error || '')}`;
   const normalized = code.toLowerCase();
 
+  if (normalized.includes('pgrst202') || normalized.includes('schema cache') || normalized.includes('save_admin_athlete')) {
+    return 'La actualización necesaria para guardar atletas todavía no está disponible. Intentá nuevamente más tarde.';
+  }
+  if (normalized.includes('42501') || normalized.includes('unauthorized') || normalized.includes('permission')) {
+    return 'No tenés autorización para guardar atletas.';
+  }
   if (normalized.includes('public_profile_consent') || normalized.includes('public-profile')) {
     return 'La publicación requiere consentimiento de perfil público vigente.';
   }
   if (normalized.includes('photo_consent') || normalized.includes('photo consent') || normalized.includes('foto')) {
     return 'La publicación de una imagen requiere consentimiento de foto vigente.';
+  }
+  if (normalized.includes('23503') || normalized.includes('media') || normalized.includes('photo_asset')) {
+    return 'La imagen seleccionada ya no está disponible. Elegí otra imagen aprobada.';
   }
   if (normalized.includes('federated') || normalized.includes('federación') || normalized.includes('pre-infant')) {
     return 'No se puede guardar la membresía federada: requiere asociación vigente y no aplica a Pre Infantil.';
@@ -262,5 +236,6 @@ export const formatAthleteError = (error) => {
     return 'Revisá las fechas: el período debe tener un inicio válido y no puede terminar antes.';
   }
   if (normalized.includes('display_name')) return 'Ingresá un nombre público para el atleta.';
+  if (normalized.includes('22023') || normalized.includes('22p02') || normalized.includes('23514') || normalized.includes('invalid')) return 'Revisá los datos públicos del atleta antes de guardar.';
   return 'No se pudo guardar el atleta. Revisá los datos e intentá nuevamente.';
 };
