@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import PageHero from '../components/PageHero';
 import CompetitionsCalendar from '../components/CompetitionsCalendar';
-import CompetitionSponsorBadge from '../components/ads/CompetitionSponsorBadge';
 import { getPublicCalendarFilters, getPublishedCompetitions } from '../services/competitions';
 
 const validMonth = (value) => value === 'all' || /^(0[1-9]|1[0-2])$/.test(value);
@@ -50,8 +48,6 @@ const CalendarioPage = () => {
   const reset = () => setParams({}, { replace: false });
 
   return <div className="min-h-screen overflow-x-clip bg-slate-50 dark:bg-slate-950">
-    <PageHero title="Calendario" subtitle="La agenda oficial de competencias acuáticas de Anzoátegui, organizada por fecha, disciplina y sede." compact />
-    <div className="container mx-auto px-4 py-4"><CompetitionSponsorBadge /></div>
     {status === 'loading' && <section className="flex min-h-96 items-center justify-center py-10" role="status"><p className="text-lg font-medium text-slate-700 dark:text-slate-200">Cargando calendario…</p></section>}
     {status === 'error' && <section className="px-4 py-10 text-center" role="alert"><div className="mx-auto max-w-2xl rounded-lg border border-red-200 bg-red-50 p-6 text-red-800"><p>No pudimos cargar el calendario.</p><button type="button" onClick={() => catalog ? setRetry((value) => value + 1) : setCatalogRetry((value) => value + 1)} className="mt-4 min-h-11 rounded-xl border border-red-700 px-4 font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">Reintentar</button></div></section>}
     {status === 'ready' && <CompetitionsCalendar competencias={competencias} sports={catalog.disciplines} years={availableYears} filters={{ sport, year, month }} onChange={updateFilters} onReset={reset} />}
