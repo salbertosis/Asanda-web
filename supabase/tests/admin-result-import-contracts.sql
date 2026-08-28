@@ -7,6 +7,7 @@ declare
   test_editor_id uuid;
   test_sport_id uuid;
   test_discipline_id uuid;
+  test_calendar_id uuid;
   test_event_definition_id uuid;
   test_competition_id uuid;
   test_event_id uuid;
@@ -66,6 +67,8 @@ begin
   where display_name = 'Editor Staging' and role = 'editor' and is_active;
   select id into strict test_sport_id from public.sports where code = 'aquatics';
   select id into strict test_discipline_id from public.disciplines where code = 'swimming';
+  select id into strict test_calendar_id from public.competition_calendars
+  where discipline_id = test_discipline_id and season_year = 2026;
 
   insert into public.organizations (organization_type, name, slug, publication_status)
   values (
@@ -85,14 +88,15 @@ begin
     'long_course'
   ) returning id into test_event_definition_id;
   insert into public.competitions (
-    name, slug, sport_id, starts_on, ends_on, status
+    name, slug, sport_id, starts_on, ends_on, status, calendar_id
   ) values (
     'Task 4.4 synthetic competition',
     'task-44-competition-' || replace(substr(gen_random_uuid()::text, 1, 8), '-', ''),
     test_sport_id,
-    current_date,
-    current_date,
-    'scheduled'
+    date '2026-06-01',
+    date '2026-06-01',
+    'scheduled',
+    test_calendar_id
   ) returning id into test_competition_id;
   insert into public.competition_events (
     competition_id, event_definition_id, competitive_sex, round, sequence_number, status

@@ -5,6 +5,7 @@ declare
   sport_id uuid;
   other_sport_id uuid;
   discipline_id uuid;
+  swimming_calendar_id uuid;
   other_discipline_id uuid;
   definition_id uuid;
   other_definition_id uuid;
@@ -19,6 +20,10 @@ declare
 begin
   select id into strict sport_id from public.sports where code = 'aquatics';
   select id into strict discipline_id from public.disciplines where code = 'swimming';
+  select calendar.id into strict swimming_calendar_id
+  from public.competition_calendars calendar
+  join public.disciplines discipline on discipline.id = calendar.discipline_id
+  where discipline.code = 'swimming' and calendar.season_year = 2026;
   insert into public.sports (code, name) values ('task-42-' || replace(substr(gen_random_uuid()::text, 1, 8), '-', ''), 'Task 4.2 sport') returning id into other_sport_id;
   insert into public.disciplines (sport_id, code, name) values (other_sport_id, 'task-42-' || replace(substr(gen_random_uuid()::text, 1, 8), '-', ''), 'Task 4.2 discipline') returning id into other_discipline_id;
   insert into public.event_definitions (discipline_id, code, name, distance_metres, course)
@@ -40,16 +45,45 @@ begin
 
   blocked := false;
   begin
-    insert into public.competitions (name, slug, sport_id, starts_on, ends_on)
-    values ('Task 4.2 invalid dates', 'task-42-invalid-' || replace(substr(gen_random_uuid()::text, 1, 8), '-', ''), sport_id, current_date, current_date - 1);
+    insert into public.competitions (name, slug, sport_id, starts_on, ends_on, calendar_id)
+    values ('Task 4.2 invalid dates', 'task-42-invalid-' || replace(substr(gen_random_uuid()::text, 1, 8), '-', ''), sport_id, date '2026-06-02', date '2026-06-01', swimming_calendar_id);
   exception when check_violation then blocked := true;
   end;
   if not blocked then failures := array_append(failures, 'invalid competition date range was accepted'); end if;
 
-  insert into public.competitions (name, slug, sport_id, venue_id, starts_on, ends_on, status)
-  values ('Task 4.2 competition', 'task-42-competition-' || replace(substr(gen_random_uuid()::text, 1, 8), '-', ''), sport_id, venue_id, current_date, current_date + 1, 'draft') returning id into competition_id;
+  insert into public.competitions (name, slug, sport_id, venue_id, starts_on, ends_on, status, calendar_id)
+  values ('Task 4.2 competition', 'task-42-competition-' || replace(substr(gen_random_uuid()::text, 1, 8), '-', ''), sport_id, venue_id, date '2026-06-01', date '2026-06-02', 'draft', swimming_calendar_id) returning id into competition_id;
   insert into public.competition_events (competition_id, event_definition_id, category_id, competitive_sex, sequence_number, scheduled_at)
-  values (competition_id, definition_id, category_id, 'open', 1, current_date + interval '1 hour') returning id into event_id;
+  values (competition_id, definition_id, category_id, 'open', 1, timestamptz '2026-06-01 04:00:00+00') returning id into event_id;
+
+  blocked := false;
+  begin
+    insert into public.competition_events (competition_id, event_definition_id, sequence_number, scheduled_at)
+    values (competition_id, definition_id, 2, timestamptz '2026-06-01 03:59:00+00');
+  exception when check_violation then blocked := true;
+  end;
+  if not blocked then failures := array_append(failures, 'Caracas previous-day event boundary was accepted'); end if;
+
+  update public.competition_events set scheduled_at = timestamptz '2026-06-03 03:59:00+00' where id = event_id;
+  blocked := false;
+  begin
+    update public.competitions set ends_on = date '2026-06-01' where id = competition_id;
+    set constraints enforce_competition_range_events immediate;
+  exception when check_violation then blocked := true;
+  end;
+  if not blocked then failures := array_append(failures, 'competition range was shortened past an existing event'); end if;
+
+  update public.competitions set ends_on = date '2026-06-03' where id = competition_id;
+  set constraints enforce_competition_range_events immediate;
+  set constraints enforce_competition_range_events deferred;
+  blocked := false;
+  begin
+    update public.competitions set starts_on = date '2026-06-03' where id = competition_id;
+    set constraints enforce_competition_range_events immediate;
+  exception when check_violation then blocked := true;
+  end;
+  if not blocked then failures := array_append(failures, 'competition range was moved past an existing event'); end if;
+  update public.competition_events set scheduled_at = timestamptz '2026-06-01 04:00:00+00' where id = event_id;
 
   blocked := false;
   begin
@@ -77,7 +111,7 @@ begin
 
   blocked := false;
   begin
-    update public.competition_events set scheduled_at = current_date + interval '3 days' where id = event_id;
+    update public.competition_events set scheduled_at = timestamptz '2026-06-04 04:00:00+00' where id = event_id;
   exception when check_violation then blocked := true;
   end;
   if not blocked then failures := array_append(failures, 'out-of-range event schedule was accepted'); end if;

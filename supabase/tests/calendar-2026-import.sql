@@ -1,6 +1,19 @@
 do $$
 declare
+  approved_slugs constant text[] := array[
+    'i-campeonato-municipal-fondo-2026', 'i-campeonato-estadal-2026',
+    'ii-campeonato-municipal-2026', 'campeonato-regional-2026',
+    'i-campeonato-estadal-preinfantil-2026', 'iii-campeonato-municipal-2026',
+    'campeonato-nacional-categorias-mayo-2026', 'campeonato-nacional-infantil-2026',
+    'juegos-nacionales-juveniles-2026', 'campeonato-nacional-ascenso-2026',
+    'ii-campeonato-estadal-preinfantil-2026', 'iv-campeonato-municipal-2026',
+    'ii-campeonato-estadal-2026', 'campeonato-nacional-categorias-agosto-2026',
+    'v-campeonato-municipal-2026', 'iii-campeonato-estadal-preinfantil-2026',
+    'vi-campeonato-municipal-2026', 'iii-campeonato-estadal-2026',
+    'vii-campeonato-municipal-2026', 'copa-pasion-acuatica-2026'
+  ];
   imported_count integer;
+  invalid_count integer;
   national_logo text;
   preinfant_organizer text;
 begin
@@ -10,6 +23,32 @@ begin
 
   if imported_count <> 20 then
     raise exception 'Expected 20 ASANDA 2026 competitions, found %', imported_count;
+  end if;
+
+  select count(*) into imported_count
+  from public.competitions competition
+  join public.competition_calendars calendar on calendar.id = competition.calendar_id
+  join public.disciplines discipline on discipline.id = calendar.discipline_id
+  where competition.slug = any(approved_slugs)
+    and calendar.season_year = 2026
+    and discipline.code = 'swimming'
+    and extract(year from competition.starts_on)::integer = 2026
+    and competition.sport_id = discipline.sport_id;
+  if imported_count <> 20 then
+    raise exception 'Expected 20 explicit swimming calendar links, found %', imported_count;
+  end if;
+
+  select count(*) into invalid_count
+  from public.competition_calendars calendar
+  join public.disciplines discipline on discipline.id = calendar.discipline_id
+  where discipline.code = 'swimming' and calendar.season_year = 2026;
+  if invalid_count <> 1 then
+    raise exception 'Expected one reused swimming calendar, found %', invalid_count;
+  end if;
+
+  select count(*) into invalid_count from public.competitions where calendar_id is null;
+  if invalid_count <> 0 then
+    raise exception 'Competitions without calendars remain: %', invalid_count;
   end if;
 
   if not exists (

@@ -16,6 +16,7 @@ declare
   federation_id uuid;
   sport_id uuid;
   discipline_id uuid;
+  swimming_calendar_id uuid;
   open_water_id uuid;
   water_polo_id uuid;
   event_definition_id uuid;
@@ -88,6 +89,10 @@ begin
   -- An official performance is hidden until results-publication consent is active.
   select id into strict sport_id from public.sports where code = 'aquatics';
   select id into strict discipline_id from public.disciplines where code = 'swimming';
+  select calendar.id into strict swimming_calendar_id
+  from public.competition_calendars calendar
+  join public.disciplines discipline on discipline.id = calendar.discipline_id
+  where discipline.code = 'swimming' and calendar.season_year = 2026;
   select id into strict open_water_id from public.disciplines where code = 'open-water';
   select id into strict water_polo_id from public.disciplines where code = 'water-polo';
   select id into strict category_id from public.age_categories where code = 'youth-a';
@@ -101,12 +106,12 @@ begin
     'Task 3.1 synthetic event', 50, 'freestyle', 'long_course'
   ) returning id into event_definition_id;
   insert into public.competitions (
-    name, slug, sport_id, organizer_id, starts_on, ends_on,
+    name, slug, sport_id, organizer_id, starts_on, ends_on, calendar_id,
     recognition_status, status, published_at
   ) values (
     'Task 3.1 synthetic competition',
     'task-31-competition-' || replace(substr(gen_random_uuid()::text, 1, 8), '-', ''),
-    sport_id, test_club, current_date, current_date,
+    sport_id, test_club, date '2026-06-01', date '2026-06-01', swimming_calendar_id,
     'recognized', 'completed', now()
   ) returning id into competition_id;
   insert into public.competition_events (
@@ -329,11 +334,11 @@ begin
     'published'
   ) returning id into competition_club;
   insert into public.competitions (
-    name, slug, sport_id, organizer_id, starts_on, status
+    name, slug, sport_id, organizer_id, starts_on, status, calendar_id
   ) values (
     'Task 3.1 organizer reference',
     'task-31-organizer-' || replace(substr(gen_random_uuid()::text, 1, 8), '-', ''),
-    sport_id, competition_club, current_date, 'completed'
+    sport_id, competition_club, date '2026-06-01', 'completed', swimming_calendar_id
   ) returning id into history_competition_id;
   blocked := false;
   begin
@@ -352,11 +357,11 @@ begin
     'published'
   ) returning id into history_club;
   insert into public.competitions (
-    name, slug, sport_id, starts_on, status
+    name, slug, sport_id, starts_on, status, calendar_id
   ) values (
     'Task 3.1 historical result competition',
     'task-31-history-competition-' || replace(substr(gen_random_uuid()::text, 1, 8), '-', ''),
-    sport_id, current_date, 'completed'
+    sport_id, date '2026-06-01', 'completed', swimming_calendar_id
   ) returning id into history_competition_id;
   insert into public.competition_events (
     competition_id, event_definition_id, category_id, competitive_sex, sequence_number, status

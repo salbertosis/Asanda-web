@@ -26,6 +26,7 @@ declare
   athlete_label text;
   category_id uuid;
   discipline_id uuid;
+  calendar_id uuid;
   sport_id uuid;
   event_definition_id uuid;
   event_definition_code text;
@@ -57,6 +58,10 @@ begin
     from public.disciplines discipline
     join public.sports sport on sport.id = discipline.sport_id and sport.is_active
     where discipline.code = 'swimming' and discipline.is_active;
+  select calendar.id into calendar_id
+  from public.competition_calendars calendar
+  join public.disciplines discipline on discipline.id = calendar.discipline_id
+  where discipline.code = 'swimming' and calendar.season_year = 2026;
   checks := array[
     run_id ~ '^[a-f0-9]{32}$',
     administrator_id <> editor_id and administrator_id <> inactive_id and editor_id <> inactive_id,
@@ -78,6 +83,7 @@ begin
       where document.competition_id = md5(run_id || ':competition')::uuid),
     category_id is not null,
     discipline_id is not null,
+    calendar_id is not null,
     sport_id is not null,
     event_definition_id is not null,
     to_regprocedure('public.commit_result_import(uuid,bigint,jsonb,text,jsonb,text,text,text)') is not null,
@@ -99,6 +105,7 @@ begin
   perform set_config('rlsv.missing_mapping_id', missing_mapping_id::text, true);
   perform set_config('rlsv.category_id', coalesce(category_id::text, ''), true);
   perform set_config('rlsv.discipline_id', coalesce(discipline_id::text, ''), true);
+  perform set_config('rlsv.calendar_id', coalesce(calendar_id::text, ''), true);
   perform set_config('rlsv.sport_id', coalesce(sport_id::text, ''), true);
   perform set_config('rlsv.event_definition_id', coalesce(event_definition_id::text, ''), true);
   perform set_config('rlsv.event_definition_code', event_definition_code, true);
@@ -119,6 +126,7 @@ declare
   competition_event_id uuid := current_setting('rlsv.competition_event_id')::uuid;
   category_id uuid := nullif(current_setting('rlsv.category_id'), '')::uuid;
   discipline_id uuid := nullif(current_setting('rlsv.discipline_id'), '')::uuid;
+  calendar_id uuid := nullif(current_setting('rlsv.calendar_id'), '')::uuid;
   sport_id uuid := nullif(current_setting('rlsv.sport_id'), '')::uuid;
   event_definition_id uuid := nullif(current_setting('rlsv.event_definition_id'), '')::uuid;
 begin
@@ -144,11 +152,11 @@ begin
       );
       insert into public.competitions (
         id, name, slug, sport_id, organizer_id, venue_id, starts_on, ends_on,
-        recognition_status, status, published_at
+        recognition_status, status, published_at, calendar_id
       ) values (
         competition_id, current_setting('rlsv.competition_slug'),
         current_setting('rlsv.competition_slug'), sport_id, club_id, venue_id,
-        current_date, current_date + 1, 'recognized', 'scheduled', now()
+        date '2026-06-01', date '2026-06-02', 'recognized', 'scheduled', now(), calendar_id
       );
       insert into public.event_definitions (
         id, discipline_id, code, name, distance_metres, stroke, course
@@ -161,7 +169,7 @@ begin
         round, sequence_number, scheduled_at, status
       ) values (
         competition_event_id, competition_id, event_definition_id, category_id,
-        'open', 'timed_final', 1, current_date + interval '1 hour', 'scheduled'
+        'open', 'timed_final', 1, timestamptz '2026-06-01 04:00:00+00', 'scheduled'
       );
       insert into public.athletes (id, display_name, publication_status)
       values (athlete_id, current_setting('rlsv.athlete_label'), 'draft');
