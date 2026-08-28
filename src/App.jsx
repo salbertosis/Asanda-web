@@ -54,8 +54,8 @@ function AdminClubRoute({ listOnly = false }) {
 }
 
 function AdminCalendarRoute({ view = 'calendar' }) {
-  const { competitionId, venueId } = useParams();
-  return <AdminCalendarPage view={view} competitionId={competitionId} venueId={venueId} />;
+  const { calendarId, competitionId, venueId } = useParams();
+  return <AdminCalendarPage view={view} calendarId={calendarId} competitionId={competitionId} venueId={venueId} />;
 }
 
 function HomePage() {
@@ -192,11 +192,15 @@ function AdminApplication() {
             <Route path="clubes/nuevo" element={<AdminClubRoute />} />
             <Route path="clubes/:clubId" element={<AdminClubRoute />} />
             <Route path="calendario" element={<AdminCalendarRoute />} />
-            <Route path="calendario/nueva" element={<AdminCalendarRoute view="competition" />} />
+            <Route path="calendario/nuevo" element={<AdminCalendarRoute view="new-calendar" />} />
+            <Route path="calendario/nueva" element={<AdminCalendarRoute view="legacy-competition" />} />
             <Route path="calendario/sedes" element={<AdminCalendarRoute view="venues" />} />
             <Route path="calendario/sedes/nueva" element={<AdminCalendarRoute view="venue-form" />} />
             <Route path="calendario/sedes/:venueId" element={<AdminCalendarRoute view="venue-form" />} />
-            <Route path="calendario/:competitionId" element={<AdminCalendarRoute view="competition" />} />
+            <Route path="calendario/:calendarId/competencias" element={<AdminCalendarRoute view="calendar-competitions" />} />
+            <Route path="calendario/:calendarId/competencias/nueva" element={<AdminCalendarRoute view="competition" />} />
+            <Route path="calendario/:calendarId/competencias/:competitionId" element={<AdminCalendarRoute view="competition" />} />
+            <Route path="calendario/:competitionId" element={<AdminCalendarRoute view="legacy-competition" />} />
             <Route path="resultados" element={<AdminResultsPage />} />
             <Route path="*" element={<Navigate to="/admin/noticias" replace />} />
           </Route>
