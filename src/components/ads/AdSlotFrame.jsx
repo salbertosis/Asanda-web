@@ -31,18 +31,21 @@ const SLOT_LAYOUT_STYLES = {
 
 // Marco compartido de slot publicitario (D3): landmark complementary,
 // etiqueta de disclosure, badge Demo, link interno sponsored y foco visible.
-const AdSlotFrame = ({ placement, ad, className = '', imageOnly = false }) => {
+const AdSlotFrame = ({ placement, ad, className = '', imageOnly = false, compact = false }) => {
     const { sponsor } = ad;
     const disclosure = DISCLOSURE_LABELS[sponsor.disclosure] ?? DISCLOSURE_LABELS.publicidad;
     const badge = BADGE_LABELS[sponsor.badge] ?? BADGE_LABELS.demo;
+    const dimensions = compact
+        ? 'h-[72px] min-h-[72px] max-h-[72px] w-full max-w-none flex-row items-stretch rounded-none border-x-0 shadow-none sm:h-20 sm:min-h-20 sm:max-h-20'
+        : `${SLOT_DIMENSION_STYLES[placement.id] ?? ''} ${SLOT_LAYOUT_STYLES[placement.id] ?? ''}`;
 
     return (
         <div
             role="complementary"
             aria-label={`Publicidad: ${sponsor.name}`}
-            className={`flex flex-col overflow-hidden border border-gray-200 bg-white text-gray-900 motion-safe:animate-fade-in dark:border-gray-700 dark:bg-dark-surface dark:text-dark-text ${SLOT_DIMENSION_STYLES[placement.id] ?? ''} ${SLOT_LAYOUT_STYLES[placement.id] ?? ''} ${className}`}
+            className={`flex overflow-hidden border border-gray-200 bg-white text-gray-900 motion-safe:animate-fade-in dark:border-gray-700 dark:bg-dark-surface dark:text-dark-text ${compact ? '' : 'flex-col'} ${dimensions} ${className}`}
         >
-            {!imageOnly && (
+            {!imageOnly && !compact && (
                 <div className="flex shrink-0 items-center justify-between gap-2 px-3 pt-2">
                     <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                         <Info size={12} aria-hidden="true" className="shrink-0 text-gray-400 dark:text-gray-500" />
@@ -53,10 +56,18 @@ const AdSlotFrame = ({ placement, ad, className = '', imageOnly = false }) => {
                     </span>
                 </div>
             )}
+            {!imageOnly && compact && (
+                <div className="flex shrink-0 items-center px-2 sm:px-3">
+                    <span className="inline-flex items-center gap-1 whitespace-nowrap text-[9px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 sm:text-[10px]">
+                        <Info size={12} aria-hidden="true" className="shrink-0 text-gray-400 dark:text-gray-500" />
+                        {disclosure}
+                    </span>
+                </div>
+            )}
             <Link
                 to={ad.destination}
                 rel="sponsored noopener"
-                className="flex min-h-0 flex-1 items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className={`flex min-h-0 min-w-0 flex-1 items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 ${compact ? 'px-1' : ''}`}
             >
                 <img
                     src={sponsor.creative.url}
@@ -65,9 +76,16 @@ const AdSlotFrame = ({ placement, ad, className = '', imageOnly = false }) => {
                     height={sponsor.creative.height}
                     loading="lazy"
                     decoding="async"
-                    className="h-full w-full object-contain p-2"
+                    className={compact ? 'h-full max-h-14 w-full max-w-56 object-contain p-1.5 sm:max-h-16' : 'h-full w-full object-contain p-2'}
                 />
             </Link>
+            {!imageOnly && compact && (
+                <div className="flex shrink-0 items-center pr-2 sm:pr-3">
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800 dark:bg-amber-900 dark:text-amber-100">
+                        {badge}
+                    </span>
+                </div>
+            )}
         </div>
     );
 };

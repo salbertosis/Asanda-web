@@ -136,9 +136,10 @@ test('renders the official agenda with organizer identities', async ({ page }) =
   await routeCompetitions(page, competitionResponse);
   await page.goto('/calendario');
 
-  await expect(page.getByRole('heading', { name: 'Competiciones 2026' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Calendario de competiciones' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'I Campeonato Municipal de Fondo' })).toBeVisible();
-  await expect(page.getByLabel('Resumen del calendario')).toContainText('4');
+  await expect(page.getByRole('article')).toHaveCount(4);
+  await expect(page.getByLabel('Resumen del calendario')).toHaveCount(0);
   await expect(page.getByAltText('Logo de FEVEDA').first()).toHaveAttribute('src', /c_pad,b_transparent.*\/feveda_logo$/);
   await expect(page.getByAltText('Logo de ASANDA')).toHaveAttribute('src', /c_pad,b_transparent.*\/asanda$/);
   await expect(page).toHaveURL('/calendario');
@@ -146,7 +147,8 @@ test('renders the official agenda with organizer identities', async ({ page }) =
   await page.getByLabel('Año').selectOption('2025');
   const fallbackRow = page.getByRole('article').filter({ hasText: 'Torneo de Aguas Abiertas 2025' });
   await expect(fallbackRow.locator('img')).toHaveCount(0);
-  await expect(fallbackRow).toContainText('ASANDA');
+  await expect(fallbackRow).not.toContainText('Organiza:');
+  await expect(fallbackRow.getByRole('img', { name: 'Identidad de ASANDA' })).toBeVisible();
   await expect(page.locator('img[src*="unsplash.com"]')).toHaveCount(0);
 });
 
@@ -158,7 +160,7 @@ test('filters competitions by explicit month', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: 'I Campeonato Municipal de Fondo' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Campeonato Nacional de Categorías' })).toHaveCount(0);
-  await expect(page.getByLabel('Resumen del calendario')).toContainText('1');
+  await expect(page.getByRole('article')).toHaveCount(1);
 });
 
 test('changes year and resets all calendar filters', async ({ page }) => {
@@ -166,14 +168,14 @@ test('changes year and resets all calendar filters', async ({ page }) => {
   await page.goto('/calendario');
 
   await page.getByLabel('Año').selectOption('2025');
-  await expect(page.getByRole('heading', { name: 'Competiciones 2025' })).toBeVisible();
+  await expect(page.getByText('Temporada 2025')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Torneo de Aguas Abiertas 2025' })).toBeVisible();
 
   await page.getByLabel('Mes').selectOption('04');
   await expect(page.getByText('Sin competencias para estos filtros')).toBeVisible();
 
   await page.getByRole('button', { name: 'Reiniciar' }).click();
-  await expect(page.getByRole('heading', { name: 'Competiciones 2026' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Calendario de competiciones' })).toBeVisible();
   await expect(page.getByLabel('Mes')).toHaveValue('all');
   await expect(page).toHaveURL('/calendario');
 });
@@ -204,7 +206,7 @@ test('exposes a loading status while fetching the calendar', async ({ page }) =>
   await page.goto('/calendario');
   await expect(page.getByText('Cargando calendario…', { exact: true })).toBeVisible();
   releaseResponse();
-  await expect(page.getByRole('heading', { name: 'Competiciones 2026' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Calendario de competiciones' })).toBeVisible();
 });
 
 test('shows a safe error and retries the failed request', async ({ page }) => {
@@ -225,10 +227,103 @@ test('keeps the enterprise calendar within a mobile viewport in dark mode', asyn
   await routeCompetitions(page, competitionResponse);
   await page.goto('/calendario');
 
-  await expect(page.getByRole('heading', { name: 'Competiciones 2026' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Calendario de competiciones' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'I Campeonato Municipal de Fondo' })).toBeVisible();
   const pageWidth = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(pageWidth).toBeLessThanOrEqual(390);
+});
+
+test('keeps the calendar sponsor bounded as the viewport grows', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await routeCompetitions(page, competitionResponse);
+  await page.goto('/calendario');
+
+  const sponsor = page.locator('#calendario').getByRole('complementary', { name: /^Publicidad:/ });
+  await expect(sponsor.getByText(/Publicidad|Contenido patrocinado|Presentado por/, { exact: true })).toBeVisible();
+  await expect(sponsor.getByText('Demo', { exact: true })).toBeVisible();
+  await expect(sponsor.getByRole('link')).toHaveAttribute('rel', 'sponsored noopener');
+  const mobileBox = await sponsor.boundingBox();
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const desktopBox = await sponsor.boundingBox();
+  expect(desktopBox.width).toBeGreaterThan(mobileBox.width * 2);
+  expect(desktopBox.height).toBeLessThan(mobileBox.height * 1.5);
+  expect(mobileBox.height).toBeLessThan(mobileBox.width / 3);
+  expect(desktopBox.height).toBeLessThan(desktopBox.width / 5);
+});
+
+test('uses one calendar heading and one descriptive copy', async ({ page }) => {
+  await routeCompetitions(page, competitionResponse);
+  await page.goto('/calendario');
+
+  await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
+  await expect(page.getByText('Consultá fechas, sedes, disciplinas e identidad organizadora de cada encuentro acuático.', { exact: true })).toHaveCount(1);
+  await expect(page.getByTestId('page-hero-overlay')).toHaveCount(0);
+});
+
+test('collapses secondary filters on mobile and exposes them from one control', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await routeCompetitions(page, competitionResponse);
+  await page.goto('/calendario');
+
+  const toggle = page.getByRole('button', { name: 'Filtros' });
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.getByLabel('Mes')).toBeHidden();
+  await expect(page.getByRole('heading', { name: 'I Campeonato Municipal de Fondo' })).toBeVisible();
+
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByLabel('Mes')).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Filtrar calendario por deporte' })).toBeVisible();
+});
+
+test('keeps desktop controls visible and bounds the active underline to its label', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await routeCompetitions(page, competitionResponse);
+  await page.goto('/calendario');
+
+  await expect(page.getByRole('button', { name: 'Filtros' })).toBeHidden();
+  await expect(page.getByLabel('Mes')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Reiniciar' })).toBeVisible();
+  const activeTab = page.getByRole('link', { name: 'Todos', exact: true });
+  const indicator = activeTab.getByTestId('active-tab-indicator');
+  const [tabBox, indicatorBox, navBox] = await Promise.all([
+    activeTab.boundingBox(),
+    indicator.boundingBox(),
+    page.getByRole('navigation', { name: 'Filtrar calendario por deporte' }).boundingBox(),
+  ]);
+  expect(indicatorBox.width).toBeLessThanOrEqual(tabBox.width);
+  expect(indicatorBox.width).toBeLessThan(navBox.width / 3);
+});
+
+test('lays out events from the same month in two desktop columns', async ({ page }) => {
+  const secondFebruaryCompetition = {
+    ...competitionResponse[1],
+    id: '3d1c7f2a-9b40-4c6e-8f11-000000000006',
+    name: 'Copa Regional de Fondo',
+    slug: 'copa-regional-fondo-2026',
+    starts_on: '2026-02-20',
+    ends_on: null,
+  };
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await routeCompetitions(page, [...competitionResponse, secondFebruaryCompetition]);
+  await page.goto('/calendario');
+
+  const februaryGrid = page.getByTestId('month-events-grid').first();
+  const cards = februaryGrid.getByRole('article');
+  await expect(cards).toHaveCount(2);
+  const [firstBox, secondBox, gridBox] = await Promise.all([
+    cards.nth(0).boundingBox(),
+    cards.nth(1).boundingBox(),
+    februaryGrid.boundingBox(),
+  ]);
+  const gridMidpoint = gridBox.x + gridBox.width / 2;
+  expect(firstBox.x + firstBox.width / 2).toBeLessThan(gridMidpoint);
+  expect(secondBox.x + secondBox.width / 2).toBeGreaterThan(gridMidpoint);
+  expect(firstBox.y).toBeLessThan(secondBox.y + secondBox.height);
+  expect(secondBox.y).toBeLessThan(firstBox.y + firstBox.height);
+  expect(firstBox.width).toBeGreaterThan(gridBox.width * 0.4);
+  expect(firstBox.width).toBeLessThan(gridBox.width * 0.6);
 });
 
 test('opens a competition detail from the calendar', async ({ page }) => {
@@ -236,7 +331,12 @@ test('opens a competition detail from the calendar', async ({ page }) => {
   await page.goto('/calendario');
 
   const competition = page.getByRole('article').filter({ hasText: 'Campeonato Nacional de Categorías' });
-  await competition.getByRole('link', { name: 'Ver competencia' }).click();
+  const venue = competition.getByText('Complejo Acuático Nacional, Caracas, Distrito Capital', { exact: true });
+  const detailLink = competition.getByRole('link', { name: 'Ver detalle' });
+  const [venueBox, detailBox] = await Promise.all([venue.boundingBox(), detailLink.boundingBox()]);
+  expect(venueBox.y).toBeLessThan(detailBox.y + detailBox.height);
+  expect(detailBox.y).toBeLessThan(venueBox.y + venueBox.height);
+  await detailLink.click();
 
   await expect(page).toHaveURL(/\/calendario\/campeonato-nacional-categorias-mayo-2026$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Campeonato Nacional de Categorías' })).toBeVisible();

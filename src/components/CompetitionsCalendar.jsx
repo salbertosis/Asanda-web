@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CalendarDays, CheckCircle2, MapPin, RefreshCw, ShieldCheck, Waves } from 'lucide-react';
+import { ArrowRight, CalendarDays, CheckCircle2, ChevronDown, MapPin, RefreshCw, ShieldCheck, Waves } from 'lucide-react';
 import { getCloudinaryUrl } from '../config/cloudinary';
+import CompetitionSponsorBadge from './ads/CompetitionSponsorBadge';
 
 const MONTHS = ['Todos', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const MONTH_VALUES = ['all', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
@@ -14,82 +15,101 @@ const getCompetitionLogo = (competition) => {
 };
 
 const CompetitionsCalendar = ({ competencias, sports, years, filters, onChange, onReset }) => {
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
   const { sport, year, month } = filters;
-  const groupedCompetitions = MONTHS.slice(1).flatMap((month) => {
-    const items = competencias.filter((competition) => competition.mes === month);
-    return items.length > 0 ? [{ month, items }] : [];
+  const groupedCompetitions = MONTHS.slice(1).flatMap((monthName) => {
+    const items = competencias.filter((competition) => competition.mes === monthName);
+    return items.length > 0 ? [{ month: monthName, items }] : [];
   });
-  const recognizedCount = competencias.filter((competition) => competition.reconocido).length;
   const href = (sportCode) => `?sport=${sportCode}&year=${year}&month=${month}`;
 
   return (
-    <section id="calendario" className="bg-slate-50 py-10 dark:bg-slate-950 sm:py-14">
+    <section id="calendario" className="bg-slate-50 py-4 dark:bg-slate-950 sm:py-6 lg:py-8">
       <div className="mx-auto max-w-7xl px-4 sm:px-5">
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_24px_70px_-48px_rgba(15,23,42,0.5)] dark:border-slate-800 dark:bg-slate-900">
-          <div className="border-b border-slate-200 p-5 dark:border-slate-800 sm:p-7">
-            <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-700 dark:text-cyan-400">Agenda oficial ASANDA</p>
-                <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 dark:text-white sm:text-4xl">Competiciones {year}</h2>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300 sm:text-base">Consultá fechas, sedes, disciplinas e identidad organizadora de cada encuentro acuático.</p>
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_18px_55px_-42px_rgba(15,23,42,0.5)] dark:border-slate-800 dark:bg-slate-900" aria-labelledby="calendar-title">
+          <div className="p-4 sm:p-5 lg:p-6">
+            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end lg:grid-cols-[minmax(0,1fr)_auto_auto]">
+              <div className="min-w-0">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-700 dark:text-cyan-400">Agenda oficial ASANDA</p>
+                <h1 id="calendar-title" className="mt-1 text-3xl font-bold tracking-tight text-slate-950 dark:text-white sm:text-4xl">Calendario de competiciones</h1>
+                <p className="mt-2 max-w-2xl text-sm leading-5 text-slate-600 dark:text-slate-300">Consultá fechas, sedes, disciplinas e identidad organizadora de cada encuentro acuático.</p>
               </div>
-              <label className="text-sm font-bold text-slate-700 dark:text-slate-200">Año<select value={year} onChange={(event) => onChange({ year: event.target.value })} className="ml-3 min-h-11 rounded-xl border border-slate-300 bg-white px-4 dark:border-slate-700 dark:bg-slate-950">{years.map((value) => <option key={value}>{value}</option>)}</select></label>
+              <div className="flex items-end justify-between gap-3 md:block">
+                <p className="pb-2 text-sm font-bold text-slate-500 dark:text-slate-400">Temporada {year}</p>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Año
+                  <select value={year} onChange={(event) => onChange({ year: event.target.value })} className="mt-1 block min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-900">
+                    {years.map((value) => <option key={value}>{value}</option>)}
+                  </select>
+                </label>
+              </div>
+              <button type="button" aria-expanded={filtersExpanded} aria-controls="calendar-secondary-filters" onClick={() => setFiltersExpanded((expanded) => !expanded)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 text-sm font-bold text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:border-slate-700 dark:text-slate-200 md:hidden">
+                Filtros <ChevronDown size={18} aria-hidden="true" className={`motion-safe:transition-transform ${filtersExpanded ? 'rotate-180' : ''}`} />
+              </button>
             </div>
 
-            <div className="mt-7 grid gap-4 lg:grid-cols-[minmax(0,240px)_1fr_auto] lg:items-end">
+            <div id="calendar-secondary-filters" className={`${filtersExpanded ? 'grid' : 'hidden'} mt-4 gap-4 border-t border-slate-200 pt-4 dark:border-slate-800 md:grid md:grid-cols-[180px_minmax(0,1fr)_auto] md:items-end`}>
               <label className="block">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Mes</span>
-                <select value={month} onChange={(event) => onChange({ month: event.target.value })} className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-800 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-900">
+                <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Mes</span>
+                <select value={month} onChange={(event) => onChange({ month: event.target.value })} className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-900">
                   {MONTHS.map((label, index) => <option key={label} value={MONTH_VALUES[index]}>{index ? label : 'Todos los meses'}</option>)}
                 </select>
               </label>
-              <nav aria-label="Filtrar calendario por deporte" className="min-w-0 overflow-hidden"><div className="flex gap-2 overflow-x-auto pb-1">{[{ code: 'all', name: 'Todos' }, ...sports].map((item) => <Link key={item.code} to={href(item.code)} aria-current={sport === item.code ? 'page' : undefined} className={`inline-flex min-h-11 shrink-0 items-center border-b-4 px-3 text-sm font-bold motion-safe:transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 ${sport === item.code ? 'border-asanda-orange-strong text-slate-950 dark:text-white' : 'border-transparent text-slate-600 hover:border-slate-300 dark:text-slate-300'}`}>{item.name}</Link>)}</div></nav>
-              <button type="button" onClick={onReset} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 text-sm font-bold text-slate-700 transition-colors hover:border-blue-500 hover:text-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:border-slate-700 dark:text-slate-200 dark:hover:text-cyan-300">
+              <nav aria-label="Filtrar calendario por deporte" className="min-w-0 overflow-hidden">
+                <div className="flex gap-4 overflow-x-auto pb-1">
+                  {[{ code: 'all', name: 'Todos' }, ...sports].map((item) => {
+                    const active = sport === item.code;
+                    return <Link key={item.code} to={href(item.code)} aria-current={active ? 'page' : undefined} className={`inline-flex min-h-11 shrink-0 items-center text-sm font-bold motion-safe:transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${active ? 'text-slate-950 dark:text-white' : 'text-slate-600 hover:text-blue-700 dark:text-slate-300 dark:hover:text-cyan-300'}`}><span className="relative py-2">{item.name}{active && <span data-testid="active-tab-indicator" className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-asanda-orange-strong" aria-hidden="true" />}</span></Link>;
+                  })}
+                </div>
+              </nav>
+              <button type="button" onClick={onReset} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 text-sm font-bold text-slate-700 transition-colors hover:border-blue-500 hover:text-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:border-slate-700 dark:text-slate-200 dark:hover:text-cyan-300">
                 <RefreshCw size={17} aria-hidden="true" /> Reiniciar
               </button>
             </div>
           </div>
 
-          <div className="grid gap-px bg-slate-200 dark:bg-slate-800 sm:grid-cols-3" aria-label="Resumen del calendario">
-            <div className="bg-slate-50 px-5 py-4 dark:bg-slate-900"><p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Programadas</p><p className="mt-1 text-2xl font-bold tabular-nums text-slate-950 dark:text-white">{competencias.length}</p></div>
-            <div className="bg-slate-50 px-5 py-4 dark:bg-slate-900"><p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Oficiales</p><p className="mt-1 text-2xl font-bold tabular-nums text-slate-950 dark:text-white">{recognizedCount}</p></div>
-            <div className="bg-slate-50 px-5 py-4 dark:bg-slate-900"><p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Cobertura</p><p className="mt-1 text-base font-bold text-slate-950 dark:text-white">Anzoátegui y región</p></div>
+          <div>
+            <CompetitionSponsorBadge compact />
           </div>
-        </div>
+        </section>
 
-        <div className="mt-10 space-y-10">
+        <div className="mt-4 space-y-8 lg:mt-6">
           {groupedCompetitions.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center dark:border-slate-700 dark:bg-slate-900" role="status">
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center dark:border-slate-700 dark:bg-slate-900" role="status">
               <CalendarDays className="mx-auto text-blue-700 dark:text-cyan-400" size={34} aria-hidden="true" />
-              <h3 className="mt-4 text-xl font-bold text-slate-950 dark:text-white">Sin competencias para estos filtros</h3>
+              <h2 className="mt-4 text-xl font-bold text-slate-950 dark:text-white">Sin competencias para estos filtros</h2>
               <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-600 dark:text-slate-300">Probá otro mes, disciplina o año para consultar el resto de la agenda.</p>
             </div>
-          ) : groupedCompetitions.map(({ month, items }) => (
-            <section key={month} aria-labelledby={`month-${month}`}>
-              <div className="mb-4 flex items-center gap-4">
-                <h3 id={`month-${month}`} className="text-xl font-bold text-slate-950 dark:text-white sm:text-2xl">{month} <span className="text-slate-400">/ {year}</span></h3>
+          ) : groupedCompetitions.map(({ month: monthName, items }) => (
+            <section key={monthName} aria-labelledby={`month-${monthName}`}>
+              <div className="mb-3 flex items-center gap-3">
+                <h2 id={`month-${monthName}`} className="text-xl font-bold text-slate-950 dark:text-white sm:text-2xl">{monthName} <span className="text-slate-400">/ {year}</span></h2>
                 <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" aria-hidden="true" />
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{items.length} {items.length === 1 ? 'evento' : 'eventos'}</span>
               </div>
-              <div className="space-y-4">
+              <div data-testid="month-events-grid" className="grid gap-3 lg:grid-cols-2 lg:items-stretch">
                 {items.map((competition) => {
                   const logoUrl = getCompetitionLogo(competition);
                   return (
-                    <article key={`${competition.año}-${competition.id}`} className="grid overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_50px_-36px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900 md:grid-cols-[128px_176px_1fr]">
-                      <div className="flex items-center justify-center border-r border-cyan-300/20 bg-[#0F4C5C] px-4 py-6 text-center text-white md:min-h-44">
-                        <div><p className="text-3xl font-bold leading-none tabular-nums">{competition.fechaInicio}{competition.fechaFin !== competition.fechaInicio && <span className="text-xl text-cyan-300">–{competition.fechaFin}</span>}</p><p className="mt-2 text-xs font-bold uppercase tracking-[0.18em] text-blue-200">{competition.mes.slice(0, 3)}</p></div>
+                    <article key={`${competition.año}-${competition.id}`} className="grid min-w-0 grid-cols-[68px_minmax(0,1fr)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_14px_40px_-34px_rgba(15,23,42,0.5)] dark:border-slate-800 dark:bg-slate-900 sm:grid-cols-[72px_minmax(0,1fr)]">
+                      <div className="flex min-h-full items-center justify-center bg-[#0F4C5C] px-2 py-3 text-center text-white">
+                        <div><p className="whitespace-nowrap text-xl font-bold leading-none tabular-nums">{competition.fechaInicio}{competition.fechaFin !== competition.fechaInicio && <span className="text-sm text-cyan-300">–{competition.fechaFin}</span>}</p><p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-blue-200">{competition.mes.slice(0, 3)}</p></div>
                       </div>
-                      <div className="flex min-h-40 items-center justify-center border-b border-slate-200 bg-slate-50 p-6 dark:border-slate-800 dark:bg-slate-800/60 md:border-b-0 md:border-r">
-                        {logoUrl ? <img src={logoUrl} alt={competition.logoAlt || `Identidad de ${competition.organizador}`} width="160" height="96" loading="lazy" decoding="async" className="aspect-[5/3] w-full max-w-36 object-contain" /> : <div className="text-center text-slate-500 dark:text-slate-300"><ShieldCheck className="mx-auto text-blue-700 dark:text-cyan-400" size={34} aria-hidden="true" /><p className="mt-2 text-xs font-bold uppercase tracking-wider">{competition.organizador || 'Organizador'}</p></div>}
-                      </div>
-                      <div className="flex min-w-0 flex-col justify-center p-5 sm:p-7">
-                        <div className="flex flex-wrap items-center gap-2"><span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800 dark:bg-blue-950 dark:text-blue-200"><Waves size={14} aria-hidden="true" /> {competition.sport.name}</span>{competition.reconocido && <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"><CheckCircle2 size={14} aria-hidden="true" /> Oficial</span>}</div>
-                        <h4 className="mt-4 text-xl font-bold leading-tight text-slate-950 dark:text-white sm:text-2xl">{competition.nombre}</h4>
-                        <p className="mt-2 text-sm font-semibold text-slate-500 dark:text-slate-400">Organiza: {competition.organizador}</p>
-                        <div className="mt-4 flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300"><MapPin className="mt-0.5 shrink-0 text-blue-700 dark:text-cyan-400" size={17} aria-hidden="true" /><span>{competition.ubicacion}</span></div>
-                        <Link to={`/calendario/${competition.slug}`} state={{ calendarSearch: href(sport) }} className="mt-5 inline-flex min-h-11 w-fit items-center gap-2 rounded-xl bg-[#0F4C5C] px-4 text-sm font-bold text-white transition-colors hover:bg-[#0B3D49] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F4C5C]">
-                          Ver competencia <ArrowRight size={17} aria-hidden="true" />
-                        </Link>
+                      <div className="flex min-w-0 flex-col p-3">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <div className="flex h-10 w-14 shrink-0 items-center justify-center rounded-md bg-slate-50 p-1 dark:bg-slate-800">
+                            {logoUrl ? <img src={logoUrl} alt={competition.logoAlt || `Identidad de ${competition.organizador}`} width="84" height="50" loading="lazy" decoding="async" className="h-full w-full object-contain" /> : <div role="img" aria-label={`Identidad de ${competition.organizador || 'Organizador'}`}><ShieldCheck className="text-blue-700 dark:text-cyan-400" size={22} aria-hidden="true" /></div>}
+                          </div>
+                          <div className="flex min-w-0 flex-wrap gap-1"><span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-800 dark:bg-blue-950 dark:text-blue-200"><Waves size={12} aria-hidden="true" /> {competition.sport.name}</span>{competition.reconocido && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"><CheckCircle2 size={12} aria-hidden="true" /> Oficial</span>}</div>
+                        </div>
+                        <h3 className="mt-2 text-base font-bold leading-tight text-slate-950 dark:text-white sm:text-lg">{competition.nombre}</h3>
+                        <div data-testid="venue-detail-row" className="mt-auto flex min-w-0 items-center gap-2 pt-1.5">
+                          <div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs leading-5 text-slate-600 dark:text-slate-300"><MapPin className="shrink-0 text-blue-700 dark:text-cyan-400" size={14} aria-hidden="true" /><span className="truncate" title={competition.ubicacion}>{competition.ubicacion}</span></div>
+                          <Link to={`/calendario/${competition.slug}`} state={{ calendarSearch: href(sport) }} className="inline-flex min-h-8 shrink-0 items-center gap-1 rounded px-0.5 text-sm font-bold text-blue-700 underline decoration-2 underline-offset-4 transition-colors hover:text-asanda-orange-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:text-cyan-300 dark:hover:text-orange-300">
+                            Ver detalle <ArrowRight size={14} aria-hidden="true" />
+                          </Link>
+                        </div>
                       </div>
                     </article>
                   );
