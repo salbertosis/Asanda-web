@@ -52,6 +52,14 @@ begin
   end if;
 
   if not exists (
+    select 1 from pg_attribute
+    where attrelid = 'public.competitions'::regclass
+      and attname = 'calendar_id' and attnotnull and not attisdropped
+  ) then
+    raise exception 'competitions.calendar_id is not enforced as NOT NULL';
+  end if;
+
+  if not exists (
     select 1 from public.competitions
     where slug = 'i-campeonato-estadal-2026'
       and starts_on = date '2026-02-27'
