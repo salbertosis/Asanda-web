@@ -30,8 +30,14 @@ const COMPETITIONS_SELECT = `
     city,
     region,
     country_code
+  ),
+  calendar:competition_calendars!inner(
+    season_year,
+    discipline:disciplines!inner(id,code,name,sort_order)
   )
 `;
+
+const asObject = (value) => Array.isArray(value) ? value[0] : value;
 
 const getLogoUrl = (logo) => {
   if (!logo) return null;
@@ -49,6 +55,9 @@ const getLogoUrl = (logo) => {
 const getDayOfMonth = (dateString) => String(new Date(`${dateString}T00:00:00`).getDate());
 
 const normalizeCompetition = (competition) => {
+  const calendar = asObject(competition?.calendar);
+  const sport = asObject(calendar?.discipline);
+  if (!competition || typeof competition.id !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(competition.starts_on || '') || !Number.isInteger(calendar?.season_year) || !sport?.code || !sport?.name) return null;
   const startsOn = new Date(`${competition.starts_on}T00:00:00`);
   const venueParts = competition.venue
     ? [competition.venue.name, competition.venue.city, competition.venue.region].filter(Boolean).join(', ')
@@ -72,6 +81,9 @@ const normalizeCompetition = (competition) => {
     logoUrl: getLogoUrl(competition.logo),
     logoAlt: competition.logo?.alt_text || null,
     reconocido: competition.recognition_status === 'recognized',
+    sport: { id: sport.id, code: sport.code, name: sport.name, sortOrder: sport.sort_order },
+    calendarYear: Number(calendar.season_year),
+    deporte: sport.code,
   };
 };
 
@@ -79,16 +91,36 @@ const buildCompetitionQuery = () => supabase
   .from('competitions')
   .select(COMPETITIONS_SELECT)
   .not('published_at', 'is', null)
-  .neq('status', 'draft');
+  .in('status', ['scheduled', 'in_progress', 'completed', 'postponed', 'cancelled']);
 
-export const getPublishedCompetitions = async (signal) => {
+export const getPublishedCompetitions = async ({ sportCode = 'all', year, month = 'all', signal } = {}) => {
   let query = buildCompetitionQuery().order('starts_on');
-
+  if (sportCode !== 'all') query = query.eq('calendar.discipline.code', sportCode);
+  if (year) {
+    const from = `${year}-${month === 'all' ? '01' : month}-01`;
+    const until = month === 'all' ? `${year + 1}-01-01` : new Date(Date.UTC(year, Number(month), 1)).toISOString().slice(0, 10);
+    query = query.gte('starts_on', from).lt('starts_on', until);
+  }
   if (signal) query = query.abortSignal(signal);
   const { data, error } = await query;
   if (error) throw error;
+  return (Array.isArray(data) ? data : []).map(normalizeCompetition).filter((item) => {
+    if (item) return true;
+    console.warn('Ignoring malformed published competition');
+    return false;
+  });
+};
 
-  return data.map(normalizeCompetition);
+export const getPublicCalendarFilters = async (signal) => {
+  let disciplinesQuery = supabase.from('disciplines').select('id,code,name,sort_order').eq('is_active', true).order('sort_order').order('name');
+  let yearsQuery = supabase.from('competition_calendars').select('season_year').order('season_year', { ascending: false });
+  if (signal) { disciplinesQuery = disciplinesQuery.abortSignal(signal); yearsQuery = yearsQuery.abortSignal(signal); }
+  const [disciplinesResult, yearsResult] = await Promise.all([disciplinesQuery, yearsQuery]);
+  if (disciplinesResult.error) throw disciplinesResult.error;
+  if (yearsResult.error) throw yearsResult.error;
+  const disciplines = (disciplinesResult.data || []).filter((item) => item?.id && item?.code && item?.name).map((item) => ({ id: item.id, code: item.code, name: item.name, sortOrder: item.sort_order }));
+  const years = [...new Set((yearsResult.data || []).map((item) => Number(item?.season_year)).filter(Number.isInteger))].sort((a, b) => b - a);
+  return { disciplines, years };
 };
 
 export const getUpcomingCompetitions = async ({ today = getLocalIsoDay(), limit = 3, signal } = {}) => {
@@ -100,7 +132,7 @@ export const getUpcomingCompetitions = async ({ today = getLocalIsoDay(), limit 
   const { data, error } = await query;
   if (error) throw error;
 
-  return selectUpcomingCompetitions(data, today, limit).map(normalizeCompetition);
+  return selectUpcomingCompetitions(data, today, limit).map(normalizeCompetition).filter(Boolean);
 };
 
 export const getCompetenciaBySlugRemote = async (slug, signal) => {
