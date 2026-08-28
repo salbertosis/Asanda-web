@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
 
+const disciplines = [{ id: 'd1', code: 'swimming', name: 'Natación', sort_order: 10 }, { id: 'd2', code: 'open-water', name: 'Aguas Abiertas', sort_order: 20 }, { id: 'd3', code: 'water-polo', name: 'Water Polo', sort_order: 30 }, { id: 'd4', code: 'artistic-swimming', name: 'Nado Sincronizado', sort_order: 40 }, { id: 'd5', code: 'diving', name: 'Saltos Ornamentales', sort_order: 50 }];
+const calendar = (code = 'swimming', year = 2026) => ({ season_year: year, discipline: disciplines.find((item) => item.code === code) });
+
 const competitionResponse = [
   {
     id: '3d1c7f2a-9b40-4c6e-8f11-000000000001',
@@ -113,18 +116,21 @@ const competitionResponse = [
   },
 ];
 
-const routeCompetitions = (page, competitions, status = 200) => page.route('**/rest/v1/competitions*', (route) => {
-  const url = new URL(route.request().url());
-  const slugFilter = url.searchParams.get('slug');
-  const payload = slugFilter
-    ? competitions.filter((competition) => competition.slug === slugFilter.replace(/^eq\./, ''))
-    : competitions;
-  route.fulfill({
-    status,
-    contentType: 'application/json',
-    body: JSON.stringify(payload),
+const json = (body, status = 200) => ({ status, contentType: 'application/json', body: JSON.stringify(body) });
+const routeCatalog = async (page) => {
+  await page.route('**/rest/v1/disciplines*', (route) => { const url = new URL(route.request().url()); expect(url.searchParams.get('select')).toBe('id,code,name,sort_order'); expect(url.searchParams.get('is_active')).toBe('eq.true'); route.fulfill(json(disciplines)); });
+  await page.route('**/rest/v1/competition_calendars*', (route) => route.fulfill(json([{ season_year: 2026 }, { season_year: 2025 }])));
+};
+const routeCompetitions = async (page, competitions, status = 200) => {
+  await routeCatalog(page);
+  await page.route('**/rest/v1/competitions*', (route) => {
+    const url = new URL(route.request().url()); const slug = url.searchParams.get('slug')?.replace(/^eq\./, ''); const code = url.searchParams.get('calendar.discipline.code')?.replace(/^eq\./, ''); const from = url.searchParams.get('starts_on')?.replace(/^gte\./, ''); const until = url.searchParams.getAll('starts_on').find((value) => value.startsWith('lt.'))?.slice(3);
+    expect(url.searchParams.get('select')).toContain('calendar:competition_calendars!inner');
+    expect(url.searchParams.get('status')).toBe('in.(scheduled,in_progress,completed,postponed,cancelled)');
+    const payload = competitions.map((item) => ({ ...item, calendar: calendar(item.id.endsWith('1') || item.id.endsWith('2') || item.id.endsWith('3') ? 'open-water' : 'swimming', Number(item.starts_on.slice(0, 4))) })).filter((item) => (!slug || item.slug === slug) && (!code || item.calendar.discipline.code === code) && (!from || item.starts_on >= from) && (!until || item.starts_on < until));
+    route.fulfill(json(payload, status));
   });
-});
+};
 
 test('renders the official agenda with organizer identities', async ({ page }) => {
   await routeCompetitions(page, competitionResponse);
@@ -135,8 +141,9 @@ test('renders the official agenda with organizer identities', async ({ page }) =
   await expect(page.getByLabel('Resumen del calendario')).toContainText('4');
   await expect(page.getByAltText('Logo de FEVEDA').first()).toHaveAttribute('src', /c_pad,b_transparent.*\/feveda_logo$/);
   await expect(page.getByAltText('Logo de ASANDA')).toHaveAttribute('src', /c_pad,b_transparent.*\/asanda$/);
-
-  await page.getByRole('button', { name: 'Ver calendario 2025' }).click();
+  await expect(page).toHaveURL('/calendario');
+  await expect(page.getByRole('navigation', { name: 'Filtrar calendario por deporte' }).getByRole('link')).toHaveCount(6);
+  await page.getByLabel('Año').selectOption('2025');
   const fallbackRow = page.getByRole('article').filter({ hasText: 'Torneo de Aguas Abiertas 2025' });
   await expect(fallbackRow.locator('img')).toHaveCount(0);
   await expect(fallbackRow).toContainText('ASANDA');
@@ -147,7 +154,7 @@ test('filters competitions by explicit month', async ({ page }) => {
   await routeCompetitions(page, competitionResponse);
   await page.goto('/calendario');
 
-  await page.getByLabel('Mes').selectOption('Febrero');
+  await page.getByLabel('Mes').selectOption('02');
 
   await expect(page.getByRole('heading', { name: 'I Campeonato Municipal de Fondo' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Campeonato Nacional de Categorías' })).toHaveCount(0);
@@ -158,24 +165,40 @@ test('changes year and resets all calendar filters', async ({ page }) => {
   await routeCompetitions(page, competitionResponse);
   await page.goto('/calendario');
 
-  await page.getByRole('button', { name: 'Ver calendario 2025' }).click();
+  await page.getByLabel('Año').selectOption('2025');
   await expect(page.getByRole('heading', { name: 'Competiciones 2025' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Torneo de Aguas Abiertas 2025' })).toBeVisible();
 
-  await page.getByLabel('Mes').selectOption('Abril');
+  await page.getByLabel('Mes').selectOption('04');
   await expect(page.getByText('Sin competencias para estos filtros')).toBeVisible();
 
   await page.getByRole('button', { name: 'Reiniciar' }).click();
   await expect(page.getByRole('heading', { name: 'Competiciones 2026' })).toBeVisible();
-  await expect(page.getByLabel('Mes')).toHaveValue('Todos');
+  await expect(page.getByLabel('Mes')).toHaveValue('all');
+  await expect(page).toHaveURL('/calendario');
+});
+
+test('keeps URL filters canonical and follows browser history', async ({ page }) => {
+  await routeCompetitions(page, competitionResponse);
+  await page.goto('/calendario?sport=wrong&year=1900&month=99');
+  await expect(page).toHaveURL('/calendario?sport=all&year=2026&month=all');
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://asanda-web.vercel.app/calendario');
+  const swimming = page.getByRole('link', { name: 'Natación', exact: true });
+  await swimming.focus(); await expect(swimming).toBeFocused(); await swimming.press('Enter');
+  await expect(page).toHaveURL(/sport=swimming/); await expect(swimming).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByText('Campeonato Nacional de Categorías')).toBeVisible();
+  await page.getByRole('link', { name: 'Saltos Ornamentales' }).click();
+  await expect(page.getByText('Sin competencias para estos filtros')).toBeVisible();
+  await page.goBack(); await expect(page).toHaveURL(/sport=swimming/); await page.goForward(); await expect(page).toHaveURL(/sport=diving/);
 });
 
 test('exposes a loading status while fetching the calendar', async ({ page }) => {
   let releaseResponse;
   const responseGate = new Promise((resolve) => { releaseResponse = resolve; });
+  await routeCatalog(page);
   await page.route('**/rest/v1/competitions*', async (route) => {
     await responseGate;
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(competitionResponse) });
+    await route.fulfill(json(competitionResponse.map((item) => ({ ...item, calendar: calendar('swimming', Number(item.starts_on.slice(0, 4))) }))));
   });
 
   await page.goto('/calendario');
@@ -184,9 +207,21 @@ test('exposes a loading status while fetching the calendar', async ({ page }) =>
   await expect(page.getByRole('heading', { name: 'Competiciones 2026' })).toBeVisible();
 });
 
+test('shows a safe error and retries the failed request', async ({ page }) => {
+  await routeCatalog(page); let requests = 0; let metadataRequests = 0;
+  let releaseRetry; const retryGate = new Promise((resolve) => { releaseRetry = resolve; });
+  page.on('request', (request) => { if (/\/rest\/v1\/(disciplines|competition_calendars)\?/.test(request.url())) metadataRequests += 1; });
+  await page.route('**/rest/v1/competitions*', async (route) => { const url = new URL(route.request().url()); requests += 1; expect(url.searchParams.getAll('starts_on')).toEqual(['gte.2026-01-01', 'lt.2027-01-01']); if (requests === 1) return route.fulfill(json({ message: 'private detail' }, 500)); await retryGate; return route.fulfill(json([])); });
+  await page.goto('/calendario');
+  await expect(page.getByRole('alert')).toContainText('No pudimos cargar'); await expect(page.getByRole('alert')).not.toContainText('private detail');
+  await page.getByRole('button', { name: 'Reintentar' }).click(); await expect(page.getByText('Cargando calendario…', { exact: true })).toBeVisible(); releaseRetry(); await expect(page.getByText('Sin competencias para estos filtros')).toBeVisible();
+  expect(requests).toBe(2);
+  expect(metadataRequests).toBe(2);
+});
+
 test('keeps the enterprise calendar within a mobile viewport in dark mode', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
   await routeCompetitions(page, competitionResponse);
   await page.goto('/calendario');
 
@@ -205,9 +240,22 @@ test('opens a competition detail from the calendar', async ({ page }) => {
 
   await expect(page).toHaveURL(/\/calendario\/campeonato-nacional-categorias-mayo-2026$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Campeonato Nacional de Categorías' })).toBeVisible();
+  await expect(page.getByText('Natación', { exact: true })).toBeVisible();
   await expect(page.getByText('26 al 30 de Mayo de 2026')).toBeVisible();
   await expect(page.getByText('Complejo Acuático Nacional, Caracas, Distrito Capital')).toBeVisible();
   await expect(page.getByLabel('Organización responsable')).toContainText('FEVEDA');
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://asanda-web.vercel.app/calendario/campeonato-nacional-categorias-mayo-2026');
+  await expect(page.getByRole('link', { name: 'Volver al calendario' })).toHaveAttribute('href', '/calendario?sport=all&year=2026&month=all');
+  await page.getByRole('link', { name: 'Volver al calendario' }).click();
+  await expect(page).toHaveURL('/calendario?sport=all&year=2026&month=all');
+});
+
+test('uses a safe calendar return for direct detail access', async ({ page }) => {
+  await routeCompetitions(page, competitionResponse);
+  await page.goto('/calendario/campeonato-nacional-categorias-mayo-2026');
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Campeonato Nacional de Categorías' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Volver al calendario' })).toHaveAttribute('href', '/calendario');
 });
 
 test('provides a stable fallback for an unknown competition', async ({ page }) => {

@@ -67,6 +67,7 @@ const statsResponse = {
   asOf: '2026-08-12',
 };
 
+const withCalendar = (competition) => ({ ...competition, calendar: { season_year: Number(competition.starts_on.slice(0, 4)), discipline: { id: 'discipline-1', code: 'swimming', name: 'Natación', sort_order: 10 } } });
 const competitionRows = [
   { id: 'c1', slug: 'evento-en-curso', name: 'Evento en curso', starts_on: '2026-08-24', ends_on: '2026-08-26', status: 'in_progress', published_at: '2026-08-01T12:00:00Z', recognition_status: 'recognized', venue: { name: 'Piscina Olímpica', city: 'Barcelona', region: 'Anzoátegui' } },
   { id: 'c2', slug: 'evento-de-hoy', name: 'Evento de hoy', starts_on: '2026-08-26', ends_on: null, status: 'scheduled', published_at: '2026-08-01T12:00:00Z', recognition_status: 'recognized', venue: null },
@@ -75,7 +76,7 @@ const competitionRows = [
   { id: 'c5', slug: 'evento-pasado', name: 'Evento pasado', starts_on: '2026-08-20', ends_on: '2026-08-25', status: 'scheduled', published_at: '2026-08-01T12:00:00Z', recognition_status: 'recognized', venue: null },
   { id: 'c6', slug: 'evento-cancelado', name: 'Evento cancelado', starts_on: '2026-09-03', ends_on: null, status: 'cancelled', published_at: '2026-08-01T12:00:00Z', recognition_status: 'recognized', venue: null },
   { id: 'c7', slug: 'evento-no-publicado', name: 'Evento no publicado', starts_on: '2026-09-04', ends_on: null, status: 'scheduled', published_at: null, recognition_status: 'recognized', venue: null },
-];
+].map(withCalendar);
 
 const publishedRows = () => newsRows.filter((row) => (
   row.publication_status === 'published' && row.published_at && Date.parse(row.published_at) <= Date.now()
@@ -91,11 +92,10 @@ const routePublicNews = (page, { competitions = [], competitionStatus = 200, com
 
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) });
   }),
-  page.route('**/rest/v1/competitions*', competitionHandler || ((route) => route.fulfill({
-    status: competitionStatus,
-    contentType: 'application/json',
-    body: JSON.stringify(competitions),
-  }))),
+  page.route('**/rest/v1/competitions*', competitionHandler || ((route) => {
+    expect(new URL(route.request().url()).searchParams.get('select')).toContain('calendar:competition_calendars!inner');
+    return route.fulfill({ status: competitionStatus, contentType: 'application/json', body: JSON.stringify(competitions) });
+  })),
 ]);
 
 const fixBrowserDate = (page) => page.addInitScript(() => {

@@ -1,14 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { ArrowLeft, CalendarDays, CheckCircle2, MapPin, ShieldCheck, Waves } from 'lucide-react';
 import { getCloudinaryUrl } from '../config/cloudinary';
 import { getCompetenciaBySlugRemote } from '../services/competitions';
-
-const DISCIPLINE_LABELS = {
-  natacion: 'Natación',
-  waterpolo: 'Water Polo',
-  'aguas-abiertas': 'Aguas Abiertas',
-};
 
 const getLogoUrl = (competition) => {
   if (competition.logoUrl) return competition.logoUrl;
@@ -17,8 +11,21 @@ const getLogoUrl = (competition) => {
     : null;
 };
 
+const getCalendarHref = (state, competition) => {
+  if (typeof state?.calendarSearch !== 'string') return '/calendario';
+  const params = new URLSearchParams(state.calendarSearch);
+  const keys = [...params.keys()];
+  if (keys.length !== 3 || keys.some((key) => !['sport', 'year', 'month'].includes(key))) return '/calendario';
+  const sport = params.get('sport');
+  const year = params.get('year');
+  const month = params.get('month');
+  if ((sport !== 'all' && sport !== competition.sport.code) || year !== String(competition.calendarYear) || (month !== 'all' && month !== competition.startsOn.slice(5, 7))) return '/calendario';
+  return `/calendario?${new URLSearchParams({ sport, year, month })}`;
+};
+
 const CompetenciaPage = () => {
   const { slug } = useParams();
+  const location = useLocation();
   const [competition, setCompetition] = useState(null);
   const [status, setStatus] = useState('loading');
 
@@ -78,6 +85,7 @@ const CompetenciaPage = () => {
   }
 
   const logoUrl = getLogoUrl(competition);
+  const calendarHref = getCalendarHref(location.state, competition);
   const dateRange = competition.fechaInicio === competition.fechaFin
     ? `${competition.fechaInicio} de ${competition.mes} de ${competition.año}`
     : `${competition.fechaInicio} al ${competition.fechaFin} de ${competition.mes} de ${competition.año}`;
@@ -86,13 +94,13 @@ const CompetenciaPage = () => {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <section className="bg-[#0F4C5C] text-white">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-5 sm:py-20">
-          <Link to="/calendario" className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-cyan-100 transition-colors hover:text-white">
+          <Link to={calendarHref} className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-cyan-100 transition-colors hover:text-white">
             <ArrowLeft size={18} aria-hidden="true" /> Volver al calendario
           </Link>
           <p className="mt-8 text-xs font-bold uppercase tracking-[0.2em] text-cyan-200">Detalle de competencia</p>
           <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight sm:text-5xl">{competition.nombre}</h1>
           <div className="mt-6 flex flex-wrap gap-2">
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-bold"><Waves size={16} aria-hidden="true" /> {DISCIPLINE_LABELS[competition.deporte] || 'Deporte acuático'}</span>
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-bold"><Waves size={16} aria-hidden="true" /> {competition.sport.name}</span>
             {competition.reconocido && <span className="inline-flex items-center gap-2 rounded-full bg-emerald-300/15 px-4 py-2 text-sm font-bold text-emerald-100"><CheckCircle2 size={16} aria-hidden="true" /> Competencia oficial</span>}
           </div>
         </div>
