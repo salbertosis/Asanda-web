@@ -42,6 +42,7 @@ const AdminAthleteWizard = lazy(() => import('./admin/AdminAthleteWizard.jsx'));
 const AdminClubManager = lazy(() => import('./admin/AdminClubManager.jsx'));
 const AdminCalendarPage = lazy(() => import('./admin/AdminCalendarPage.jsx'));
 const AdminResultsPage = lazy(() => import('./admin/AdminResultsPage.jsx'));
+const AdminRecordsPage = lazy(() => import('./admin/AdminRecordsPage.jsx'));
 
 function AdminAthleteRoute() {
   const { athleteId } = useParams();
@@ -202,6 +203,7 @@ function AdminApplication() {
             <Route path="calendario/:calendarId/competencias/:competitionId" element={<AdminCalendarRoute view="competition" />} />
             <Route path="calendario/:competitionId" element={<AdminCalendarRoute view="legacy-competition" />} />
             <Route path="resultados" element={<AdminResultsPage />} />
+            <Route path="records" element={<AdminRecordsPage />} />
             <Route path="*" element={<Navigate to="/admin/noticias" replace />} />
           </Route>
         </Routes>
