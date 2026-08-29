@@ -38,6 +38,11 @@ const AthleteDirectory = ({ membershipType }) => {
   const visibleAthletes = activeClub === 'all'
     ? athletes
     : athletes.filter((athlete) => athlete.clubId === activeClub);
+  const selectedClub = clubs.find((club) => club.id === activeClub);
+  const totalLabel = `${athletes.length} ${athletes.length === 1 ? 'atleta publicado' : 'atletas publicados'}`;
+  const resultContext = activeClub === 'all'
+    ? totalLabel
+    : `${visibleAthletes.length} de ${athletes.length} ${athletes.length === 1 ? 'atleta' : 'atletas'} · ${selectedClub?.name}`;
 
   const emptyMessage = membershipType
     ? `No hay atletas ${isFederatedPage ? 'federados' : 'asociados'} publicados para este club.`
@@ -52,50 +57,53 @@ const AthleteDirectory = ({ membershipType }) => {
   }
 
   return (
-    <div>
+    <div className="min-w-0 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start lg:gap-7">
       {athletes.length > 0 && (
-        <div className="mb-8 flex flex-col gap-4 border-b border-slate-200 pb-6 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-700 dark:text-cyan-400">Directorio por club</p>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Seleccioná una institución para filtrar el plantel publicado.</p>
-          </div>
-          <div className="flex flex-wrap gap-2" aria-label="Filtrar atletas por club">
+        <aside className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:sticky lg:top-24 lg:p-5" aria-labelledby="athlete-club-filter-title">
+          <h2 id="athlete-club-filter-title" className="text-base font-bold text-slate-950 dark:text-white">Filtrar por club</h2>
+          <p className="mt-1 text-sm leading-5 text-slate-600 dark:text-slate-300">Seleccioná una institución para consultar su plantel publicado.</p>
+          <div className="mt-3 flex max-w-full gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0" aria-label="Filtrar atletas por club">
             {[{ id: 'all', name: 'Todos' }, ...clubs].map((club) => (
               <button
                 key={club.id}
                 type="button"
                 aria-pressed={activeClub === club.id}
                 onClick={() => setActiveClub(club.id)}
-                className={`rounded-full border px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${
+                className={`min-h-11 shrink-0 rounded-xl border px-4 py-2 text-left text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-asanda-orange motion-reduce:transition-none ${
                   activeClub === club.id
-                    ? 'border-blue-700 bg-blue-700 text-white'
-                    : 'border-slate-300 bg-white text-slate-700 hover:border-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200'
+                    ? 'border-asanda-deep bg-asanda-deep text-white shadow-sm ring-1 ring-asanda-orange/50 dark:border-cyan-400 dark:bg-cyan-950'
+                    : 'border-slate-300 bg-white text-slate-700 hover:border-cyan-700 hover:text-asanda-deep dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-cyan-400 dark:hover:text-cyan-200'
                 }`}
               >
                 {club.name}
               </button>
             ))}
           </div>
-        </div>
+        </aside>
       )}
 
-      {visibleAthletes.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300" role="status">{emptyMessage}</div>
-      ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <section className={`min-w-0 ${athletes.length > 0 ? 'mt-5 lg:mt-0' : ''}`} aria-labelledby="athlete-results-title">
+        <div className="border-l-2 border-asanda-orange pl-4">
+          <h2 id="athlete-results-title" className="text-2xl font-bold tracking-tight text-slate-950 dark:text-white">Atletas publicados</h2>
+          {athletes.length > 0 && <p data-testid="athlete-result-context" aria-live="polite" className="mt-1 text-sm text-slate-600 dark:text-slate-300">{resultContext}</p>}
+        </div>
+        {visibleAthletes.length === 0 ? (
+          <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300" role="status">{emptyMessage}</div>
+        ) : (
+        <div className="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {visibleAthletes.map((athlete) => (
-            <article key={athlete.id} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_45px_-30px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900">
-              <div className="relative aspect-[4/3] overflow-hidden bg-blue-50 dark:bg-slate-800">
-                <img src={athlete.photoUrl} alt={athlete.photoAlt} className="h-full w-full object-cover" />
+            <article key={athlete.id} className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_14px_35px_-28px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-slate-900">
+              <div className="relative aspect-[4/3] overflow-hidden border-b border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
+                <img src={athlete.photoUrl} alt={athlete.photoAlt} width="320" height="240" loading="lazy" className={`h-full w-full ${athlete.photoUrl === '/asanda.png' ? 'object-contain p-8' : 'object-cover'}`} />
                 {athlete.isFederated && (
                   <span className="absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-amber-400 px-3 py-1.5 text-xs font-bold text-amber-950 shadow-sm">
                     <Award size={15} aria-hidden="true" /> Federado
                   </span>
                 )}
               </div>
-              <div className="p-5">
+              <div className="border-t-2 border-t-asanda-orange/70 p-5">
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-700 dark:text-cyan-400">{athlete.clubShortName || athlete.clubName}</p>
-                <h2 className="mt-2 text-xl font-bold text-slate-950 dark:text-white">{athlete.name}</h2>
+                <h3 className="mt-2 text-xl font-bold text-slate-950 dark:text-white">{athlete.name}</h3>
                 {athlete.name !== athlete.fullName && <p className="text-sm text-slate-500 dark:text-slate-400">{athlete.fullName}</p>}
                 <dl className="mt-5 grid grid-cols-2 gap-4 border-t border-slate-200 pt-4 text-sm dark:border-slate-700">
                   <div>
@@ -115,7 +123,8 @@ const AthleteDirectory = ({ membershipType }) => {
             </article>
           ))}
         </div>
-      )}
+        )}
+      </section>
     </div>
   );
 };
