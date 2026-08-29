@@ -5,7 +5,9 @@ const token = `x.${Buffer.from(JSON.stringify({ exp: 4102444800, sub: userId, ro
 const user = { id: userId, aud: 'authenticated', role: 'authenticated', email: 'editor@asanda.test', app_metadata: {}, user_metadata: {}, identities: [], created_at: '2026-08-17T00:00:00Z', updated_at: '2026-08-17T00:00:00Z' };
 const json = (body, status = 200) => ({ status, contentType: 'application/json', body: JSON.stringify(body) });
 const athlete = { id: 'athlete-1', display_name: 'Atleta Vinculada', preferred_name: '', competitive_sex: 'female', photo_asset_id: 'photo-1', publication_status: 'published' };
+const secondAthlete = { ...athlete, id: 'athlete-2', display_name: 'Atleta con dos clubes', photo_asset_id: null };
 const photo = { id: 'photo-1', provider: 'cloudinary', public_id: 'asanda/athlete', external_url: null, resource_type: 'image', format: 'jpg', width: 400, height: 400, bytes: 1000, alt_text: 'Retrato aprobado', is_public: true, created_at: '2026-08-28T10:00:00Z' };
+const clubs = [{ id: 'club-1', name: 'Club Uno Completo', short_name: 'Club Uno', organization_type: 'club', publication_status: 'published' }, { id: 'club-2', name: 'Club Archivo', short_name: null, organization_type: 'club', publication_status: 'archived' }];
 
 const routeAuth = async (page) => {
   await page.route('**/auth/v1/token**', (route) => route.fulfill(json({ access_token: token, token_type: 'bearer', expires_in: 3600, expires_at: 4102444800, refresh_token: 'refresh', user })));
@@ -29,10 +31,12 @@ test('protects the records route', async ({ page }) => {
 test('creates, links, publishes, and safely reports record conflicts', async ({ page }) => {
   await routeAuth(page);
   let rows = []; let draftPayload; let publicationPayload; let conflict = false;
-  await page.route('**/rest/v1/athletes**', (route) => route.fulfill(json([athlete])));
+  await page.route('**/rest/v1/athletes**', (route) => route.fulfill(json([athlete, secondAthlete])));
   await page.route('**/rest/v1/media_assets**', (route) => route.fulfill(json([photo])));
-  await page.route('**/rest/v1/event_definitions**', (route) => { const url = new URL(route.request().url()); expect(url.searchParams.get('course')).toBe('eq.long_course'); return route.fulfill(json([{ id: 'event-1', name: '100 metros libre' }])); });
+  await page.route('**/rest/v1/event_definitions**', (route) => { const url = new URL(route.request().url()); expect(url.searchParams.get('disciplines.code')).toBe('eq.swimming'); expect(url.searchParams.get('course')).toBe('eq.long_course'); expect(url.searchParams.get('is_active')).toBe('eq.true'); return route.fulfill(json([{ id: 'event-1', name: '100 metros libre', discipline: { code: 'swimming' } }])); });
   await page.route('**/rest/v1/age_categories**', (route) => route.fulfill(json([{ id: 'category-1', name: 'Juvenil' }])));
+  await page.route('**/rest/v1/organizations**', (route) => { const url = new URL(route.request().url()); expect(url.searchParams.get('organization_type')).toBe('eq.club'); expect(url.searchParams.get('publication_status')).toContain('published'); expect(url.searchParams.get('publication_status')).toContain('archived'); expect(url.searchParams.get('select')).toBe('id,name,short_name,publication_status'); expect(url.searchParams.get('select')).not.toContain('contact'); return route.fulfill(json(clubs)); });
+  await page.route('**/rest/v1/athlete_memberships**', (route) => { const url = new URL(route.request().url()); expect(url.searchParams.get('athlete_id')).toContain('athlete-1'); expect(url.searchParams.get('status')).toBe('eq.active'); expect(url.searchParams.get('valid_from')).toMatch(/^lte\.\d{4}-\d{2}-\d{2}$/); expect(url.searchParams.get('or')).toMatch(/valid_to\.is\.null,valid_to\.gte\.\d{4}-\d{2}-\d{2}/); expect(url.searchParams.get('select')).toBe('athlete_id,organization_id,valid_from,valid_to'); expect(url.searchParams.get('select')).not.toMatch(/contact|email|phone|address/); return route.fulfill(json([{ athlete_id: athlete.id, organization_id: clubs[0].id, valid_from: '2020-01-01', valid_to: null }, { athlete_id: secondAthlete.id, organization_id: clubs[0].id, valid_from: '2020-01-01', valid_to: null }, { athlete_id: secondAthlete.id, organization_id: clubs[1].id, valid_from: '2021-01-01', valid_to: null }])); });
   await page.route('**/rest/v1/records**', (route) => {
     const url = new URL(route.request().url());
     expect(url.searchParams.get('scope_type')).toBe('eq.state');
@@ -55,9 +59,13 @@ test('creates, links, publishes, and safely reports record conflicts', async ({ 
   await signIn(page);
   await page.getByRole('link', { name: 'Récords' }).click();
   await expect(page.getByText('Todavía no hay récords estadales.')).toBeVisible();
+  await expect(page.getByLabel('Prueba (piscina larga)').getByRole('option', { name: '100 metros libre' })).toHaveCount(1);
+  await page.getByRole('radio', { name: 'Club existente' }).check();
+  await expect(page.getByRole('combobox', { name: 'Club existente' }).getByRole('option', { name: 'Club Archivo (archivado)' })).toHaveCount(1);
+  await page.getByLabel('Nombre histórico manual').check();
   await expect(page.getByLabel(/Position/i)).toHaveCount(0);
   await expect(page.getByLabel(/course/i)).toHaveCount(0);
-  await page.getByLabel('Nombre histórico').fill('Atleta Histórica');
+  await page.getByRole('textbox', { name: 'Nombre histórico', exact: true }).fill('Atleta Histórica');
   await page.getByLabel('Club histórico').fill('Club de 1998');
   await page.getByLabel('Foto pública opcional').selectOption(photo.id);
   await expect(page.getByAltText(photo.alt_text)).toBeVisible();
@@ -75,22 +83,30 @@ test('creates, links, publishes, and safely reports record conflicts', async ({ 
   await page.getByRole('button', { name: 'Guardar borrador' }).click();
   await expect(page.getByRole('status')).toContainText('Borrador guardado');
   expect(draftPayload).toMatchObject({ requested_athlete_id: null, requested_photo_asset_id: photo.id, requested_time_ms: 62350, requested_expected_revision: null });
+  expect(draftPayload.requested_club_name).toBe('Club de 1998');
 
   await page.getByRole('button', { name: 'Publicar' }).click();
   expect(publicationPayload).toMatchObject({ requested_record_id: 'record-1', requested_expected_revision: 1, requested_published: true });
   await expect(page.getByText('Publicado', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Ver registro' }).click();
+  await expect(page.getByLabel('Nombre histórico manual')).toBeChecked();
   await expect(page.getByText('Despublicá este récord antes de editarlo.')).toBeVisible();
-  await expect(page.getByLabel('Nombre histórico')).toBeDisabled();
+  await expect(page.getByRole('textbox', { name: 'Nombre histórico', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: 'Despublicar' }).click();
   await expect(page.getByRole('status')).toContainText('Récord despublicado');
 
   await page.getByLabel('Atleta existente').check();
-  await expect(page.getByLabel('Nombre histórico')).toHaveValue(athlete.display_name);
+  await expect(page.getByRole('textbox', { name: 'Nombre histórico', exact: true })).toHaveValue(athlete.display_name);
   await expect(page.getByLabel('Foto pública opcional')).toHaveValue(photo.id);
+  await expect(page.getByRole('combobox', { name: 'Club existente' })).toHaveValue(clubs[0].id);
+  await page.getByRole('combobox', { name: 'Atleta', exact: true }).selectOption(secondAthlete.id);
+  await expect(page.getByRole('combobox', { name: 'Club existente' })).toHaveValue('');
+  await page.getByRole('combobox', { name: 'Atleta', exact: true }).selectOption(athlete.id);
+  await expect(page.getByRole('combobox', { name: 'Club existente' })).toHaveValue(clubs[0].id);
   await expect(page.getByLabel('Categoría histórica')).toHaveValue('category-1');
   conflict = true;
   await page.getByRole('button', { name: 'Guardar borrador' }).click();
+  expect(draftPayload.requested_club_name).toBe(clubs[0].short_name);
   await expect(page.getByRole('alert')).toContainText('cambió en otra sesión');
   await expect(page.getByRole('alert')).not.toContainText('private');
 });

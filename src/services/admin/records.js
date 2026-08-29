@@ -27,15 +27,20 @@ export const listStateRecords = async () => {
 };
 
 export const getRecordReferences = async () => {
-  const [athletesResult, media, definitionsResult, categoriesResult] = await Promise.all([
+  const [athletesResult, media, definitionsResult, categoriesResult, clubsResult] = await Promise.all([
     supabase.from('athletes').select('id,display_name,photo_asset_id').order('display_name'), listPublicImageMedia(),
-    supabase.from('event_definitions').select('id,name').eq('course', 'long_course').eq('is_active', true).order('name'),
+    supabase.from('event_definitions').select('id,name,discipline:disciplines!inner(code)').eq('disciplines.code', 'swimming').eq('course', 'long_course').eq('is_active', true).order('name'),
     supabase.from('age_categories').select('id,name').eq('is_active', true).order('sort_order'),
+    supabase.from('organizations').select('id,name,short_name,publication_status').eq('organization_type', 'club').in('publication_status', ['published', 'archived']).order('name'),
   ]);
   if (athletesResult.error) throw athletesResult.error;
   if (definitionsResult.error) throw definitionsResult.error;
   if (categoriesResult.error) throw categoriesResult.error;
-  return { athletes: athletesResult.data ?? [], media: media.filter((asset) => asset.provider === 'cloudinary' && asset.publicId), definitions: definitionsResult.data ?? [], categories: categoriesResult.data ?? [] };
+  if (clubsResult.error) throw clubsResult.error;
+  const athletes = athletesResult.data ?? []; const now = new Date(); const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const membershipsResult = athletes.length ? await supabase.from('athlete_memberships').select('athlete_id,organization_id,valid_from,valid_to').in('athlete_id', athletes.map((item) => item.id)).eq('status', 'active').lte('valid_from', today).or(`valid_to.is.null,valid_to.gte.${today}`) : { data: [], error: null };
+  if (membershipsResult.error) throw membershipsResult.error;
+  return { athletes, memberships: membershipsResult.data ?? [], clubs: clubsResult.data ?? [], media: media.filter((asset) => asset.provider === 'cloudinary' && asset.publicId), definitions: definitionsResult.data ?? [], categories: categoriesResult.data ?? [] };
 };
 
 export const saveStateRecordDraft = async (values) => {
