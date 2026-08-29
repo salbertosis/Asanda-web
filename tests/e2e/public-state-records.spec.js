@@ -101,6 +101,9 @@ test('keeps loading visible until both public requests finish', async ({ page })
 test('preserves keyboard tabs, dark mode and mobile record cards', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 }); await page.emulateMedia({ reducedMotion: 'reduce' }); await routePageData(page); await page.goto('/record-estadal'); await page.evaluate(() => document.documentElement.classList.add('dark'));
   const first = page.getByRole('tab', { name: 'Infantil A' }); const last = page.getByRole('tab', { name: 'Máxima' });
+  const hero = page.getByTestId('state-records-hero'); const heading = page.getByRole('heading', { level: 2, name: 'Récords publicados' });
+  await expect(page.getByRole('heading', { level: 1, name: 'Récord Estadal', exact: true })).toHaveCount(1); await expect(hero).toBeVisible();
+  expect(await hero.evaluate((element) => element.getBoundingClientRect().height)).toBeLessThanOrEqual(240); expect(await heading.evaluate((element) => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(844); expect(await first.evaluate((element) => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(844);
   await first.focus(); await first.press('End'); await expect(last).toBeFocused(); await last.press('Home'); await expect(first).toBeFocused();
   await first.press('ArrowRight'); await expect(page.getByRole('tab', { name: 'Infantil B' })).toBeFocused(); await page.getByRole('tab', { name: 'Infantil B' }).press('ArrowLeft'); await expect(first).toBeFocused();
   const panel = page.getByRole('tabpanel', { name: 'Infantil A' }); const card = panel.getByRole('list', { name: 'Femenino' }).getByRole('listitem');
