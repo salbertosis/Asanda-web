@@ -14,9 +14,7 @@ const getPhotoUrl = (photo) => {
   return photo.external_url || '/asanda.png';
 };
 
-const getPhotoAlt = (photo, displayName) => getPhotoUrl(photo) === '/asanda.png'
-  ? 'Logotipo de ASANDA'
-  : photo?.alt_text || `Retrato de ${displayName}`;
+const getPhotoAlt = (photo, displayName) => photo?.alt_text || `Retrato de ${displayName}`;
 
 const normalizeSex = (competitiveSex) => ({
   female: 'Femenino',
