@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CalendarDays, CheckCircle2, ChevronDown, MapPin, RefreshCw, ShieldCheck, Waves } from 'lucide-react';
+import { ArrowRight, CalendarDays, CheckCircle2, ChevronDown, MapPin, ShieldCheck, Waves } from 'lucide-react';
 import { getCloudinaryUrl } from '../config/cloudinary';
 import CompetitionSponsorBadge from './ads/CompetitionSponsorBadge';
 
@@ -14,7 +14,7 @@ const getCompetitionLogo = (competition) => {
     : null;
 };
 
-const CompetitionsCalendar = ({ competencias, sports, years, filters, onChange, onReset }) => {
+const CompetitionsCalendar = ({ competencias, sports, years, filters, onChange }) => {
   const [filtersExpanded, setFiltersExpanded] = useState(false);
   const { sport, year, month } = filters;
   const groupedCompetitions = MONTHS.slice(1).flatMap((monthName) => {
@@ -40,7 +40,7 @@ const CompetitionsCalendar = ({ competencias, sports, years, filters, onChange, 
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-200">Agenda oficial ASANDA</p>
-                  <h1 id="calendar-title" className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">Calendario de competiciones</h1>
+                  <h1 id="calendar-title" className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">Calendario de Competencias</h1>
                   <p className="mt-2 max-w-2xl text-sm leading-5 text-slate-200">Consultá competencias, fechas, sedes y disciplinas de la temporada oficial.</p>
                 </div>
               </div>
@@ -63,7 +63,7 @@ const CompetitionsCalendar = ({ competencias, sports, years, filters, onChange, 
           </div>
 
           <div className="bg-white p-4 dark:bg-slate-900 sm:p-5 lg:p-6">
-            <div id="calendar-secondary-filters" className={`${filtersExpanded ? 'grid' : 'hidden'} gap-4 md:grid md:grid-cols-[180px_minmax(0,1fr)_auto] md:items-end`}>
+            <div id="calendar-secondary-filters" className={`${filtersExpanded ? 'grid' : 'hidden'} gap-4 md:grid md:grid-cols-[180px_minmax(0,1fr)] md:items-end`}>
               <label className="block">
                 <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Mes</span>
                 <select value={month} onChange={(event) => onChange({ month: event.target.value })} className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-900">
@@ -78,9 +78,6 @@ const CompetitionsCalendar = ({ competencias, sports, years, filters, onChange, 
                   })}
                 </div>
               </nav>
-              <button type="button" onClick={onReset} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 text-sm font-bold text-slate-700 transition-colors hover:border-blue-500 hover:text-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:border-slate-700 dark:text-slate-200 dark:hover:text-cyan-300">
-                <RefreshCw size={17} aria-hidden="true" /> Reiniciar
-              </button>
             </div>
           </div>
 

@@ -45,12 +45,11 @@ const CalendarioPage = () => {
   }, [catalog, month, retry, sport, year]);
 
   const updateFilters = (next, replace = false) => setParams({ sport, year: String(year), month, ...next }, { replace });
-  const reset = () => setParams({}, { replace: false });
 
   return <div className="min-h-screen overflow-x-clip bg-slate-50 dark:bg-slate-950">
-    {status === 'loading' && <section className="flex min-h-96 flex-col items-center justify-center py-10" role="status"><h1 className="text-3xl font-bold tracking-tight text-slate-950 dark:text-white sm:text-4xl">Calendario de competiciones</h1><p className="mt-4 text-lg font-medium text-slate-700 dark:text-slate-200">Cargando calendario…</p></section>}
+    {status === 'loading' && <section className="flex min-h-96 flex-col items-center justify-center py-10" role="status"><h1 className="text-3xl font-bold tracking-tight text-slate-950 dark:text-white sm:text-4xl">Calendario de Competencias</h1><p className="mt-4 text-lg font-medium text-slate-700 dark:text-slate-200">Cargando calendario…</p></section>}
     {status === 'error' && <section className="px-4 py-10 text-center" role="alert"><div className="mx-auto max-w-2xl rounded-lg border border-red-200 bg-red-50 p-6 text-red-800"><h1 className="text-3xl font-bold tracking-tight">No pudimos cargar el calendario.</h1><button type="button" onClick={() => catalog ? setRetry((value) => value + 1) : setCatalogRetry((value) => value + 1)} className="mt-4 min-h-11 rounded-xl border border-red-700 px-4 font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">Reintentar</button></div></section>}
-    {status === 'ready' && <CompetitionsCalendar competencias={competencias} sports={catalog.disciplines} years={availableYears} filters={{ sport, year, month }} onChange={updateFilters} onReset={reset} />}
+    {status === 'ready' && <CompetitionsCalendar competencias={competencias} sports={catalog.disciplines} years={availableYears} filters={{ sport, year, month }} onChange={updateFilters} />}
   </div>;
 };
 
