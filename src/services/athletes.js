@@ -14,6 +14,10 @@ const getPhotoUrl = (photo) => {
   return photo.external_url || '/asanda.png';
 };
 
+const getPhotoAlt = (photo, displayName) => getPhotoUrl(photo) === '/asanda.png'
+  ? 'Logotipo de ASANDA'
+  : photo?.alt_text || `Retrato de ${displayName}`;
+
 const normalizeSex = (competitiveSex) => ({
   female: 'Femenino',
   male: 'Masculino',
@@ -21,10 +25,23 @@ const normalizeSex = (competitiveSex) => ({
   open: 'Abierto',
 }[competitiveSex] || 'No especificado');
 
-const getCurrentOrganization = (memberships = []) => memberships
-  .filter(({ organization }) => organization)
-  .sort((a, b) => a.organization.name.localeCompare(b.organization.name)
-    || a.organization.id.localeCompare(b.organization.id))[0]?.organization;
+const collapseMembershipsByOrganization = (memberships = []) => {
+  const membershipsByOrganization = new Map();
+
+  memberships.forEach((membership) => {
+    if (!membership.organization) return;
+    const organizationId = membership.organization.id;
+    const current = membershipsByOrganization.get(organizationId) || {
+      organization: membership.organization,
+      types: new Set(),
+    };
+    if (membership.membership_type) current.types.add(membership.membership_type);
+    membershipsByOrganization.set(organizationId, current);
+  });
+
+  return [...membershipsByOrganization.values()]
+    .sort((a, b) => a.organization.id.localeCompare(b.organization.id));
+};
 
 export const getFeaturedAthletes = async (signal) => {
   let query = supabase
@@ -56,14 +73,19 @@ export const getFeaturedAthletes = async (signal) => {
   if (error) throw error;
 
   return (data ?? []).map(({ athlete, display_order: displayOrder }) => {
-    const organization = getCurrentOrganization(athlete.memberships);
+    const organization = collapseMembershipsByOrganization(athlete.memberships)[0]?.organization;
+    const clubName = organization?.name || 'Organización no disponible';
     return {
       id: athlete.id,
       displayOrder,
       name: athlete.preferred_name || athlete.display_name,
+      fullName: athlete.display_name,
       photoUrl: getPhotoUrl(athlete.photo),
-      photoAlt: athlete.photo?.alt_text || `Retrato de ${athlete.display_name}`,
-      organization: organization?.short_name || organization?.name || 'Organización no disponible',
+      photoAlt: getPhotoAlt(athlete.photo, athlete.display_name),
+      organization: organization?.short_name || clubName,
+      clubId: organization?.id ?? null,
+      clubName,
+      clubShortName: organization?.short_name,
       category: athlete.categories?.[0]?.category?.name || 'Sin categoría',
     };
   });
@@ -102,59 +124,30 @@ export const getPublishedAthletes = async (membershipType, signal) => {
   if (error) throw error;
 
   return (data ?? []).flatMap((athlete) => {
-    const membershipsByClub = new Map();
-    (athlete.memberships ?? []).forEach((membership) => {
-      if (!membership.organization) return;
-      const current = membershipsByClub.get(membership.organization.id) || {
-        organization: membership.organization,
-        types: new Set(),
-      };
-      current.types.add(membership.membership_type);
-      membershipsByClub.set(membership.organization.id, current);
-    });
+    const memberships = collapseMembershipsByOrganization(athlete.memberships);
+    const currentMembership = (membershipType
+      ? memberships.filter(({ types }) => types.has(membershipType))
+      : memberships)[0];
+    if (membershipType && !currentMembership) return [];
 
-    if (!membershipType) {
-      const currentMembership = [...membershipsByClub.values()]
-        .sort((a, b) => a.organization.name.localeCompare(b.organization.name)
-          || a.organization.id.localeCompare(b.organization.id))[0];
-
-      return [{
-        id: athlete.id,
-        athleteId: athlete.id,
-        name: athlete.preferred_name || athlete.display_name,
-        fullName: athlete.display_name,
-        sex: normalizeSex(athlete.competitive_sex),
-        photoUrl: getPhotoUrl(athlete.photo),
-        photoAlt: athlete.photo?.alt_text || `Retrato de ${athlete.display_name}`,
-        clubId: currentMembership?.organization.id ?? null,
-        clubName: currentMembership?.organization.name || 'Sin club publicado',
-        clubShortName: currentMembership?.organization.short_name,
-        category: athlete.categories?.[0]?.category?.name || 'Sin categoría',
-        disciplines: (athlete.disciplines ?? [])
-          .map(({ discipline }) => discipline?.name)
-          .filter(Boolean),
-        isFederated: currentMembership?.types.has('federated') ?? false,
-      }];
-    }
-
-    return [...membershipsByClub.values()]
-      .filter(({ types }) => types.has(membershipType))
-      .map(({ organization, types }) => ({
-        id: `${athlete.id}-${organization.id}`,
-        athleteId: athlete.id,
-        name: athlete.preferred_name || athlete.display_name,
-        fullName: athlete.display_name,
-        sex: normalizeSex(athlete.competitive_sex),
-        photoUrl: getPhotoUrl(athlete.photo),
-        photoAlt: athlete.photo?.alt_text || `Retrato de ${athlete.display_name}`,
-        clubId: organization.id,
-        clubName: organization.name,
-        clubShortName: organization.short_name,
-        category: athlete.categories[0]?.category?.name || 'Sin categoría',
-        disciplines: athlete.disciplines
-          .map(({ discipline }) => discipline?.name)
-          .filter(Boolean),
-        isFederated: types.has('federated'),
-      }));
+    return [{
+      id: membershipType && currentMembership
+        ? `${athlete.id}-${currentMembership.organization.id}`
+        : athlete.id,
+      athleteId: athlete.id,
+      name: athlete.preferred_name || athlete.display_name,
+      fullName: athlete.display_name,
+      sex: normalizeSex(athlete.competitive_sex),
+      photoUrl: getPhotoUrl(athlete.photo),
+      photoAlt: getPhotoAlt(athlete.photo, athlete.display_name),
+      clubId: currentMembership?.organization.id ?? null,
+      clubName: currentMembership?.organization.name || 'Sin club publicado',
+      clubShortName: currentMembership?.organization.short_name,
+      category: athlete.categories?.[0]?.category?.name || 'Sin categoría',
+      disciplines: (athlete.disciplines ?? [])
+        .map(({ discipline }) => discipline?.name)
+        .filter(Boolean),
+      isFederated: currentMembership?.types.has('federated') ?? false,
+    }];
   }).sort((a, b) => a.clubName.localeCompare(b.clubName) || a.name.localeCompare(b.name));
 };
