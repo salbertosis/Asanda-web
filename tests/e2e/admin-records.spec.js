@@ -64,6 +64,7 @@ test('creates, links, publishes, and safely reports record conflicts', async ({ 
   await page.getByLabel('Prueba (piscina larga)').selectOption('event-1');
   await page.getByLabel('Categoría histórica').selectOption('category-1');
   await page.getByLabel('Género').selectOption('female');
+  await expect(page.getByLabel('Género').locator('option')).toHaveCount(2);
   await page.getByLabel('Tiempo').fill('-1.00');
   await page.getByLabel('Año').fill('1998');
   await page.getByLabel('Competencia').fill('Copa histórica');

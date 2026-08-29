@@ -41,7 +41,7 @@ export const getRecordReferences = async () => {
 export const saveStateRecordDraft = async (values) => {
   const year = Number(values.achievedYear);
   if (!Number.isInteger(year) || year < 1900 || year > 2200) throw new Error('INVALID_YEAR');
-  if (!['female', 'male', 'open'].includes(values.competitiveSex)) throw new Error('INVALID_SEX');
+  if (!['female', 'male'].includes(values.competitiveSex)) throw new Error('INVALID_SEX');
   const { data, error } = await supabase.rpc('save_state_record_draft', {
     requested_record_id: values.id || null, requested_expected_revision: values.id ? Number(values.revision) : null,
     requested_athlete_id: values.athleteId || null, requested_athlete_name: id(values.athleteName, 'ATHLETE_NAME_REQUIRED'),
