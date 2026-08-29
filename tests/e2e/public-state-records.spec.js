@@ -12,8 +12,9 @@ const records = [
 ];
 const routeRecords = (page, body = records, status = 200, inspect) => page.route('**/rest/v1/rpc/get_published_state_records', (route) => { inspect?.(route.request()); return route.fulfill(json(body, status)); });
 
-test('requests and renders only normalized published RPC records', async ({ page }) => {
+test('renders the professional desktop record tables from normalized RPC records', async ({ page }) => {
   let request;
+  await page.setViewportSize({ width: 1280, height: 900 });
   await routeRecords(page, records, 200, (value) => { request = value; });
   await page.goto('/record-estadal');
   await expect(page.getByRole('tab', { name: 'Absoluto' })).toBeVisible();
@@ -28,12 +29,33 @@ test('requests and renders only normalized published RPC records', async ({ page
   const panel = page.getByRole('tabpanel', { name: 'Absoluto' });
   await expect(panel.getByRole('heading').nth(0)).toHaveText('Femenino');
   await expect(panel.getByRole('heading').nth(1)).toHaveText('Masculino');
+  const femaleTable = panel.getByRole('table', { name: 'Femenino' });
+  await expect(femaleTable).toBeVisible();
+  await expect(femaleTable.getByRole('columnheader')).toHaveText(['Prueba', 'Récord', 'Atleta / Club', 'Año', 'Competencia']);
+  await expect(femaleTable.getByAltText('Lucía Pérez antes de competir')).toBeVisible();
+  await expect(panel.getByRole('list', { name: 'Femenino' })).toBeHidden();
   await expect(panel).toContainText('Lucía Pérez'); await expect(panel).toContainText('Club Delfines'); await expect(panel).toContainText('Copa Anzoátegui'); await expect(panel).toContainText('2024'); await expect(panel).toContainText('50 m libre'); await expect(panel).toContainText('58.42');
   await expect(panel).toContainText('Mateo Silva'); await expect(panel).toContainText('1:02.35');
-  await expect(panel.getByAltText('Lucía Pérez antes de competir')).toHaveAttribute('src', /w_160,h_160,c_fill,g_face,q_auto,f_auto\/asanda\/records\/lucia/);
-  await expect(panel.getByRole('img', { name: 'Sin foto de Mateo Silva' })).toBeVisible();
-  await expect(page.getByText(/long_course|posición/i)).toHaveCount(0);
+  await expect(femaleTable.getByAltText('Lucía Pérez antes de competir')).toHaveAttribute('src', /w_160,h_160,c_fill,g_face,q_auto,f_auto\/asanda\/records\/lucia/);
+  await expect(panel.getByRole('table', { name: 'Masculino' }).getByRole('img', { name: 'Sin foto de Mateo Silva' })).toBeVisible();
+  await expect(panel.getByRole('columnheader', { name: /Posición|Categoría|Género/i })).toHaveCount(0);
+  await expect(page.getByText(/long_course/i)).toHaveCount(0);
   expect(await page.evaluate(() => [...document.querySelectorAll('[id]')].map((node) => node.id).filter((id, index, ids) => ids.indexOf(id) !== index))).toEqual([]);
+});
+
+test('uses official event order even when the RPC response is unordered', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await routeRecords(page, [
+    row({ record_id: 'unknown-z', event_name: 'Z relevo' }),
+    row({ record_id: 'butterfly', event_name: '50 metros mariposa' }),
+    row({ record_id: 'unknown-a', event_name: 'A relevo' }),
+    row({ record_id: 'freestyle-1500', event_name: '1500 metros libre' }),
+    row({ record_id: 'freestyle-50', event_name: '50 metros libre' }),
+    row({ record_id: 'backstroke', event_name: '50 metros espalda' }),
+  ]);
+  await page.goto('/record-estadal');
+  const eventRows = page.getByRole('table', { name: 'Femenino' }).getByRole('row').filter({ has: page.getByRole('rowheader') });
+  await expect(eventRows.getByRole('rowheader')).toHaveText(['50 metros libre', '1500 metros libre', '50 metros espalda', '50 metros mariposa', 'A relevo', 'Z relevo']);
 });
 
 test('keeps a status visible while the RPC is pending', async ({ page }) => {
@@ -68,4 +90,15 @@ test('supports tab keys, partial empties, dark mode and mobile overflow', async 
   await juvenil.press('Home'); await expect(absoluto).toBeFocused(); await absoluto.press('ArrowRight'); await expect(juvenil).toBeFocused(); await juvenil.press('ArrowLeft'); await expect(absoluto).toBeFocused();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await expect(page.locator('#record-estadal')).toHaveCSS('background-color', 'rgb(2, 6, 23)');
+  await expect(page.getByRole('tabpanel', { name: 'Absoluto' }).getByRole('list', { name: 'Femenino' }).getByRole('listitem')).toHaveCSS('background-color', 'rgb(15, 23, 42)');
+});
+
+test('renders purpose-built record cards without mobile overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 }); await routeRecords(page); await page.goto('/record-estadal');
+  const panel = page.getByRole('tabpanel', { name: 'Absoluto' }); const femaleCards = panel.getByRole('list', { name: 'Femenino' }); const femaleCard = femaleCards.getByRole('listitem');
+  await expect(femaleCards).toBeVisible(); await expect(panel.getByRole('table', { name: 'Femenino' })).toBeHidden();
+  await expect(femaleCard).toContainText('50 m libre'); await expect(femaleCard).toContainText('58.42'); await expect(femaleCard).toContainText('Lucía Pérez'); await expect(femaleCard).toContainText('Club Delfines'); await expect(femaleCard).toContainText('2024'); await expect(femaleCard).toContainText('Copa Anzoátegui');
+  const photo = femaleCard.getByAltText('Lucía Pérez antes de competir'); await expect(photo).toBeVisible(); expect(await photo.evaluate((node) => ({ width: node.getBoundingClientRect().width, height: node.getBoundingClientRect().height }))).toEqual({ width: 80, height: 80 });
+  const fallback = panel.getByRole('list', { name: 'Masculino' }).getByRole('img', { name: 'Sin foto de Mateo Silva' }); await expect(fallback).toBeVisible(); expect(await fallback.evaluate((node) => ({ width: node.getBoundingClientRect().width, height: node.getBoundingClientRect().height }))).toEqual({ width: 80, height: 80 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
