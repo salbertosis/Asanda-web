@@ -15,7 +15,7 @@ const RecordEstadalPage = () => {
           <div className="min-w-0 border-l-2 border-asanda-orange pl-4">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-200">Natación · Anzoátegui</p>
             <h1 className="mt-1 text-3xl font-black tracking-tight sm:text-4xl">Récord Estadal</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-200 sm:text-base">Marcas oficiales de piscina larga reconocidas por ASANDA.</p>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-200 sm:text-base">Marcas oficiales avaladas por FEVEDA y ASANDA.</p>
           </div>
         </div>
       </header>
