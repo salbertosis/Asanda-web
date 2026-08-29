@@ -27,7 +27,7 @@ const navItems = [
   { label: 'Calendario', href: '/calendario', icon: CalendarDays },
   { label: 'Resultados', href: '/resultados', icon: BarChart3 },
   { label: 'Atletas', href: '/atletas', icon: Users },
-  { label: 'Destacados', href: '/#atletas', icon: Star },
+  { label: 'Destacados', href: '/atletas-destacados', icon: Star },
   { label: 'Récord estadal', href: '/record-estadal', icon: TimerReset },
 ];
 

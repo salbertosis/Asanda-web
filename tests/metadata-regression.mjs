@@ -17,7 +17,7 @@ assert.deepEqual(approvedPublicSite.criticalAssets, ['/favicon.svg', '/assets/he
 
 const paths = routeMetadata.map((route) => route.path);
 assert.equal(new Set(paths).size, paths.length, 'route metadata paths must be unique');
-for (const path of ['/', '/noticias', '/noticias/:slug', '/videos', '/fotos', '/fotos/album/:id', '/calendario', '/resultados', '/atletas', '/atletas-asociados', '/atletas-federados', '/clubes', '/record-estadal', '/legal', '/privacidad', '/publicidad/demo/:slug']) assert(paths.includes(path), `missing route metadata: ${path}`);
+for (const path of ['/', '/noticias', '/noticias/:slug', '/videos', '/fotos', '/fotos/album/:id', '/calendario', '/resultados', '/atletas', '/atletas-destacados', '/atletas-asociados', '/atletas-federados', '/clubes', '/record-estadal', '/legal', '/privacidad', '/publicidad/demo/:slug']) assert(paths.includes(path), `missing route metadata: ${path}`);
 
 const metadata = buildRouteMetadata('/resultados', site);
 for (const url of [metadata.canonicalUrl, metadata.openGraph.url, metadata.openGraph.image, metadata.jsonLd.url, metadata.jsonLd.image]) assert(url.startsWith(origin), `metadata escaped canonical origin: ${url}`);
@@ -32,6 +32,7 @@ assert.equal(articleMetadata.jsonLd.image, undefined, 'missing hero must not inv
 const assets = createPublicAssets(site);
 assert.match(assets.robots, new RegExp(`Sitemap: ${origin}/sitemap\\.xml`));
 assert.match(assets.sitemap, new RegExp(`<loc>${origin}/resultados</loc>`));
+assert.match(assets.sitemap, new RegExp(`<loc>${origin}/atletas-destacados</loc>`));
 assert.doesNotMatch(createPublicAssets().sitemap, /<loc>\//, 'unapproved sitemap must not emit relative locations');
 assert.equal(assets.manifest.icons[0].src, '/favicon.svg');
 
