@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const publicRoutes = ['/', '/noticias', '/resultados', '/atletas', '/atletas-asociados', '/atletas-federados', '/clubes'];
+const publicRoutes = ['/', '/noticias', '/resultados', '/atletas', '/atletas-destacados', '/atletas-asociados', '/atletas-federados', '/clubes'];
 const crawlResources = ['/robots.txt', '/sitemap.xml', '/manifest.webmanifest', '/favicon.svg', '/assets/hero.svg', '/assets/social-card.svg'];
 
 const expectIndependentResource = async (request, path) => {

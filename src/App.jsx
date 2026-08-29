@@ -24,6 +24,7 @@ const CalendarioPage = lazy(() => import('./pages/CalendarioPage.jsx'));
 const CompetenciaPage = lazy(() => import('./pages/CompetenciaPage.jsx'));
 const ResultadosPage = lazy(() => import('./pages/ResultadosPage.jsx'));
 const AtletasPublicadosPage = lazy(() => import('./pages/AtletasPublicadosPage.jsx'));
+const AtletasDestacadosPage = lazy(() => import('./pages/AtletasDestacadosPage.jsx'));
 const RecordEstadalPage = lazy(() => import('./pages/RecordEstadalPage.jsx'));
 const AtletasAsociadosPage = lazy(() => import('./pages/AtletasAsociadosPage.jsx'));
 const AtletasFederadosPage = lazy(() => import('./pages/AtletasFederadosPage.jsx'));
@@ -163,6 +164,7 @@ function PublicApplication() {
         <Route path="/calendario/:slug" element={<CompetenciaPage />} />
         <Route path="/resultados" element={<ResultadosPage />} />
         <Route path="/atletas" element={<AtletasPublicadosPage />} />
+        <Route path="/atletas-destacados" element={<AtletasDestacadosPage />} />
         <Route path="/atletas-asociados" element={<AtletasAsociadosPage />} />
         <Route path="/atletas-federados" element={<AtletasFederadosPage />} />
         <Route path="/clubes" element={<ClubesPage />} />

@@ -11,6 +11,7 @@ export const routeMetadata = Object.freeze([
   { path: '/calendario/:slug', title: 'Detalle de competencia', description: 'Información oficial de una competencia del calendario por disciplinas de ASANDA.', indexable: true },
   { path: '/resultados', title: 'Resultados', description: 'Resultados de competencias de ASANDA.', indexable: true },
   { path: '/atletas', title: 'Atletas', description: 'Atletas registrados en ASANDA.', indexable: true },
+  { path: '/atletas-destacados', title: 'Atletas destacados', description: 'Atletas destacados seleccionados por ASANDA.', indexable: true },
   { path: '/atletas-asociados', title: 'Atletas asociados', description: 'Atletas asociados a ASANDA.', indexable: true },
   { path: '/atletas-federados', title: 'Atletas federados', description: 'Atletas federados de ASANDA.', indexable: true },
   { path: '/clubes', title: 'Clubes', description: 'Clubes asociados a ASANDA.', indexable: true },

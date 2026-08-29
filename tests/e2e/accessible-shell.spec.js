@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 // Cobertura RED de PR2b (tareas 2.3–2.5): un único main/H1 por vista, enlace
 // de salto operable por teclado, objetivos de footer de 44px, integridad de
 // enlaces legales y disclosure/noindex accesible del shell demo.
-const shellRoutes = ['/', '/noticias', '/videos', '/fotos', '/fotos/album/1', '/calendario', '/resultados', '/atletas', '/atletas-asociados', '/atletas-federados', '/clubes', '/record-estadal', '/legal', '/privacidad', '/publicidad/demo/aquaflow-demo', '/?ads=demo'];
+const shellRoutes = ['/', '/noticias', '/videos', '/fotos', '/fotos/album/1', '/calendario', '/resultados', '/atletas', '/atletas-destacados', '/atletas-asociados', '/atletas-federados', '/clubes', '/record-estadal', '/legal', '/privacidad', '/publicidad/demo/aquaflow-demo', '/?ads=demo'];
 
 const approvedFixture = {
   canonicalOrigin: 'https://asanda.org.ve', canonicalOriginApproved: true,
@@ -97,7 +97,7 @@ test('preserves the mobile menu after the shell migration', async ({ page }) => 
   await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
 });
 
-test('navigates to the real featured athletes section from every shell context', async ({ page }) => {
+test('navigates to the public featured athletes page from every shell context', async ({ page }) => {
   for (const context of [
     { viewport: { width: 1280, height: 900 }, path: '/', navigation: 'Navegación principal' },
     { viewport: { width: 1280, height: 900 }, path: '/resultados', navigation: 'Navegación principal' },
@@ -112,13 +112,10 @@ test('navigates to the real featured athletes section from every shell context',
 
     const navigation = page.getByRole('navigation', { name: context.navigation });
     await expect(navigation.getByRole('link', { name: 'Atletas', exact: true })).toHaveAttribute('href', '/atletas');
-    await expect(navigation.getByRole('link', { name: 'Destacados', exact: true })).toHaveAttribute('href', '/#atletas');
+    await expect(navigation.getByRole('link', { name: 'Destacados', exact: true })).toHaveAttribute('href', '/atletas-destacados');
     await navigation.getByRole('link', { name: 'Destacados', exact: true }).click();
 
-    await expect(page).toHaveURL(/\/#atletas$/);
-    const section = page.locator('#atletas');
-    await expect(section).toBeInViewport();
-    await expect.poll(() => section.evaluate((element) => Math.round(element.getBoundingClientRect().top))).toBeGreaterThanOrEqual(100);
-    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    await expect(page).toHaveURL(/\/atletas-destacados$/);
+    await expect(page.getByRole('heading', { level: 1, name: 'Atletas destacados', exact: true })).toBeVisible();
   }
 });
