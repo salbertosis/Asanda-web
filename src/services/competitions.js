@@ -3,6 +3,7 @@ import { supabase } from './supabase';
 import { getLocalIsoDay, selectUpcomingCompetitions } from './competitionSelection';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const PUBLIC_CALENDAR_EXCLUDED_DISCIPLINES = new Set(['artistic-swimming', 'diving']);
 
 const COMPETITIONS_SELECT = `
   id,
@@ -118,7 +119,10 @@ export const getPublicCalendarFilters = async (signal) => {
   const [disciplinesResult, yearsResult] = await Promise.all([disciplinesQuery, yearsQuery]);
   if (disciplinesResult.error) throw disciplinesResult.error;
   if (yearsResult.error) throw yearsResult.error;
-  const disciplines = (disciplinesResult.data || []).filter((item) => item?.id && item?.code && item?.name).map((item) => ({ id: item.id, code: item.code, name: item.name, sortOrder: item.sort_order }));
+  const disciplines = (disciplinesResult.data || [])
+    .filter((item) => item?.id && item?.code && item?.name)
+    .filter((item) => !PUBLIC_CALENDAR_EXCLUDED_DISCIPLINES.has(item.code))
+    .map((item) => ({ id: item.id, code: item.code, name: item.name, sortOrder: item.sort_order }));
   const years = [...new Set((yearsResult.data || []).map((item) => Number(item?.season_year)).filter(Number.isInteger))].sort((a, b) => b - a);
   return { disciplines, years };
 };
