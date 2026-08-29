@@ -205,6 +205,8 @@ test('exposes a loading status while fetching the calendar', async ({ page }) =>
 
   await page.goto('/calendario');
   await expect(page.getByText('Cargando calendario…', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
+  await expect(page.getByRole('heading', { level: 1, name: 'Calendario de competiciones' })).toBeVisible();
   releaseResponse();
   await expect(page.getByRole('heading', { level: 1, name: 'Calendario de competiciones' })).toBeVisible();
 });
@@ -216,6 +218,8 @@ test('shows a safe error and retries the failed request', async ({ page }) => {
   await page.route('**/rest/v1/competitions*', async (route) => { const url = new URL(route.request().url()); requests += 1; expect(url.searchParams.getAll('starts_on')).toEqual(['gte.2026-01-01', 'lt.2027-01-01']); if (requests === 1) return route.fulfill(json({ message: 'private detail' }, 500)); await retryGate; return route.fulfill(json([])); });
   await page.goto('/calendario');
   await expect(page.getByRole('alert')).toContainText('No pudimos cargar'); await expect(page.getByRole('alert')).not.toContainText('private detail');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
+  await expect(page.getByRole('heading', { level: 1, name: 'No pudimos cargar el calendario.', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Reintentar' }).click(); await expect(page.getByText('Cargando calendario…', { exact: true })).toBeVisible(); releaseRetry(); await expect(page.getByText('Sin competencias para estos filtros')).toBeVisible();
   expect(requests).toBe(2);
   expect(metadataRequests).toBe(2);
