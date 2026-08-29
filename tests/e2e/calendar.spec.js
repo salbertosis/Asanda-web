@@ -136,7 +136,8 @@ test('renders the official agenda with organizer identities', async ({ page }) =
   await routeCompetitions(page, competitionResponse);
   await page.goto('/calendario');
 
-  await expect(page.getByRole('heading', { level: 1, name: 'Calendario de competiciones' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Calendario de Competencias', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Reiniciar' })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'I Campeonato Municipal de Fondo' })).toBeVisible();
   await expect(page.getByRole('article')).toHaveCount(4);
   await expect(page.getByLabel('Resumen del calendario')).toHaveCount(0);
@@ -171,7 +172,7 @@ test('filters competitions by explicit month', async ({ page }) => {
   await expect(page.getByTestId('calendar-result-context')).toHaveText('1 competencia · Todas las disciplinas · Febrero');
 });
 
-test('changes year and resets all calendar filters', async ({ page }) => {
+test('keeps explicit year and month filters without a reset control', async ({ page }) => {
   await routeCompetitions(page, competitionResponse);
   await page.goto('/calendario');
 
@@ -182,10 +183,11 @@ test('changes year and resets all calendar filters', async ({ page }) => {
   await page.getByLabel('Mes').selectOption('04');
   await expect(page.getByText('Sin competencias para estos filtros')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Reiniciar' }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Calendario de competiciones' })).toBeVisible();
-  await expect(page.getByLabel('Mes')).toHaveValue('all');
-  await expect(page).toHaveURL('/calendario');
+  await expect(page.getByRole('heading', { level: 1, name: 'Calendario de Competencias', exact: true })).toBeVisible();
+  await expect(page.getByLabel('Año')).toHaveValue('2025');
+  await expect(page.getByLabel('Mes')).toHaveValue('04');
+  await expect(page.getByRole('button', { name: 'Reiniciar' })).toHaveCount(0);
+  await expect(page).toHaveURL('/calendario?sport=all&year=2025&month=04');
 });
 
 test('keeps allowed navigation history and canonicalizes excluded disciplines', async ({ page }) => {
@@ -220,9 +222,9 @@ test('exposes a loading status while fetching the calendar', async ({ page }) =>
   await page.goto('/calendario');
   await expect(page.getByText('Cargando calendario…', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
-  await expect(page.getByRole('heading', { level: 1, name: 'Calendario de competiciones' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Calendario de Competencias', exact: true })).toBeVisible();
   releaseResponse();
-  await expect(page.getByRole('heading', { level: 1, name: 'Calendario de competiciones' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Calendario de Competencias', exact: true })).toBeVisible();
 });
 
 test('shows a safe error and retries the failed request', async ({ page }) => {
@@ -245,7 +247,7 @@ test('keeps the enterprise calendar within a mobile viewport in dark mode', asyn
   await routeCompetitions(page, competitionResponse);
   await page.goto('/calendario');
 
-  await expect(page.getByRole('heading', { level: 1, name: 'Calendario de competiciones' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Calendario de Competencias', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'I Campeonato Municipal de Fondo' })).toBeVisible();
   const pageWidth = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(pageWidth).toBeLessThanOrEqual(390);
@@ -302,7 +304,7 @@ test('keeps desktop controls visible and contains the active segmented control',
 
   await expect(page.getByRole('button', { name: 'Filtros' })).toBeHidden();
   await expect(page.getByLabel('Mes')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Reiniciar' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Reiniciar' })).toHaveCount(0);
   const activeTab = page.getByRole('link', { name: 'Todos', exact: true });
   const disciplineLinks = page.getByRole('navigation', { name: 'Filtrar calendario por deporte' }).getByRole('link');
   await expect(activeTab).toHaveAttribute('aria-current', 'page');
