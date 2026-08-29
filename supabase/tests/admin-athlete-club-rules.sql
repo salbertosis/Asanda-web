@@ -379,9 +379,15 @@ begin
     history_entry_id, 32200, 2, 'official', now()
   ) returning id into history_performance_id;
   insert into public.records (
-    performance_id, scope_type, scope_organization_id, ratification_status
+    performance_id, scope_type, scope_organization_id, ratification_status,
+    athlete_id, athlete_name_snapshot, club_name_snapshot,
+    event_definition_id, event_name_snapshot, age_category_id, age_category_name_snapshot,
+    competitive_sex, time_ms, achieved_year, competition_name_snapshot, course,
+    publication_status, published_at
   ) values (
-    history_performance_id, 'club', history_club, 'ratified'
+    history_performance_id, 'club', history_club, 'ratified', test_athlete, 'Task 3.1 synthetic athlete',
+    'Task 3.1 History Club', event_definition_id, 'Task 3.1 event', category_id, 'Juvenil A', 'open', 32200, 2026,
+    'Task 3.1 historical result competition', 'long_course', 'published', now()
   );
   blocked := false;
   begin
