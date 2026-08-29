@@ -143,7 +143,14 @@ test('renders the official agenda with organizer identities', async ({ page }) =
   await expect(page.getByAltText('Logo de FEVEDA').first()).toHaveAttribute('src', /c_pad,b_transparent.*\/feveda_logo$/);
   await expect(page.getByAltText('Logo de ASANDA')).toHaveAttribute('src', /c_pad,b_transparent.*\/asanda$/);
   await expect(page).toHaveURL('/calendario');
-  await expect(page.getByRole('navigation', { name: 'Filtrar calendario por deporte' }).getByRole('link')).toHaveCount(6);
+  const disciplineNav = page.getByRole('navigation', { name: 'Filtrar calendario por deporte' });
+  await expect(disciplineNav.getByRole('link')).toHaveCount(4);
+  await expect(disciplineNav.getByRole('link').allTextContents()).resolves.toEqual(['Todos', 'Natación', 'Aguas Abiertas', 'Water Polo']);
+  await expect(disciplineNav.getByRole('link', { name: 'Nado Sincronizado' })).toHaveCount(0);
+  await expect(disciplineNav.getByRole('link', { name: 'Saltos Ornamentales' })).toHaveCount(0);
+  const resultContext = page.getByTestId('calendar-result-context');
+  await expect(resultContext).toHaveAttribute('aria-live', 'polite');
+  await expect(resultContext).toHaveText('4 competencias · Todas las disciplinas · Todos los meses');
   await page.getByLabel('Año').selectOption('2025');
   const fallbackRow = page.getByRole('article').filter({ hasText: 'Torneo de Aguas Abiertas 2025' });
   await expect(fallbackRow.locator('img')).toHaveCount(0);
@@ -161,6 +168,7 @@ test('filters competitions by explicit month', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'I Campeonato Municipal de Fondo' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Campeonato Nacional de Categorías' })).toHaveCount(0);
   await expect(page.getByRole('article')).toHaveCount(1);
+  await expect(page.getByTestId('calendar-result-context')).toHaveText('1 competencia · Todas las disciplinas · Febrero');
 });
 
 test('changes year and resets all calendar filters', async ({ page }) => {
@@ -180,7 +188,7 @@ test('changes year and resets all calendar filters', async ({ page }) => {
   await expect(page).toHaveURL('/calendario');
 });
 
-test('keeps URL filters canonical and follows browser history', async ({ page }) => {
+test('keeps allowed navigation history and canonicalizes excluded disciplines', async ({ page }) => {
   await routeCompetitions(page, competitionResponse);
   await page.goto('/calendario?sport=wrong&year=1900&month=99');
   await expect(page).toHaveURL('/calendario?sport=all&year=2026&month=all');
@@ -189,9 +197,15 @@ test('keeps URL filters canonical and follows browser history', async ({ page })
   await swimming.focus(); await expect(swimming).toBeFocused(); await swimming.press('Enter');
   await expect(page).toHaveURL(/sport=swimming/); await expect(swimming).toHaveAttribute('aria-current', 'page');
   await expect(page.getByText('Campeonato Nacional de Categorías')).toBeVisible();
-  await page.getByRole('link', { name: 'Saltos Ornamentales' }).click();
-  await expect(page.getByText('Sin competencias para estos filtros')).toBeVisible();
-  await page.goBack(); await expect(page).toHaveURL(/sport=swimming/); await page.goForward(); await expect(page).toHaveURL(/sport=diving/);
+  await page.goBack(); await expect(page).toHaveURL('/calendario?sport=all&year=2026&month=all');
+  await page.goForward(); await expect(page).toHaveURL('/calendario?sport=swimming&year=2026&month=all');
+
+  await page.goto('/calendario?sport=diving&year=2026&month=all');
+  await expect(page).toHaveURL('/calendario?sport=all&year=2026&month=all');
+  await page.goto('/calendario?sport=artistic-swimming&year=2026&month=all');
+  await expect(page).toHaveURL('/calendario?sport=all&year=2026&month=all');
+  await expect(page.getByRole('link', { name: 'Nado Sincronizado' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Saltos Ornamentales' })).toHaveCount(0);
 });
 
 test('exposes a loading status while fetching the calendar', async ({ page }) => {
@@ -261,7 +275,7 @@ test('uses one calendar heading and one descriptive copy', async ({ page }) => {
   await page.goto('/calendario');
 
   await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
-  await expect(page.getByText('Consultá fechas, sedes, disciplinas e identidad organizadora de cada encuentro acuático.', { exact: true })).toHaveCount(1);
+  await expect(page.getByText('Consultá competencias, fechas, sedes y disciplinas de la temporada oficial.', { exact: true })).toHaveCount(1);
   await expect(page.getByTestId('page-hero-overlay')).toHaveCount(0);
 });
 
@@ -281,7 +295,7 @@ test('collapses secondary filters on mobile and exposes them from one control', 
   await expect(page.getByRole('navigation', { name: 'Filtrar calendario por deporte' })).toBeVisible();
 });
 
-test('keeps desktop controls visible and bounds the active underline to its label', async ({ page }) => {
+test('keeps desktop controls visible and contains the active segmented control', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await routeCompetitions(page, competitionResponse);
   await page.goto('/calendario');
@@ -290,14 +304,18 @@ test('keeps desktop controls visible and bounds the active underline to its labe
   await expect(page.getByLabel('Mes')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Reiniciar' })).toBeVisible();
   const activeTab = page.getByRole('link', { name: 'Todos', exact: true });
-  const indicator = activeTab.getByTestId('active-tab-indicator');
-  const [tabBox, indicatorBox, navBox] = await Promise.all([
+  const disciplineLinks = page.getByRole('navigation', { name: 'Filtrar calendario por deporte' }).getByRole('link');
+  await expect(activeTab).toHaveAttribute('aria-current', 'page');
+  await expect(activeTab).toHaveCSS('background-color', /rgba?\((?!0, 0, 0, 0)/);
+  await expect(page.getByTestId('active-tab-indicator')).toHaveCount(0);
+  const [tabBox, navBox, linkBoxes] = await Promise.all([
     activeTab.boundingBox(),
-    indicator.boundingBox(),
     page.getByRole('navigation', { name: 'Filtrar calendario por deporte' }).boundingBox(),
+    disciplineLinks.evaluateAll((links) => links.map((link) => link.getBoundingClientRect().toJSON())),
   ]);
-  expect(indicatorBox.width).toBeLessThanOrEqual(tabBox.width);
-  expect(indicatorBox.width).toBeLessThan(navBox.width / 3);
+  expect(tabBox.x).toBeGreaterThanOrEqual(navBox.x);
+  expect(tabBox.x + tabBox.width).toBeLessThanOrEqual(navBox.x + navBox.width);
+  for (const box of linkBoxes) expect(box.height).toBeGreaterThanOrEqual(44);
 });
 
 test('lays out events from the same month in two desktop columns', async ({ page }) => {
