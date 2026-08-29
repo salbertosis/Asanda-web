@@ -12,6 +12,13 @@ const officialEvents = [
 ];
 const officialEventRank = new Map(officialEvents.map((name, index) => [name, index]));
 const eventKey = (name) => clean(name).normalize('NFKC').toLocaleLowerCase('es');
+const publicCategoryLabels = new Map([
+  ['infant-a', 'Infantil A'],
+  ['infant-b', 'Infantil B'],
+  ['youth-a', 'Juvenil A'],
+  ['youth-b', 'Juvenil B'],
+  ['maximum', 'Máxima'],
+]);
 
 const compareEvents = (a, b) => {
   const aRank = officialEventRank.get(eventKey(a.eventName)); const bRank = officialEventRank.get(eventKey(b.eventName));
@@ -43,4 +50,31 @@ export const getPublishedStateRecords = async (signal) => {
   const { data, error } = await query;
   if (error) throw error;
   return (Array.isArray(data) ? data : []).map(normalizeStateRecord).filter(Boolean).sort(compareEvents);
+};
+
+export const getPublicStateRecordCategories = async (signal) => {
+  let query = supabase.from('age_categories').select('code,name,sort_order').eq('is_active', true).in('code', [...publicCategoryLabels.keys()]).order('sort_order');
+  if (signal) query = query.abortSignal(signal);
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const categories = (Array.isArray(data) ? data : []).map((row) => {
+    const code = clean(row?.code); const name = clean(row?.name); const sortOrder = typeof row?.sort_order === 'number' ? row.sort_order : Number.NaN;
+    return code && name && publicCategoryLabels.has(code) && Number.isSafeInteger(sortOrder)
+      ? { code, name, sortOrder, label: publicCategoryLabels.get(code) }
+      : null;
+  });
+  const codes = new Set(categories.map((category) => category?.code));
+  if (categories.some((category) => !category) || categories.length !== publicCategoryLabels.size || codes.size !== publicCategoryLabels.size || [...publicCategoryLabels.keys()].some((code) => !codes.has(code))) {
+    throw new Error('Invalid public state record category catalog');
+  }
+  return categories.sort((a, b) => a.sortOrder - b.sortOrder);
+};
+
+export const getPublicStateRecordsPageData = async (signal) => {
+  const [records, categories] = await Promise.all([
+    getPublishedStateRecords(signal),
+    getPublicStateRecordCategories(signal),
+  ]);
+  return { records, categories };
 };
