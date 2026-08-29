@@ -28,7 +28,7 @@ const AthletesSection = () => {
   }, []);
 
   return (
-    <section id="atletas" aria-labelledby="featured-athletes-title" aria-busy={status === 'loading'} className="bg-white py-12 dark:bg-slate-950">
+    <section id="atletas" aria-labelledby="featured-athletes-title" aria-busy={status === 'loading'} className="scroll-mt-[116px] bg-white py-12 dark:bg-slate-950">
       <div className="container mx-auto min-w-0 px-4">
         <div className="mb-8 flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>

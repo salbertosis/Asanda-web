@@ -96,3 +96,29 @@ test('preserves the mobile menu after the shell migration', async ({ page }) => 
   await expect(page.getByRole('main')).toHaveCount(1);
   await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
 });
+
+test('navigates to the real featured athletes section from every shell context', async ({ page }) => {
+  for (const context of [
+    { viewport: { width: 1280, height: 900 }, path: '/', navigation: 'Navegación principal' },
+    { viewport: { width: 1280, height: 900 }, path: '/resultados', navigation: 'Navegación principal' },
+    { viewport: { width: 390, height: 844 }, path: '/', navigation: 'Navegación móvil' },
+    { viewport: { width: 390, height: 844 }, path: '/resultados', navigation: 'Navegación móvil' },
+  ]) {
+    await page.setViewportSize(context.viewport);
+    await page.goto(context.path);
+    if (context.navigation === 'Navegación móvil') {
+      await page.getByRole('button', { name: 'Abrir menú principal' }).click();
+    }
+
+    const navigation = page.getByRole('navigation', { name: context.navigation });
+    await expect(navigation.getByRole('link', { name: 'Atletas', exact: true })).toHaveAttribute('href', '/atletas');
+    await expect(navigation.getByRole('link', { name: 'Destacados', exact: true })).toHaveAttribute('href', '/#atletas');
+    await navigation.getByRole('link', { name: 'Destacados', exact: true }).click();
+
+    await expect(page).toHaveURL(/\/#atletas$/);
+    const section = page.locator('#atletas');
+    await expect(section).toBeInViewport();
+    await expect.poll(() => section.evaluate((element) => Math.round(element.getBoundingClientRect().top))).toBeGreaterThanOrEqual(100);
+    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  }
+});

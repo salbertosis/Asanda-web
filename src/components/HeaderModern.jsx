@@ -8,6 +8,7 @@ import {
   Menu,
   Newspaper,
   PlaySquare,
+  Star,
   TimerReset,
   Users,
   Waves,
@@ -26,11 +27,12 @@ const navItems = [
   { label: 'Calendario', href: '/calendario', icon: CalendarDays },
   { label: 'Resultados', href: '/resultados', icon: BarChart3 },
   { label: 'Atletas', href: '/atletas', icon: Users },
+  { label: 'Destacados', href: '/#atletas', icon: Star },
   { label: 'Récord estadal', href: '/record-estadal', icon: TimerReset },
 ];
 
 const Header = () => {
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
   const headerRef = useRef(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState(null);
@@ -43,7 +45,16 @@ const Header = () => {
 
   useEffect(() => {
     closeMenus();
-  }, [pathname]);
+  }, [pathname, hash]);
+
+  useEffect(() => {
+    if (pathname !== '/' || hash !== '#atletas') return undefined;
+
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById('atletas')?.scrollIntoView({ block: 'start' });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [pathname, hash]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 12);
@@ -79,7 +90,11 @@ const Header = () => {
     };
   }, [mobileOpen]);
 
-  const isActive = (href) => pathname === href || pathname.startsWith(`${href}/`);
+  const isActive = (href) => (
+    href.includes('#')
+      ? `${pathname}${hash}` === href
+      : pathname === href || pathname.startsWith(`${href}/`)
+  );
   const latestActive = latestItems.some(({ href }) => isActive(href));
 
   const toggleMenu = (menu) => {
