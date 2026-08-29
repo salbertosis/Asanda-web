@@ -3,6 +3,23 @@ import { supabase } from './supabase.js';
 
 const clean = (value) => typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';
 const initials = (name) => clean(name).split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'AS';
+const officialEvents = [
+  '50 metros libre', '100 metros libre', '200 metros libre', '400 metros libre', '800 metros libre', '1500 metros libre',
+  '50 metros espalda', '100 metros espalda', '200 metros espalda',
+  '50 metros pecho', '100 metros pecho', '200 metros pecho',
+  '50 metros mariposa', '100 metros mariposa', '200 metros mariposa',
+  '200 metros combinado individual', '400 metros combinado individual',
+];
+const officialEventRank = new Map(officialEvents.map((name, index) => [name, index]));
+const eventKey = (name) => clean(name).normalize('NFKC').toLocaleLowerCase('es');
+
+const compareEvents = (a, b) => {
+  const aRank = officialEventRank.get(eventKey(a.eventName)); const bRank = officialEventRank.get(eventKey(b.eventName));
+  const rankDifference = (aRank ?? officialEvents.length) - (bRank ?? officialEvents.length);
+  if (rankDifference) return rankDifference;
+  if (aRank === undefined && bRank === undefined) { const nameDifference = a.eventName.localeCompare(b.eventName, 'es', { sensitivity: 'base' }); if (nameDifference) return nameDifference; }
+  return a.timeMs - b.timeMs || a.id.localeCompare(b.id);
+};
 
 export const formatStateRecordTime = (milliseconds) => {
   const hundredths = Math.floor(Number(milliseconds) / 10);
@@ -25,5 +42,5 @@ export const getPublishedStateRecords = async (signal) => {
   if (signal) query = query.abortSignal(signal);
   const { data, error } = await query;
   if (error) throw error;
-  return (Array.isArray(data) ? data : []).map(normalizeStateRecord).filter(Boolean).sort((a, b) => a.eventName.localeCompare(b.eventName, 'es', { sensitivity: 'base' }) || a.timeMs - b.timeMs || a.id.localeCompare(b.id));
+  return (Array.isArray(data) ? data : []).map(normalizeStateRecord).filter(Boolean).sort(compareEvents);
 };
