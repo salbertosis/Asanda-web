@@ -54,7 +54,10 @@ test('shows every published athlete once on the public directory without legacy 
 
   await page.goto('/atletas');
 
+  await expect(page.getByRole('heading', { level: 1, name: 'Atletas', exact: true })).toHaveCount(1);
+  await expect(page.getByRole('heading', { level: 2, name: 'Atletas publicados', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Gustavo Idrogo' })).toHaveCount(1);
+  await expect(page.getByRole('heading', { level: 3, name: 'Gustavo Idrogo', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Atleta Sin Membresía' })).toBeVisible();
   await expect(page.getByText('Sin club publicado').first()).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Carlos Mendoza' })).toHaveCount(0);
@@ -85,9 +88,12 @@ test('filters associated athletes by club with an accessible pressed state', asy
   await routeAthletes(page);
   await page.goto('/atletas-asociados');
 
+  const resultContext = page.getByTestId('athlete-result-context');
+  await expect(resultContext).toHaveText('2 atletas publicados');
   const cceFilter = page.getByRole('button', { name: 'CCE' });
   await cceFilter.click();
   await expect(cceFilter).toHaveAttribute('aria-pressed', 'true');
+  await expect(resultContext).toHaveText('1 de 2 atletas · CCE');
   await expect(page.getByRole('heading', { name: 'Gustavo Idrogo' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Atleta Solo Asociado' })).toHaveCount(0);
 });
@@ -112,13 +118,27 @@ test('renders public athlete loading and empty states', async ({ page }) => {
   await expect(page.getByRole('status')).toHaveText('No hay atletas publicados disponibles.');
 });
 
-test('keeps athlete cards within a mobile viewport', async ({ page }) => {
+test('keeps the public athlete hero and directory within the initial mobile viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ colorScheme: 'dark' });
+  const unsplashRequests = [];
+  page.on('request', (request) => {
+    if (request.url().includes('images.unsplash.com')) unsplashRequests.push(request.url());
+  });
   await routeAthletes(page);
   await page.goto('/atletas');
 
-  await expect(page.getByRole('heading', { name: 'Gustavo Idrogo' })).toBeVisible();
+  const hero = page.getByTestId('athlete-directory-hero');
+  const firstArticle = page.locator('article').first();
+  await expect(hero).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Atletas', exact: true })).toHaveCount(1);
+  await expect(page.getByText('Directorio institucional', { exact: true })).toBeVisible();
+  await expect(page.getByText('Perfiles públicos de atletas registrados por ASANDA.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Atletas publicados', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 3, name: 'Gustavo Idrogo', exact: true })).toBeVisible();
+  expect(await hero.evaluate((element) => element.getBoundingClientRect().height)).toBeLessThanOrEqual(240);
+  expect(await firstArticle.evaluate((element) => element.getBoundingClientRect().top)).toBeLessThanOrEqual(844);
+  expect(unsplashRequests).toHaveLength(0);
   const pageWidth = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(pageWidth).toBeLessThanOrEqual(390);
 });
