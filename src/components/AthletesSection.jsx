@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
-import { getFeaturedAthletes } from '../services/athletes';
+import { getFeaturedAthletePreview } from '../services/athletes';
 
 const AthletesSection = () => {
   const [athletes, setAthletes] = useState([]);
@@ -11,7 +11,7 @@ const AthletesSection = () => {
     const controller = new AbortController();
     let active = true;
 
-    getFeaturedAthletes(controller.signal)
+    getFeaturedAthletePreview(controller.signal)
       .then((featuredAthletes) => {
         if (!active) return;
         setAthletes(featuredAthletes);
@@ -33,7 +33,7 @@ const AthletesSection = () => {
         <div className="mb-8 flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 id="featured-athletes-title" className="mb-2 text-3xl font-bold text-gray-900 dark:text-white">Atletas Destacados</h2>
-            <p className="text-gray-600 dark:text-slate-300">Atletas seleccionados por ASANDA</p>
+            <p className="text-gray-600 dark:text-slate-300">Una selección de atletas destacados por ASANDA</p>
           </div>
           <Link to="/atletas-destacados" className="inline-flex min-h-11 items-center gap-2 font-medium text-blue-700 transition-colors hover:text-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:text-cyan-400 dark:hover:text-cyan-300">
             Ver todos <ArrowRight size={18} aria-hidden="true" />
@@ -46,7 +46,7 @@ const AthletesSection = () => {
           {athletes.map((athlete) => (
             <article key={athlete.profileKey} className="min-w-0 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
               <div className="h-64 overflow-hidden bg-gray-100 dark:bg-slate-800">
-                <img src={athlete.photoUrl} alt={athlete.photoAlt} className={`h-full w-full ${athlete.photoUrl === '/asanda.png' ? 'object-contain p-8' : 'object-cover'}`} />
+                <img src={athlete.photoUrl} alt={athlete.photoAlt} loading="lazy" className={`h-full w-full ${athlete.photoUrl === '/asanda.png' ? 'object-contain p-8' : 'object-cover'}`} />
               </div>
               <div className="p-6">
                 <p className="text-sm font-semibold uppercase tracking-wider text-blue-700 dark:text-cyan-400">{athlete.organization}</p>
