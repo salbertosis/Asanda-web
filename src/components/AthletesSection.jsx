@@ -44,7 +44,7 @@ const AthletesSection = () => {
         {status === 'ready' && athletes.length === 0 && <p role="status" className="rounded-xl border border-gray-200 bg-gray-50 p-6 text-gray-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">Todavía no hay atletas destacados publicados.</p>}
         {status === 'ready' && athletes.length > 0 && <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {athletes.map((athlete) => (
-            <article key={athlete.id} className="min-w-0 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
+            <article key={athlete.profileKey} className="min-w-0 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
               <div className="h-64 overflow-hidden bg-gray-100 dark:bg-slate-800">
                 <img src={athlete.photoUrl} alt={athlete.photoAlt} className={`h-full w-full ${athlete.photoUrl === '/asanda.png' ? 'object-contain p-8' : 'object-cover'}`} />
               </div>
