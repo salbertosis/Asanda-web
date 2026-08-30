@@ -101,10 +101,10 @@ begin
   where athlete_consents.athlete_id = test_athlete_id and consent_type = 'results_publication';
   perform set_config('request.jwt.claim.sub', editor_id::text, true);
   execute 'set local role authenticated';
+  update public.athlete_achievements set publication_status = 'draft', published_at = null
+  where id = achievement_id;
   blocked := false;
   begin
-    update public.athlete_achievements set publication_status = 'draft', published_at = null
-    where id = achievement_id;
     update public.athlete_achievements set publication_status = 'published', published_at = now()
     where id = achievement_id;
   exception when others then
@@ -113,6 +113,10 @@ begin
   end;
   execute 'reset role';
   if not blocked then raise exception 'An achievement was published without active results consent.'; end if;
+  if not exists (
+    select 1 from public.athlete_achievements
+    where id = achievement_id and publication_status = 'draft' and published_at is null
+  ) then raise exception 'A blocked achievement republication did not preserve its draft state.'; end if;
 end;
 $$;
 

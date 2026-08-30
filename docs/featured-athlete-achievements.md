@@ -8,7 +8,7 @@ Featured athlete achievements use editorial evidence, not inferred competition l
 - Return an approved source to `pending` or `rejected` before changing its asset, checksum, type, organization, competition, processing state, or other material source metadata.
 - Create `athlete_achievements` as `draft`, using one controlled type: `national_podium`, `international_medal`, or `national_team`.
 - Publish only after the athlete has active `public_profile` and `results_publication` consent. Publication is blocked until the linked evidence is approved.
-- Withdrawing either consent immediately removes achievements and official results from the public profile RPC.
-- The public RPC excludes source documents, internal identifiers, consent records, contact data, birth data, representatives, notes, and administrative history.
+- The dependent public profile RPC must immediately hide achievements and official results when either consent is withdrawn.
+- That RPC must exclude source documents, internal identifiers, consent records, contact data, birth data, representatives, notes, and administrative history.
 
 The existing authenticated table/RLS and audit surfaces support controlled editorial loading. A dedicated achievement editor UI is outside this work unit; until one is approved, editors must use the existing authenticated data administration workflow. No achievement data is seeded by this migration.
