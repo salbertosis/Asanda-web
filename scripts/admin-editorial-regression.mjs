@@ -74,23 +74,21 @@ check('image validation accepts supported images and rejects the rest', () => {
   assert.equal(validateImageFile({ name: '../foto.jpg', type: 'image/jpeg', size: 1024 }).ok, false);
   assert.equal(validateImageFile(null).ok, false);
 });
-check('featured windows validate order, uniqueness, and dates', () => {
+check('featured windows validate athletes and dates without carrying order', () => {
   const now = new Date('2026-08-18T12:00:00Z');
-  const base = [{ athleteId: 'a', displayOrder: 1 }, { athleteId: 'b', displayOrder: 2 }];
-  assert.equal(featuredWindow(base, now).ok, true);
-  assert.ok(featuredWindow([{ athleteId: 'a', displayOrder: 1 }, { athleteId: 'b', displayOrder: 1 }], now).errors.includes('order-duplicate'));
-  assert.ok(featuredWindow([{ athleteId: 'a', displayOrder: 0 }], now).errors.includes('order-invalid'));
-  assert.ok(featuredWindow([{ athleteId: 'a', displayOrder: 7 }], now).errors.includes('order-invalid'));
-  assert.ok(featuredWindow([{ displayOrder: 1 }], now).errors.includes('athlete-missing'));
-  assert.ok(featuredWindow([{ athleteId: 'a', displayOrder: 1, startsAt: 'no-es-fecha' }], now).errors.includes('window-invalid'));
-  assert.ok(featuredWindow([{ athleteId: 'a', displayOrder: 1, startsAt: '2026-08-01T00:00:00Z', endsAt: '2026-07-01T00:00:00Z' }], now).errors.includes('window-inverted'));
+  const result = featuredWindow([{ athleteId: 'a', displayOrder: 999 }], now);
+  assert.equal(result.ok, true);
+  assert.equal(Object.hasOwn(result.active[0], 'displayOrder'), false);
+  assert.ok(featuredWindow([{}], now).errors.includes('athlete-missing'));
+  assert.ok(featuredWindow([{ athleteId: 'a', startsAt: 'no-es-fecha' }], now).errors.includes('window-invalid'));
+  assert.ok(featuredWindow([{ athleteId: 'a', startsAt: '2026-08-01T00:00:00Z', endsAt: '2026-07-01T00:00:00Z' }], now).errors.includes('window-inverted'));
 });
 check('featured windows filter by current time without deleting rows', () => {
   const now = new Date('2026-08-18T12:00:00Z');
   const selections = [
-    { athleteId: 'activa', displayOrder: 1 },
-    { athleteId: 'expirada', displayOrder: 2, startsAt: '2026-08-01T00:00:00Z', endsAt: '2026-08-10T00:00:00Z' },
-    { athleteId: 'futura', displayOrder: 3, startsAt: '2026-09-01T00:00:00Z' },
+    { athleteId: 'activa' },
+    { athleteId: 'expirada', startsAt: '2026-08-01T00:00:00Z', endsAt: '2026-08-10T00:00:00Z' },
+    { athleteId: 'futura', startsAt: '2026-09-01T00:00:00Z' },
   ];
   const result = featuredWindow(selections, now);
   assert.deepEqual(result.active.map((item) => item.athleteId), ['activa']);
@@ -98,11 +96,7 @@ check('featured windows filter by current time without deleting rows', () => {
 });
 check('featured windows returns empty active when validation fails', () => {
   const now = new Date('2026-08-18T12:00:00Z');
-  // duplicate order -> validation error
-  const selections = [
-    { athleteId: 'a', displayOrder: 1 },
-    { athleteId: 'b', displayOrder: 1 },
-  ];
+  const selections = [{ athleteId: 'a', startsAt: 'fecha-inválida' }];
   const result = featuredWindow(selections, now);
   assert.equal(result.ok, false);
   assert.deepEqual(result.active, []);

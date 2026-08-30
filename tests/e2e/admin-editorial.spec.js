@@ -171,7 +171,7 @@ test('keeps the current news image when the media library is unavailable', async
   expect(savedPayload.hero_asset_id).toBe(heroAssetId);
 });
 
-test('manages featured windows through add, edit, and remove', async ({ page }) => {
+test('manages featured windows through append, move, edit, and remove', async ({ page }) => {
   await routeAdminAuth(page);
   const athletes = [
     { id: '20000000-0000-4000-8000-000000000001', display_name: 'Atleta Activo' },
@@ -183,6 +183,9 @@ test('manages featured windows through add, edit, and remove', async ({ page }) 
       starts_at: null, ends_at: null, athletes: { display_name: athletes[0].display_name },
     },
   ];
+  let appendPayload = null;
+  let editPayload = null;
+  const moveDirections = [];
   await page.route('**/rest/v1/featured_athletes**', async (route) => {
     const request = route.request();
     const method = request.method();
@@ -194,43 +197,88 @@ test('manages featured windows through add, edit, and remove', async ({ page }) 
       return route.fulfill({ status: 204, body: '' });
     }
     const payload = JSON.parse(request.postData());
-    if (method === 'POST') {
-      const athlete = athletes.find((item) => item.id === payload.athlete_id);
-      const row = { id: '30000000-0000-4000-8000-000000000003', ...payload, athletes: { display_name: athlete?.display_name ?? '' } };
-      rows.push(row);
-      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(wantsObject ? row : [row]) });
-    }
+    editPayload = payload;
     const row = rows.find((item) => item.id === id);
     Object.assign(row, payload);
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(wantsObject ? row : [row]) });
   });
-  await page.route('**/rest/v1/athletes**', (route) => route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify(athletes),
-  }));
+  await page.route('**/rest/v1/rpc/list_featured_athlete_candidates', (route) => {
+    const featuredIds = new Set(rows.map((row) => row.athlete_id));
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(athletes.filter((athlete) => !featuredIds.has(athlete.id))),
+    });
+  });
+  await page.route('**/rest/v1/rpc/append_featured_athlete', async (route) => {
+    appendPayload = JSON.parse(route.request().postData());
+    const athlete = athletes.find((item) => item.id === appendPayload.requested_athlete_id);
+    const row = {
+      id: '30000000-0000-4000-8000-000000000003',
+      athlete_id: athlete.id,
+      display_order: Math.max(...rows.map((item) => item.display_order), 0) + 1,
+      starts_at: appendPayload.requested_starts_at,
+      ends_at: appendPayload.requested_ends_at,
+      athletes: { display_name: athlete.display_name },
+    };
+    rows.push(row);
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(row) });
+  });
+  await page.route('**/rest/v1/rpc/move_featured_athlete', async (route) => {
+    const payload = JSON.parse(route.request().postData());
+    moveDirections.push(payload.requested_direction);
+    const index = rows.findIndex((row) => row.id === payload.requested_featured_id);
+    const neighborIndex = payload.requested_direction === 'up' ? index - 1 : index + 1;
+    [rows[index].display_order, rows[neighborIndex].display_order] = [rows[neighborIndex].display_order, rows[index].display_order];
+    rows.sort((left, right) => left.display_order - right.display_order);
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows.find((row) => row.id === payload.requested_featured_id)) });
+  });
   await signInEditor(page);
 
   await page.getByRole('link', { name: 'Destacados' }).click();
   await expect(page.getByText('Atleta Activo')).toBeVisible();
-  await expect(page.getByText('Activa', { exact: true })).toBeVisible();
-  await expect(page.getByLabel('Atleta publicado')).toContainText('Atleta Candidato');
+  await expect(page.getByText('Ventana activa', { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Crear atleta' })).toHaveAttribute('href', '/admin/atletas/nuevo');
+  await expect(page.getByRole('link', { name: 'Editar ficha de Atleta Activo' })).toHaveAttribute('href', `/admin/atletas/${athletes[0].id}`);
+  await expect(page.getByLabel('Atleta elegible')).toContainText('Atleta Candidato');
+  await expect(page.getByLabel(/Orden/)).toHaveCount(0);
 
-  await page.getByLabel('Atleta publicado').selectOption({ label: 'Atleta Candidato' });
-  await page.getByLabel('Orden (1-6)').fill('2');
+  await page.getByLabel('Atleta elegible').selectOption({ label: 'Atleta Candidato' });
   await page.getByRole('button', { name: 'Agregar destacado' }).click();
   await expect(page.getByRole('status')).toContainText('Destacado guardado.');
-  await expect(page.locator('ul').getByText('Atleta Candidato')).toBeVisible();
+  expect(appendPayload).toEqual({
+    requested_athlete_id: athletes[1].id,
+    requested_starts_at: null,
+    requested_ends_at: null,
+  });
+  expect(appendPayload).not.toHaveProperty('display_order');
+  await expect(page.getByText('Sólo aparecen atletas publicados con los consentimientos requeridos completos.')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Revisar atletas' })).toHaveAttribute('href', '/admin/atletas');
+  const featuredRows = page.locator('section[aria-labelledby="admin-featured-title"] > ul > li');
+  await expect(featuredRows).toHaveCount(2);
+  await expect(page.getByRole('button', { name: 'Subir Atleta Activo' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Bajar Atleta Activo' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Subir Atleta Candidato' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Bajar Atleta Candidato' })).toBeDisabled();
+
+  await page.getByRole('button', { name: 'Subir Atleta Candidato' }).click();
+  await expect(page.getByRole('status')).toContainText('Orden de destacados actualizado.');
+  await expect(featuredRows.first()).toContainText('Atleta Candidato');
+  await page.getByRole('button', { name: 'Bajar Atleta Candidato' }).click();
+  await expect(featuredRows.last()).toContainText('Atleta Candidato');
+  expect(moveDirections).toEqual(['up', 'down']);
 
   await page.getByRole('button', { name: 'Editar Atleta Candidato' }).click();
-  await page.getByLabel('Orden (1-6)').fill('3');
+  await expect(page.getByLabel('Atleta elegible')).toHaveCount(0);
+  await page.getByLabel('Inicio de ventana').fill('2030-09-01T09:00');
   await page.getByRole('button', { name: 'Guardar cambios' }).click();
   await expect(page.getByRole('status')).toContainText('Destacado guardado.');
-  await expect(page.getByText('3')).toBeVisible();
+  expect(editPayload).toEqual({ starts_at: '2030-09-01T09:00', ends_at: null });
+  await expect(page.getByText('Programada', { exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: 'Quitar Atleta Candidato' }).click();
   await expect(page.getByRole('status')).toContainText('Destacado eliminado.');
-  await expect(page.locator('ul').getByText('Atleta Candidato')).toHaveCount(0);
+  await expect(featuredRows.getByText('Atleta Candidato')).toHaveCount(0);
 });
 
 test('uploads a media asset through the signed flow', async ({ page }) => {

@@ -13,7 +13,8 @@ declare
   violated_constraint text;
   audit_start_id bigint := coalesce((select max(id) from private.admin_audit_log), 0);
 begin
-  select id into strict editor_id from public.profiles where display_name = 'Editor Staging' and role = 'editor' and is_active;
+  select id into strict editor_id from public.profiles where role in ('administrator', 'editor') and is_active
+  order by role = 'administrator' desc, id limit 1;
   perform set_config('request.jwt.claim.sub', editor_id::text, true);
   execute 'set local role authenticated';
 
@@ -69,7 +70,10 @@ begin
          (expired_athlete, date '2000-01-02', encode(extensions.digest(expired_athlete::text, 'sha256'), 'hex'), '0001');
   execute 'set local role authenticated';
   insert into public.athlete_consents (athlete_id, consent_type, status, granted_at)
-  values (test_athlete, 'public_profile', 'granted', now()), (expired_athlete, 'public_profile', 'granted', now());
+  values (test_athlete, 'public_profile', 'granted', now()),
+    (test_athlete, 'results_publication', 'granted', now()),
+    (expired_athlete, 'public_profile', 'granted', now()),
+    (expired_athlete, 'results_publication', 'granted', now());
   update public.athletes set publication_status = 'published' where id in (test_athlete, expired_athlete);
   insert into public.featured_athletes (athlete_id, display_order, starts_at, ends_at)
   values (test_athlete, 1, now() - interval '1 day', null) returning id into feature_active;

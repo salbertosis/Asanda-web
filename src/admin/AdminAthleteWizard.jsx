@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Check, Image, Plus, Save, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import AthleteAchievementPanel from './AthleteAchievementPanel';
+import AthleteEvidencePanel from './AthleteEvidencePanel';
 import {
   addAthleteCategory,
   addAthleteDiscipline,
@@ -43,6 +45,7 @@ const AdminAthleteWizard = ({ athleteId }) => {
   const [membership, setMembership] = useState(emptyMembership);
   const [busy, setBusy] = useState(null);
   const [message, setMessage] = useState(null);
+  const [evidenceRevision, setEvidenceRevision] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -220,6 +223,12 @@ const AdminAthleteWizard = ({ athleteId }) => {
           <button type="button" className="min-h-12 rounded-md bg-asanda-orange-strong px-5 font-bold text-white hover:bg-[#a94320] disabled:opacity-60" onClick={() => saveProfile('published')} disabled={busy === 'profile'}>Publicar atleta</button>
         </div>
       </form>
+      {athleteId ? <><AthleteEvidencePanel athleteId={athleteId} onEvidenceChange={() => setEvidenceRevision((revision) => revision + 1)} /><AthleteAchievementPanel athleteId={athleteId} evidenceRevision={evidenceRevision} /></> : (
+        <section aria-labelledby="athlete-evidence-title" className="rounded-[14px] border border-dashed border-asanda-line bg-white p-5 sm:p-6 dark:border-slate-700 dark:bg-dark-surface">
+          <h2 id="athlete-evidence-title" className="font-display text-2xl font-bold">Pruebas y logros</h2>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Guardá primero la ficha para cargar pruebas y logros.</p>
+        </section>
+      )}
     </section>
   );
 };
