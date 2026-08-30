@@ -111,7 +111,7 @@ test('keeps featured athlete cards inside a mobile viewport', async ({ page }) =
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
 });
 
-test('renders featured athletes on their public directory page', async ({ page }) => {
+test('renders enterprise cards without a club filter and preserves other directory filters', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
   await routeFeatured(page);
@@ -119,19 +119,87 @@ test('renders featured athletes on their public directory page', async ({ page }
 
   await expect(page.getByRole('heading', { level: 1, name: 'Atletas destacados', exact: true })).toHaveCount(1);
   await expect(page.getByRole('heading', { level: 2, name: 'Selección publicada', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { level: 3, name: 'Lucía', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { level: 3, name: 'Ana Pérez' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Lucía', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Ana Pérez' })).toBeVisible();
   await expect(page.getByText('Acuático Oriente').first()).toBeVisible();
   await expect(page.getByText('Lucía Torres').first()).toBeVisible();
   await expect(page.getByAltText('Lucía en la piscina').first()).toHaveAttribute('src', /c_fill,g_face.*\/athletes\/lucia$/);
-  await expect(page.getByTestId('featured-result-context')).toHaveText('2 atletas destacados');
-  const zetaFilter = page.getByRole('button', { name: 'ZA', exact: true });
-  await zetaFilter.click();
-  await expect(zetaFilter).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByTestId('featured-result-context')).toHaveText('1 de 2 atletas · ZA');
-  await expect(page.getByRole('heading', { level: 3, name: 'Ana Pérez' })).toBeVisible();
-  await expect(page.getByRole('heading', { level: 3, name: 'Lucía', exact: true })).toHaveCount(0);
+  await expect(page.getByTestId('featured-result-context')).toContainText('2 atletas destacados');
+  await expect(page.getByText('Filtrar por club')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'ZA', exact: true })).toHaveCount(0);
+  const luciaCard = page.getByRole('button', { name: 'Ver perfil público de Lucía' });
+  const luciaArticle = luciaCard.locator('xpath=ancestor::article');
+  await expect(luciaCard).toHaveAttribute('aria-haspopup', 'dialog');
+  await expect(luciaCard).toHaveAttribute('aria-controls', 'featured-athlete-profile-dialog');
+  await expect(luciaArticle).toContainText('100 m libre');
+  await expect(luciaArticle).toContainText('1:02.34');
+  await expect(luciaArticle).toContainText('Ver perfil público');
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+
+  await page.route('**/rest/v1/athletes*', (route) => route.fulfill(json([{ id: 'associated', display_name: 'Atleta Asociado', preferred_name: null, competitive_sex: 'female', photo: null, memberships: [{ membership_type: 'associated', organization: { id: 'club', name: 'Club Visible', short_name: 'CV' } }], disciplines: [], categories: [] }])));
+  await page.goto('/atletas-asociados');
+  await expect(page.getByText('Filtrar por club')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'CV', exact: true })).toBeVisible();
+});
+
+test('opens the allowlisted public profile and restores focus and scroll for every close path', async ({ page }) => {
+  await routeFeatured(page);
+  await page.goto('/atletas-destacados');
+  const card = page.getByRole('button', { name: 'Ver perfil público de Lucía' });
+  const dialog = page.getByRole('dialog', { name: 'Perfil público de Lucía' });
+
+  await card.focus();
+  await card.press('Enter');
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveAttribute('open', '');
+  await expect(page.getByRole('button', { name: 'Cerrar perfil público' })).toBeFocused();
+  expect(await page.evaluate(() => document.body.style.overflow)).toBe('hidden');
+  await expect(dialog).toContainText('Pruebas con resultados oficiales publicados');
+  await expect(dialog).toContainText('Estadal 2026');
+  await expect(dialog).toContainText('Puesto 2');
+  await expect(dialog).toContainText('Final nacional juvenil');
+  await expect(dialog).toContainText('Subcampeón nacional');
+  await expect(dialog).toContainText('Medalla de Bronce');
+  await expect(dialog).toContainText('Selección Nacional Juvenil');
+  const serialized = await dialog.textContent();
+  expect(serialized).not.toMatch(/athlete_id|source_document|approved_by|consent|notes/i);
+
+  await page.keyboard.press('Escape');
+  await expect(dialog).not.toBeVisible();
+  await expect(card).toBeFocused();
+  expect(await page.evaluate(() => document.body.style.overflow)).toBe('');
+
+  await card.press('Space');
+  await page.getByRole('button', { name: 'Cerrar perfil público' }).click();
+  await expect(card).toBeFocused();
+
+  await card.click();
+  const dialogBox = await dialog.boundingBox();
+  expect(dialogBox.x).toBeGreaterThan(0);
+  await page.mouse.click(dialogBox.x / 2, dialogBox.y + dialogBox.height / 2);
+  await expect(dialog).not.toBeVisible();
+  await expect(card).toBeFocused();
+});
+
+test('keeps the modal usable at 320 and 390 pixels in dark reduced-motion mode', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await page.addInitScript(() => localStorage.setItem('darkMode', 'true'));
+  await routeFeatured(page);
+
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 760 });
+    await page.goto('/atletas-destacados');
+    await page.evaluate(() => document.documentElement.classList.add('dark'));
+    const athleteName = width === 320 ? 'Ana Pérez' : 'Lucía';
+    await page.getByRole('button', { name: `Ver perfil público de ${athleteName}` }).click();
+    const dialog = page.getByRole('dialog', { name: `Perfil público de ${athleteName}` });
+    await expect(dialog).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+    expect(await dialog.evaluate((element) => getComputedStyle(element.firstElementChild).backgroundColor)).toBe('rgb(2, 6, 23)');
+    expect(await dialog.evaluate((element) => getComputedStyle(element).animationName)).toBe('none');
+    if (width === 320) await expect(dialog).toContainText('NombreCompetitivoExtremadamenteLargo');
+    await page.getByRole('button', { name: 'Cerrar perfil público' }).click();
+  }
 });
 
 test('announces loading and empty featured directory states', async ({ page }) => {

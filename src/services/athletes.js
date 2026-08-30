@@ -106,7 +106,6 @@ export const getFeaturedAthletes = async (signal) => {
     const clubName = row.club_name || 'Organización no disponible';
     const profile = normalizeFeaturedProfile(row);
     athletesByKey.set(row.profile_key, {
-      id: row.profile_key,
       profileKey: row.profile_key,
       displayOrder,
       name: row.preferred_name || row.display_name,
@@ -114,7 +113,6 @@ export const getFeaturedAthletes = async (signal) => {
       photoUrl: getPhotoUrl(photo, { width: 720, height: 520 }),
       photoAlt: getPhotoAlt(photo, row.display_name),
       organization: row.club_short_name || clubName,
-      clubId: row.club_short_name || row.club_name || null,
       clubName,
       clubShortName: row.club_short_name || null,
       category: row.category_name || 'Sin categoría',
