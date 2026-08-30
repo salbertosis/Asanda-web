@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getFeaturedAthletes } from '../services/athletes';
+import { getFeaturedAthleteDirectory } from '../services/athletes';
 import FeaturedAthleteCard from './FeaturedAthleteCard';
 import FeaturedAthleteDialog from './FeaturedAthleteDialog';
 
@@ -12,7 +12,7 @@ const FeaturedAthleteDirectory = () => {
     const controller = new AbortController();
     let active = true;
 
-    getFeaturedAthletes(controller.signal)
+    getFeaturedAthleteDirectory(controller.signal)
       .then((featuredAthletes) => {
         if (!active) return;
         setAthletes(featuredAthletes);

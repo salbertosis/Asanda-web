@@ -71,12 +71,12 @@ export function validateImageFile(file) {
 
 export function featuredWindow(selections, now = new Date()) {
   const errors = [];
-  const seenOrder = new Set();
-  for (const item of selections ?? []) {
-    const order = item?.displayOrder;
-    if (!Number.isInteger(order) || order < 1 || order > 6) errors.push('order-invalid');
-    else if (seenOrder.has(order)) errors.push('order-duplicate');
-    else seenOrder.add(order);
+  const normalized = (selections ?? []).map((item) => ({
+    athleteId: item?.athleteId,
+    startsAt: item?.startsAt || null,
+    endsAt: item?.endsAt || null,
+  }));
+  for (const item of normalized) {
     if (!item?.athleteId || typeof item.athleteId !== 'string') errors.push('athlete-missing');
     for (const key of ['startsAt', 'endsAt']) {
       if (item?.[key] !== undefined && item[key] !== null && (typeof item[key] !== 'string' || Number.isNaN(Date.parse(item[key])))) errors.push('window-invalid');
@@ -84,7 +84,7 @@ export function featuredWindow(selections, now = new Date()) {
     if (item?.startsAt && item?.endsAt && Date.parse(item.startsAt) >= Date.parse(item.endsAt)) errors.push('window-inverted');
   }
   const active = errors.length === 0
-    ? (selections ?? []).filter((item) => {
+    ? normalized.filter((item) => {
         if (!item.startsAt || Date.parse(item.startsAt) <= now.getTime()) {
           return !item.endsAt || Date.parse(item.endsAt) > now.getTime();
         }

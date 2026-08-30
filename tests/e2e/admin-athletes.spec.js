@@ -45,7 +45,7 @@ const isAthleteListRequest = (request) => {
     && query.get('order') === 'display_name.asc';
 };
 
-const routeAdminAuth = async (page) => {
+const routeAdminAuth = async (page, role = 'editor') => {
   await page.route('**/auth/v1/token**', (route) => route.fulfill(json({
     access_token: accessToken,
     token_type: 'bearer',
@@ -58,7 +58,7 @@ const routeAdminAuth = async (page) => {
   await page.route('**/rest/v1/profiles**', (route) => route.fulfill(json([{
     id: userId,
     display_name: 'Editor E2E',
-    role: 'editor',
+    role,
     is_active: true,
   }])));
 };
@@ -88,7 +88,188 @@ const routeAthleteEditor = async (page, handlers = {}) => {
   await page.route('**/rest/v1/athlete_category_assignments**', handlers.category || ((route) => route.fulfill(json([]))));
   await page.route('**/rest/v1/athlete_disciplines**', handlers.discipline || ((route) => route.fulfill(json([]))));
   await page.route('**/rest/v1/athlete_memberships**', handlers.membership || ((route) => route.fulfill(json([]))));
+  await page.route('**/rest/v1/source_documents**', handlers.evidence || ((route) => route.fulfill(json([]))));
+  await page.route('**/rest/v1/athlete_achievements**', handlers.achievements || ((route) => route.fulfill(json([]))));
 };
+
+test('keeps evidence unavailable until the athlete is saved', async ({ page }) => {
+  let evidenceRequests = 0;
+  await routeAdminAuth(page);
+  await page.route('**/rest/v1/source_documents**', (route) => { evidenceRequests += 1; return route.fulfill(json([])); });
+  await page.route('**/rest/v1/athletes**', (route) => route.fulfill(json(isAthleteListRequest(route.request()) ? [] : athlete)));
+  await page.route(/\/rest\/v1\/(media_assets|age_categories|disciplines|organizations).*/, (route) => route.fulfill(json([])));
+  await signInEditor(page);
+  await page.goto('/admin/atletas/nuevo');
+  await expect(page.getByText('Guardá primero la ficha para cargar pruebas y logros.')).toBeVisible();
+  expect(evidenceRequests).toBe(0);
+});
+
+test('uploads editor evidence with an opaque private path without saving or review controls', async ({ page }) => {
+  const storagePaths = [];
+  const evidenceWrites = [];
+  let saveCalls = 0;
+  let evidenceRows = [];
+  await routeAdminAuth(page);
+  await routeAthleteEditor(page, { evidence: (route) => route.fulfill(json(evidenceRows)) });
+  await page.route('**/storage/v1/object/athlete-evidence/**', (route) => {
+    storagePaths.push(decodeURIComponent(new URL(route.request().url()).pathname));
+    return route.fulfill(json({ Key: 'private-object' }));
+  });
+  await page.route('**/rest/v1/rpc/create_athlete_evidence_source', (route) => {
+    const payload = route.request().postDataJSON();
+    evidenceWrites.push(payload);
+    evidenceRows = [{ id: 'evidence-1', athlete_id: athlete.id, evidence_kind: 'private_object', evidence_label: payload.requested_evidence_label, storage_bucket_id: 'athlete-evidence', storage_object_path: payload.requested_storage_object_path, official_url: null, approval_status: 'pending', created_at: '2026-08-30T12:00:00Z' }];
+    return route.fulfill(json(evidenceRows[0]));
+  });
+  await page.route('**/rest/v1/rpc/save_admin_athlete', (route) => { saveCalls += 1; return route.fulfill(json([athlete])); });
+  await signInEditor(page);
+  await page.goto('/admin/atletas/athlete-relations');
+  await page.getByLabel('Etiqueta').fill('Acta regional');
+  await page.getByLabel('Archivo de evidencia', { exact: true }).setInputFiles({ name: 'nombre-privado.pdf', mimeType: 'application/pdf', buffer: Buffer.from('private evidence') });
+  await page.getByRole('button', { name: 'Agregar prueba' }).click();
+  await expect(page.getByText('Acta regional', { exact: true })).toBeVisible();
+  expect(evidenceWrites).toHaveLength(1);
+  expect(evidenceWrites[0].requested_checksum).toMatch(/^[0-9a-f]{64}$/);
+  expect(evidenceWrites[0].requested_storage_object_path).toMatch(new RegExp(`^${userId}/[0-9a-f-]+\\.pdf$`));
+  expect(storagePaths.join(' ')).not.toContain('nombre-privado.pdf');
+  expect(saveCalls).toBe(0);
+  await expect(page.getByRole('button', { name: 'Aprobar' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Rechazar' })).toHaveCount(0);
+});
+
+test('reports cleanup failure while preserving evidence registration failure', async ({ page }) => {
+  const storageMethods = [];
+  await routeAdminAuth(page);
+  await routeAthleteEditor(page);
+  await page.route('**/storage/v1/object/athlete-evidence**', (route) => {
+    const method = route.request().method(); storageMethods.push(method);
+    return route.fulfill(method === 'DELETE' ? { ...json({ message: 'cleanup failed' }), status: 500 } : json({ Key: 'private-object' }));
+  });
+  await page.route('**/rest/v1/rpc/create_athlete_evidence_source', (route) => route.fulfill({ ...json({ code: 'P0002', message: 'private details' }), status: 400 }));
+  await signInEditor(page);
+  await page.goto('/admin/atletas/athlete-relations');
+  await page.getByLabel('Etiqueta').fill('Acta fallida');
+  await page.getByLabel('Archivo de evidencia', { exact: true }).setInputFiles({ name: 'acta.pdf', mimeType: 'application/pdf', buffer: Buffer.from('private evidence') });
+  await page.getByRole('button', { name: 'Agregar prueba' }).click();
+  await expect(page.getByRole('alert')).toContainText('No fue posible registrar la prueba privada ni retirar el archivo cargado');
+  expect(storageMethods).toEqual(['POST', 'DELETE']);
+});
+
+test('lets administrators create HTTPS evidence, review it, and request private signed URLs', async ({ page }) => {
+  const rpcCalls = [];
+  let signedRequests = 0;
+  let rows = [{ id: 'private-evidence', athlete_id: athlete.id, evidence_kind: 'private_object', evidence_label: 'Acta privada', storage_bucket_id: 'athlete-evidence', storage_object_path: `${userId}/opaque.pdf`, official_url: null, approval_status: 'pending', created_at: '2026-08-30T11:00:00Z' }];
+  await routeAdminAuth(page, 'administrator');
+  await routeAthleteEditor(page, { evidence: (route) => route.fulfill(json(rows)) });
+  await page.route('**/rest/v1/rpc/create_athlete_evidence_source', (route) => {
+    const payload = route.request().postDataJSON(); rpcCalls.push({ name: 'create', payload });
+    rows = [...rows, { id: 'official-evidence', athlete_id: athlete.id, evidence_kind: 'official_url', evidence_label: payload.requested_evidence_label, storage_bucket_id: null, storage_object_path: null, official_url: payload.requested_official_url, approval_status: 'pending', created_at: '2026-08-30T12:00:00Z' }];
+    return route.fulfill(json(rows[1]));
+  });
+  await page.route('**/rest/v1/rpc/review_athlete_evidence', (route) => { rpcCalls.push({ name: 'review', payload: route.request().postDataJSON() }); return route.fulfill(json({ ...rows[0], approval_status: 'approved' })); });
+  await page.route('**/storage/v1/object/sign/athlete-evidence/**', (route) => { signedRequests += 1; return route.fulfill(json({ signedURL: '/signed-private-evidence' })); });
+  await signInEditor(page);
+  await page.goto('/admin/atletas/athlete-relations');
+  await page.getByLabel('Origen de la prueba').selectOption('official_url');
+  await page.getByLabel('Etiqueta').fill('Resultado federativo');
+  await page.getByLabel('Enlace oficial HTTPS', { exact: true }).fill('https://federacion.example/resultados');
+  await page.getByRole('button', { name: 'Agregar prueba' }).click();
+  await expect(page.getByText('Resultado federativo', { exact: true })).toBeVisible();
+  expect(rpcCalls[0].payload.requested_official_url).toBe('https://federacion.example/resultados');
+  const privateItem = page.getByRole('listitem').filter({ hasText: 'Acta privada' });
+  await privateItem.getByRole('button', { name: 'Aprobar' }).click();
+  expect(rpcCalls[1]).toEqual({ name: 'review', payload: { requested_source_document_id: 'private-evidence', requested_decision: 'approved' } });
+  const popupPromise = page.waitForEvent('popup');
+  await privateItem.getByRole('button', { name: 'Abrir prueba' }).click();
+  const popup = await popupPromise; await popup.close();
+  expect(signedRequests).toBe(1);
+});
+
+test('manages evidence-backed achievement drafts without saving the athlete profile', async ({ page }) => {
+  const approved = { id: 'evidence-approved', athlete_id: athlete.id, evidence_kind: 'official_url', evidence_label: 'Acta aprobada', official_url: 'https://federacion.example/acta', approval_status: 'approved', created_at: '2026-08-30T10:00:00Z' };
+  const pending = { ...approved, id: 'evidence-pending', evidence_label: 'Acta pendiente', approval_status: 'pending' };
+  const writes = [];
+  let rows = [];
+  let rejectedTeam = false;
+  let failReload = false;
+  let saveCalls = 0;
+  await routeAdminAuth(page);
+  await routeAthleteEditor(page, {
+    evidence: (route) => route.fulfill(json([approved, pending])),
+    achievements: (route) => {
+      const request = route.request();
+      const payload = request.method() === 'GET' ? {} : request.postDataJSON() || {};
+      if (request.method() === 'GET') {
+        if (failReload) { failReload = false; return route.fulfill({ ...json({ message: 'reload failed' }), status: 500 }); }
+        return route.fulfill(json(rows));
+      }
+      writes.push({ method: request.method(), payload });
+      if (request.method() === 'POST' && payload.title === 'Selección Venezuela' && !rejectedTeam) {
+        rejectedTeam = true;
+        return route.fulfill({ ...json({ code: '23514', message: 'private database detail' }), status: 400 });
+      }
+      if (request.method() === 'DELETE') {
+        const id = new URL(request.url()).searchParams.get('id')?.replace('eq.', '');
+        rows = rows.filter((item) => item.id !== id);
+        return route.fulfill(json({ id }));
+      }
+      if (request.method() === 'PATCH') {
+        const id = new URL(request.url()).searchParams.get('id')?.replace('eq.', '');
+        rows = rows.map((item) => item.id === id ? { ...item, ...payload, updated_at: '2026-08-30T13:00:00Z' } : item);
+        return route.fulfill(json(rows.find((item) => item.id === id)));
+      }
+      const row = { id: `achievement-${rows.length + 1}`, athlete_id: athlete.id, ...payload, created_at: '2026-08-30T12:00:00Z', updated_at: '2026-08-30T12:00:00Z' };
+      rows = [...rows, row];
+      if (payload.title === 'Campeón nacional juvenil') failReload = true;
+      return route.fulfill(json(row));
+    },
+  });
+  await page.route('**/rest/v1/rpc/save_admin_athlete', (route) => { saveCalls += 1; return route.fulfill(json([athlete])); });
+  await signInEditor(page);
+  await page.goto('/admin/atletas/athlete-relations');
+
+  const createForm = page.getByRole('form', { name: 'Agregar logro del atleta' });
+  await expect(createForm.getByRole('option', { name: 'Acta aprobada' })).toHaveCount(1);
+  await expect(createForm.getByRole('option', { name: 'Acta pendiente' })).toHaveCount(0);
+  await createForm.getByLabel('Prueba aprobada').selectOption(approved.id);
+  await createForm.getByLabel('Título').fill('Campeón nacional juvenil');
+  await createForm.getByLabel('Competencia').fill('Nacional juvenil');
+  await createForm.getByLabel('Fecha del logro').fill('2026-08-20');
+  await createForm.getByRole('button', { name: 'Agregar logro' }).click();
+  await expect(page.getByRole('alert')).toContainText('Logro agregado como borrador. No fue posible actualizar la lista de logros.');
+  await expect(createForm.getByLabel('Título')).toHaveValue('');
+  expect(writes).toHaveLength(1);
+  expect(writes[0].payload).toMatchObject({ athlete_id: athlete.id, source_document_id: approved.id, achievement_type: 'national_podium', place: 1, medal: null, valid_from: null, publication_status: 'draft' });
+
+  await createForm.getByLabel('Tipo de logro').selectOption('national_team');
+  await createForm.getByLabel('Prueba aprobada').selectOption(approved.id);
+  await createForm.getByLabel('Título').fill('Selección Venezuela');
+  await createForm.getByLabel('Vigente desde').fill('2026-01-01');
+  await createForm.getByLabel('Vigente hasta').fill('2026-12-31');
+  await createForm.getByRole('button', { name: 'Agregar logro' }).click();
+  await expect(page.getByRole('alert')).toContainText('No fue posible completar la operación');
+  await expect(page.getByRole('alert')).not.toContainText('private database detail');
+  await expect(createForm.getByLabel('Título')).toHaveValue('Selección Venezuela');
+  await createForm.getByRole('button', { name: 'Agregar logro' }).click();
+  await expect(page.getByRole('heading', { name: 'Selección Venezuela' })).toBeVisible();
+
+  let podium = page.getByRole('listitem').filter({ hasText: 'Campeón nacional juvenil' });
+  await podium.getByRole('button', { name: 'Publicar Campeón nacional juvenil' }).click();
+  const publishPayload = writes.find((write) => write.method === 'PATCH' && write.payload.publication_status === 'published').payload;
+  expect(publishPayload.published_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  podium = page.getByRole('listitem').filter({ hasText: 'Campeón nacional juvenil' });
+  await expect(podium.getByText('Publicado', { exact: true })).toBeVisible();
+  await podium.getByRole('button', { name: 'Despublicar Campeón nacional juvenil' }).click();
+  podium = page.getByRole('listitem').filter({ hasText: 'Campeón nacional juvenil' });
+  await podium.getByRole('button', { name: 'Editar Campeón nacional juvenil' }).click();
+  const editForm = page.getByRole('form', { name: 'Editar logro Campeón nacional juvenil' });
+  await editForm.getByLabel('Título').fill('Campeón nacional 2026');
+  await editForm.getByRole('button', { name: 'Guardar cambios' }).click();
+  await page.getByRole('button', { name: 'Eliminar Campeón nacional 2026' }).click();
+  await expect(page.getByRole('heading', { name: 'Campeón nacional 2026' })).toHaveCount(0);
+  expect(writes.find((write) => write.method === 'PATCH' && write.payload.publication_status === 'draft').payload.published_at).toBeNull();
+  expect(saveCalls).toBe(0);
+});
 
 test('creates a draft through one atomic athlete RPC', async ({ page }) => {
   const writes = [];

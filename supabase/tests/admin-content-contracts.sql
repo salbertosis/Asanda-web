@@ -18,7 +18,8 @@ begin
     raise exception 'Anonymous clients can execute the result import RPC.';
   end if;
 
-  select id into strict editor_id from public.profiles where display_name = 'Editor Staging' and role = 'editor' and is_active;
+  select id into strict editor_id from public.profiles where role in ('administrator', 'editor') and is_active
+  order by role = 'administrator' desc, id limit 1;
   insert into public.athletes (display_name) values ('Content contract test') returning id into test_athlete;
   insert into private.athlete_details (athlete_id, date_of_birth, national_id_hash, national_id_last4)
   values (test_athlete, date '2000-01-01', encode(extensions.digest(test_athlete::text, 'sha256'), 'hex'), '0000');
@@ -33,7 +34,8 @@ begin
   if not blocked then raise exception 'Athlete publication without consent was accepted.'; end if;
 
   insert into public.athlete_consents (athlete_id, consent_type, status, granted_at)
-  values (test_athlete, 'public_profile', 'granted', now());
+  values (test_athlete, 'public_profile', 'granted', now()),
+    (test_athlete, 'results_publication', 'granted', now());
   update public.athletes set publication_status = 'published' where id = test_athlete;
   insert into public.featured_athletes (athlete_id, display_order) values (test_athlete, 1) returning id into test_feature;
 
