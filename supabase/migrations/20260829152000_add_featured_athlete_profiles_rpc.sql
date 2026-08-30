@@ -1,19 +1,19 @@
 create or replace function public.get_featured_athlete_profiles()
 returns table (
-  profile_key text,
-  display_order smallint,
-  display_name text,
-  preferred_name text,
-  photo_provider text,
-  photo_public_id text,
-  photo_external_url text,
-  photo_alt_text text,
-  club_name text,
-  club_short_name text,
-  category_name text,
-  events jsonb,
-  results jsonb,
-  achievements jsonb
+    profile_key text,
+    display_order smallint,
+    display_name text,
+    preferred_name text,
+    photo_provider text,
+    photo_public_id text,
+    photo_external_url text,
+    photo_alt_text text,
+    club_name text,
+    club_short_name text,
+    category_name text,
+    events jsonb,
+    results jsonb,
+    achievements jsonb
 )
 language sql stable security definer set search_path = ''
 as $$
@@ -103,7 +103,9 @@ as $$
 $$;
 
 revoke all on function public.get_featured_athlete_profiles() from public;
-grant execute on function public.get_featured_athlete_profiles() to anon, authenticated;
+grant execute on function public.get_featured_athlete_profiles()
+to anon, authenticated;
 
 comment on function public.get_featured_athlete_profiles() is
-  'Returns only allowlisted public competitive profile fields. Evidence documents and internal identifiers are intentionally excluded.';
+'Returns only allowlisted public competitive profile fields. Evidence '
+'documents and internal identifiers are intentionally excluded.';
