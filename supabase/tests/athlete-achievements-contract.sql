@@ -9,6 +9,8 @@ declare
   asset_id uuid;
   approved_source_id uuid;
   pending_source_id uuid;
+  matching_evidence_source_id uuid;
+  mismatched_evidence_source_id uuid;
   achievement_id uuid;
   blocked boolean;
 begin
@@ -21,22 +23,38 @@ begin
   insert into auth.users (id) values (viewer_id);
   insert into public.profiles (id, display_name, role, is_active)
   values (viewer_id, 'Achievement SQL viewer', 'viewer', true);
-  insert into public.athletes (display_name, publication_status)
-  values ('Published achievement athlete', 'published') returning id into test_athlete_id;
+  insert into public.athletes (display_name)
+  values ('Published achievement athlete') returning id into test_athlete_id;
   insert into public.athletes (display_name)
   values ('Draft achievement athlete') returning id into draft_athlete_id;
   insert into public.athlete_consents (athlete_id, consent_type, status, granted_at) values
     (test_athlete_id, 'public_profile', 'granted', now()),
     (test_athlete_id, 'results_publication', 'granted', now());
+  update public.athletes set publication_status = 'published' where id = test_athlete_id;
   insert into public.media_assets (provider, external_url, resource_type, is_public)
   values ('local', '/achievement-evidence.pdf', 'document', false) returning id into asset_id;
   insert into public.source_documents (source_type, asset_id, checksum, status, processed_at)
   values ('manual', asset_id, repeat('b', 64), 'processed', now()) returning id into approved_source_id;
   insert into public.source_documents (source_type, asset_id, checksum, status, processed_at)
   values ('manual', asset_id, repeat('c', 64), 'processed', now()) returning id into pending_source_id;
+  insert into public.source_documents (
+    source_type, athlete_id, evidence_kind, evidence_label, official_url,
+    checksum, status, processed_at
+  ) values (
+    'manual', test_athlete_id, 'official_url', 'Matching official evidence',
+    'https://example.test/evidence/matching', repeat('d', 64), 'processed', now()
+  ) returning id into matching_evidence_source_id;
+  insert into public.source_documents (
+    source_type, athlete_id, evidence_kind, evidence_label, official_url,
+    checksum, status, processed_at
+  ) values (
+    'manual', draft_athlete_id, 'official_url', 'Other athlete evidence',
+    'https://example.test/evidence/other-athlete', repeat('e', 64), 'processed', now()
+  ) returning id into mismatched_evidence_source_id;
   perform set_config('request.jwt.claim.sub', editor_id::text, true);
   execute 'set local role authenticated';
   update public.source_documents set approval_status = 'approved' where id = approved_source_id;
+  update public.source_documents set approval_status = 'approved' where id = matching_evidence_source_id;
   execute 'reset role';
 
   perform set_config('request.jwt.claim.sub', viewer_id::text, true);
@@ -82,11 +100,25 @@ begin
   end;
   if not blocked then raise exception 'A draft or unconsented athlete received a published achievement.'; end if;
 
+  blocked := false;
+  begin
+    insert into public.athlete_achievements (
+      athlete_id, source_document_id, achievement_type, title, valid_from
+    ) values (
+      test_athlete_id, mismatched_evidence_source_id, 'national_team',
+      'Mismatched athlete evidence', current_date
+    );
+  exception when check_violation then
+    if sqlerrm not like 'Athlete achievement evidence must belong to the same athlete%' then raise; end if;
+    blocked := true;
+  end;
+  if not blocked then raise exception 'An achievement accepted evidence owned by another athlete.'; end if;
+
   insert into public.athlete_achievements (
     athlete_id, source_document_id, achievement_type, title, competition_name,
     place, achieved_on, publication_status, published_at
   ) values (
-    test_athlete_id, approved_source_id, 'national_podium', 'Published national podium',
+    test_athlete_id, matching_evidence_source_id, 'national_podium', 'Published national podium',
     'National meet', 2, current_date, 'published', now()
   ) returning id into achievement_id;
   execute 'reset role';
