@@ -1,12 +1,12 @@
 import { getCloudinaryUrl } from '../config/cloudinary';
 import { supabase } from './supabase';
 
-const getPhotoUrl = (photo) => {
+const getPhotoUrl = (photo, dimensions = { width: 320, height: 320 }) => {
   if (!photo) return '/asanda.png';
   if (photo.provider === 'cloudinary' && photo.public_id) {
     return getCloudinaryUrl(photo.public_id, {
-      width: 320,
-      height: 320,
+      width: dimensions.width,
+      height: dimensions.height,
       crop: 'fill',
       gravity: 'face',
     });
@@ -43,52 +43,88 @@ const collapseMembershipsByOrganization = (memberships = []) => {
     .sort((a, b) => a.organization.id.localeCompare(b.organization.id));
 };
 
-export const getFeaturedAthletes = async (signal) => {
-  let query = supabase
-    .from('featured_athletes')
-    .select(`
-      display_order,
-      athlete:athletes!inner(
-        id,
-        display_name,
-        preferred_name,
-        photo:media_assets!athletes_photo_asset_id_fkey(
-          provider,
-          public_id,
-          external_url,
-          alt_text
-        ),
-        memberships:athlete_memberships(
-          organization:organizations(id,name,short_name)
-        ),
-        categories:athlete_category_assignments(
-          category:age_categories(name)
-        )
-      )
-    `)
-    .order('display_order');
+const normalizeDate = (value) => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
 
+const normalizeFeaturedProfile = (profile) => ({
+  events: [...new Set(Array.isArray(profile?.events) ? profile.events.filter((event) => typeof event === 'string' && event.trim()) : [])]
+    .sort((a, b) => a.localeCompare(b, 'es')),
+  results: (Array.isArray(profile?.results) ? profile.results : []).flatMap((result) => {
+    if (!result || typeof result.event_name !== 'string' || typeof result.competition_name !== 'string' || !normalizeDate(result.competition_date)) return [];
+    const timeMs = Number(result.time_ms);
+    const place = result.place == null ? null : Number(result.place);
+    return [{
+      eventName: result.event_name,
+      timeMs: Number.isFinite(timeMs) && timeMs > 0 ? timeMs : null,
+      place: Number.isInteger(place) && place > 0 ? place : null,
+      competitionName: result.competition_name,
+      competitionDate: normalizeDate(result.competition_date),
+    }];
+  }),
+  achievements: (Array.isArray(profile?.achievements) ? profile.achievements : []).flatMap((achievement) => {
+    if (!achievement || !['national_podium', 'international_medal', 'national_team'].includes(achievement.achievement_type) || typeof achievement.title !== 'string' || !achievement.title.trim()) return [];
+    const normalized = {
+      type: achievement.achievement_type,
+      title: achievement.title,
+      competitionName: typeof achievement.competition_name === 'string' ? achievement.competition_name : null,
+      medal: ['gold', 'silver', 'bronze'].includes(achievement.medal) ? achievement.medal : null,
+      place: [1, 2, 3].includes(Number(achievement.place)) ? Number(achievement.place) : null,
+      achievedOn: normalizeDate(achievement.achieved_on),
+      validFrom: normalizeDate(achievement.valid_from),
+      validTo: normalizeDate(achievement.valid_to),
+    };
+    const isComplete = normalized.type === 'national_team'
+      ? normalized.validFrom
+      : normalized.competitionName && normalized.achievedOn && (normalized.type === 'national_podium' ? normalized.place : normalized.medal);
+    return isComplete ? [normalized] : [];
+  }),
+});
+
+export const getFeaturedAthletes = async (signal) => {
+  let query = supabase.rpc('get_featured_athlete_profiles');
   if (signal) query = query.abortSignal(signal);
   const { data, error } = await query;
   if (error) throw error;
 
-  return (data ?? []).map(({ athlete, display_order: displayOrder }) => {
-    const organization = collapseMembershipsByOrganization(athlete.memberships)[0]?.organization;
-    const clubName = organization?.name || 'Organización no disponible';
-    return {
-      id: athlete.id,
+  const athletesByKey = new Map();
+  (data ?? []).forEach((row) => {
+    const displayOrder = Number(row?.display_order);
+    if (!/^v1_[0-9a-f]{64}$/.test(row?.profile_key) || !Number.isInteger(displayOrder) || typeof row?.display_name !== 'string' || !row.display_name.trim()) {
+      console.warn('A featured athlete profile did not match the public RPC contract.');
+      return;
+    }
+    if (athletesByKey.has(row.profile_key)) {
+      console.warn('The public featured athlete RPC returned a duplicate profile key.');
+      return;
+    }
+
+    const photo = row.photo_provider ? {
+      provider: row.photo_provider,
+      public_id: row.photo_public_id,
+      external_url: row.photo_external_url,
+      alt_text: row.photo_alt_text,
+    } : null;
+    const clubName = row.club_name || 'Organización no disponible';
+    const profile = normalizeFeaturedProfile(row);
+    athletesByKey.set(row.profile_key, {
+      id: row.profile_key,
+      profileKey: row.profile_key,
       displayOrder,
-      name: athlete.preferred_name || athlete.display_name,
-      fullName: athlete.display_name,
-      photoUrl: getPhotoUrl(athlete.photo),
-      photoAlt: getPhotoAlt(athlete.photo, athlete.display_name),
-      organization: organization?.short_name || clubName,
-      clubId: organization?.id ?? null,
+      name: row.preferred_name || row.display_name,
+      fullName: row.display_name,
+      photoUrl: getPhotoUrl(photo, { width: 720, height: 520 }),
+      photoAlt: getPhotoAlt(photo, row.display_name),
+      organization: row.club_short_name || clubName,
+      clubId: row.club_short_name || row.club_name || null,
       clubName,
-      clubShortName: organization?.short_name,
-      category: athlete.categories?.[0]?.category?.name || 'Sin categoría',
-    };
+      clubShortName: row.club_short_name || null,
+      category: row.category_name || 'Sin categoría',
+      events: profile.events,
+      results: profile.results,
+      achievements: profile.achievements,
+    });
   });
+
+  return [...athletesByKey.values()].sort((a, b) => a.displayOrder - b.displayOrder);
 };
 
 export const getPublishedAthletes = async (membershipType, signal) => {
