@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Pencil, Plus, RefreshCw, Star, Trash2 } from 'lucide-react';
-import { listFeaturedAthletes, listPublishableAthletes, removeFeaturedAthlete, saveFeaturedAthlete } from '../services/admin/featured';
+import { ArrowDown, ArrowUp, Pencil, Plus, RefreshCw, Star, Trash2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { listFeaturedAthletes, listPublishableAthletes, moveFeaturedAthlete, removeFeaturedAthlete, saveFeaturedAthlete } from '../services/admin/featured';
 import { featuredWindow } from '../services/admin/editorialLogic';
 
 const toLocalInput = (value) => {
@@ -16,6 +17,12 @@ const formatDate = (value) => {
   return new Date(value).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' }) + ' ' + new Date(value).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
 };
 
+const windowStatus = (item, now = Date.now()) => {
+  if (item.endsAt && Date.parse(item.endsAt) <= now) return { label: 'Finalizada', className: 'bg-slate-100 text-slate-600' };
+  if (item.startsAt && Date.parse(item.startsAt) > now) return { label: 'Programada', className: 'bg-blue-100 text-blue-800' };
+  return { label: 'Ventana activa', className: 'bg-emerald-100 text-emerald-800' };
+};
+
 const AdminFeaturedPage = () => {
   const [items, setItems] = useState(null);
   const [athletes, setAthletes] = useState([]);
@@ -23,7 +30,7 @@ const AdminFeaturedPage = () => {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
   const [editing, setEditing] = useState(null);
-  const [draft, setDraft] = useState({ athleteId: '', displayOrder: '', startsAt: '', endsAt: '' });
+  const [draft, setDraft] = useState({ athleteId: '', startsAt: '', endsAt: '' });
 
   const load = useCallback(async () => {
     setError(null);
@@ -32,7 +39,7 @@ const AdminFeaturedPage = () => {
       setItems(featured);
       setAthletes(candidates);
     } catch {
-      setError('No fue posible cargar los destacados. Intentá nuevamente.');
+      setError('No fue posible cargar los destacados. Intenta nuevamente.');
     }
   }, []);
 
@@ -42,28 +49,28 @@ const AdminFeaturedPage = () => {
 
   const startEditing = (item) => {
     setEditing(item);
-    setDraft({ athleteId: item.athleteId, displayOrder: String(item.displayOrder), startsAt: toLocalInput(item.startsAt), endsAt: toLocalInput(item.endsAt) });
+    setDraft({ athleteId: item.athleteId, startsAt: toLocalInput(item.startsAt), endsAt: toLocalInput(item.endsAt) });
     setNotice(null);
   };
 
   const reset = () => {
     setEditing(null);
-    setDraft({ athleteId: '', displayOrder: '', startsAt: '', endsAt: '' });
+    setDraft({ athleteId: '', startsAt: '', endsAt: '' });
     setNotice(null);
   };
 
   const save = async (event) => {
     event.preventDefault();
+    if (busy) return;
     setNotice(null);
     const entry = {
       athleteId: draft.athleteId,
-      displayOrder: Number(draft.displayOrder),
       startsAt: draft.startsAt || null,
       endsAt: draft.endsAt || null,
     };
     const validation = featuredWindow([entry]);
     if (!validation.ok) {
-      setNotice({ type: 'error', text: 'Revisá la selección: orden entre 1 y 6, atleta elegido, y ventana con inicio anterior al fin.' });
+      setNotice({ type: 'error', text: 'Revisa la selección: elige un atleta y verifica que el inicio de la ventana sea anterior al fin.' });
       return;
     }
     setBusy(true);
@@ -73,13 +80,14 @@ const AdminFeaturedPage = () => {
       setNotice({ type: 'success', text: 'Destacado guardado.' });
       await load();
     } catch {
-      setNotice({ type: 'error', text: 'No fue posible guardar el destacado. Intentá nuevamente.' });
+      setNotice({ type: 'error', text: 'No fue posible guardar el destacado. Intenta nuevamente.' });
     } finally {
       setBusy(false);
     }
   };
 
   const remove = async (item) => {
+    if (busy) return;
     setBusy(true);
     setNotice(null);
     try {
@@ -88,21 +96,39 @@ const AdminFeaturedPage = () => {
       setNotice({ type: 'success', text: 'Destacado eliminado.' });
       await load();
     } catch {
-      setNotice({ type: 'error', text: 'No fue posible eliminar el destacado. Intentá nuevamente.' });
+      setNotice({ type: 'error', text: 'No fue posible eliminar el destacado. Intenta nuevamente.' });
     } finally {
       setBusy(false);
     }
   };
 
-  const activeIds = new Set((featuredWindow(items ?? [], new Date()).active).map((item) => item.athleteId));
-  const unusedAthletes = athletes.filter((candidate) => !items?.some((item) => item.athleteId === candidate.id) || editing?.athleteId === candidate.id);
+  const move = async (item, direction) => {
+    if (busy) return;
+    setBusy(true);
+    setNotice(null);
+    try {
+      await moveFeaturedAthlete(item.id, direction);
+      setNotice({ type: 'success', text: 'Orden de destacados actualizado.' });
+      await load();
+    } catch {
+      setNotice({ type: 'error', text: 'No fue posible reordenar los destacados. Intenta nuevamente.' });
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <section aria-labelledby="admin-featured-title">
-      <div>
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-asanda-deep">Módulo editorial</p>
-        <h1 id="admin-featured-title" className="mt-2 font-display text-3xl font-bold sm:text-4xl">Atletas destacados</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Selecciones visibles en el inicio del portal, ordenadas del 1 al 6. Sin fechas, la ventana queda activa desde ahora.</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-asanda-deep">Módulo editorial</p>
+          <h1 id="admin-featured-title" className="mt-2 font-display text-3xl font-bold sm:text-4xl">Atletas destacados</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Selecciones visibles en el inicio del portal. Sin fechas, la ventana queda activa desde ahora.</p>
+        </div>
+        <Link to="/admin/atletas/nuevo" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-asanda-orange-strong px-4 font-bold text-white hover:bg-[#a94320] focus-visible:outline focus-visible:outline-2 focus-visible:outline-asanda-orange">
+          <Plus size={18} aria-hidden="true" />
+          Crear atleta
+        </Link>
       </div>
 
       {error && (
@@ -123,20 +149,16 @@ const AdminFeaturedPage = () => {
 
       <form onSubmit={save} className="mt-6 rounded-[14px] border border-asanda-line bg-white p-5 sm:p-6" aria-label={editing ? 'Editar selección destacada' : 'Nueva selección destacada'}>
         <h2 className="font-display text-xl font-bold text-asanda-ink">{editing ? `Editar: ${editing.athleteName}` : 'Nueva selección'}</h2>
-        <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          <label className="block text-sm font-bold text-asanda-ink">
-            Atleta publicado
+        <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {!editing && <label className="block text-sm font-bold text-asanda-ink">
+            Atleta elegible
             <select className="mt-2 min-h-12 w-full rounded-md border border-asanda-line px-3 font-normal" required value={draft.athleteId} onChange={(event) => setDraft((prev) => ({ ...prev, athleteId: event.target.value }))}>
-              <option value="">Elegí un atleta…</option>
-              {unusedAthletes.map((candidate) => (
+              <option value="">Elige un atleta…</option>
+              {athletes.map((candidate) => (
                 <option key={candidate.id} value={candidate.id}>{candidate.displayName}</option>
               ))}
             </select>
-          </label>
-          <label className="block text-sm font-bold text-asanda-ink">
-            Orden (1-6)
-            <input className="mt-2 min-h-12 w-full rounded-md border border-asanda-line px-3 font-normal" type="number" min="1" max="6" step="1" required value={draft.displayOrder} onChange={(event) => setDraft((prev) => ({ ...prev, displayOrder: event.target.value }))} />
-          </label>
+          </label>}
           <label className="block text-sm font-bold text-asanda-ink">
             Inicio de ventana
             <input className="mt-2 min-h-12 w-full rounded-md border border-asanda-line px-3 font-normal" type="datetime-local" value={draft.startsAt} onChange={(event) => setDraft((prev) => ({ ...prev, startsAt: event.target.value }))} />
@@ -146,6 +168,11 @@ const AdminFeaturedPage = () => {
             <input className="mt-2 min-h-12 w-full rounded-md border border-asanda-line px-3 font-normal" type="datetime-local" value={draft.endsAt} onChange={(event) => setDraft((prev) => ({ ...prev, endsAt: event.target.value }))} />
           </label>
         </div>
+        {!editing && athletes.length === 0 && items && (
+          <p className="mt-4 text-sm leading-6 text-slate-600">
+            Sólo aparecen atletas publicados con los consentimientos requeridos completos. <Link to="/admin/atletas" className="font-bold text-asanda-deep underline underline-offset-2 hover:text-asanda-orange">Revisar atletas</Link>
+          </p>
+        )}
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <button type="submit" disabled={busy} className="inline-flex min-h-12 items-center justify-center gap-2 bg-asanda-orange-strong px-5 font-bold text-white transition-colors hover:bg-[#a94320] disabled:cursor-wait disabled:opacity-70">
             <Plus size={18} aria-hidden="true" />
@@ -165,14 +192,14 @@ const AdminFeaturedPage = () => {
         <div className="mt-6 rounded-[14px] border border-dashed border-asanda-line bg-white p-10 text-center">
           <Star className="mx-auto text-asanda-deep" size={36} aria-hidden="true" />
           <p className="mt-3 font-bold text-asanda-ink">Todavía no hay atletas destacados.</p>
-          <p className="mt-2 text-sm leading-6 text-slate-600">Agregá la primera selección con el formulario.</p>
+          <p className="mt-2 text-sm leading-6 text-slate-600">Agrega la primera selección con el formulario.</p>
         </div>
       )}
 
       {items && items.length > 0 && (
         <ul className="mt-6 space-y-3">
-          {items.map((item) => {
-            const isActive = activeIds.has(item.athleteId);
+          {items.map((item, index) => {
+            const status = windowStatus(item);
             return (
               <li key={item.id} className="rounded-[14px] border border-asanda-line bg-white p-4 sm:p-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -185,10 +212,22 @@ const AdminFeaturedPage = () => {
                       </p>
                     </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>
-                      {isActive ? 'Activa' : 'Fuera de ventana'}
+                  <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${status.className}`}>
+                      {status.label}
                     </span>
+                    <button type="button" disabled={busy || index === 0} onClick={() => move(item, 'up')} className="inline-flex min-h-10 items-center gap-1.5 px-2 font-bold text-asanda-deep hover:bg-asanda-mist disabled:opacity-40" aria-label={`Subir ${item.athleteName}`}>
+                      <ArrowUp size={16} aria-hidden="true" />
+                      Subir
+                    </button>
+                    <button type="button" disabled={busy || index === items.length - 1} onClick={() => move(item, 'down')} className="inline-flex min-h-10 items-center gap-1.5 px-2 font-bold text-asanda-deep hover:bg-asanda-mist disabled:opacity-40" aria-label={`Bajar ${item.athleteName}`}>
+                      <ArrowDown size={16} aria-hidden="true" />
+                      Bajar
+                    </button>
+                    <Link to={`/admin/atletas/${item.athleteId}`} className="inline-flex min-h-10 items-center gap-1.5 px-3 font-bold text-asanda-deep hover:bg-asanda-mist" aria-label={`Editar ficha de ${item.athleteName}`}>
+                      <Pencil size={16} aria-hidden="true" />
+                      Editar ficha
+                    </Link>
                     <button type="button" disabled={busy} onClick={() => startEditing(item)} className="inline-flex min-h-10 items-center gap-1.5 px-3 font-bold text-asanda-deep hover:bg-asanda-mist disabled:opacity-60" aria-label={`Editar ${item.athleteName}`}>
                       <Pencil size={16} aria-hidden="true" />
                       Editar

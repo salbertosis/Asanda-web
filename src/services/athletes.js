@@ -79,22 +79,21 @@ const normalizeFeaturedProfile = (profile) => ({
   }),
 });
 
-export const getFeaturedAthletes = async (signal) => {
-  let query = supabase.rpc('get_featured_athlete_profiles');
-  if (signal) query = query.abortSignal(signal);
-  const { data, error } = await query;
-  if (error) throw error;
-
+const normalizeFeaturedAthletes = (rows, maximum = Infinity) => {
   const athletesByKey = new Map();
-  (data ?? []).forEach((row) => {
+  for (const row of rows ?? []) {
+    if (athletesByKey.size >= maximum) {
+      console.warn('The homepage featured athlete RPC exceeded its public limit.');
+      break;
+    }
     const displayOrder = Number(row?.display_order);
     if (!/^v1_[0-9a-f]{64}$/.test(row?.profile_key) || !Number.isInteger(displayOrder) || typeof row?.display_name !== 'string' || !row.display_name.trim()) {
       console.warn('A featured athlete profile did not match the public RPC contract.');
-      return;
+      continue;
     }
     if (athletesByKey.has(row.profile_key)) {
       console.warn('The public featured athlete RPC returned a duplicate profile key.');
-      return;
+      continue;
     }
 
     const photo = row.photo_provider ? {
@@ -120,9 +119,38 @@ export const getFeaturedAthletes = async (signal) => {
       results: profile.results,
       achievements: profile.achievements,
     });
-  });
+  }
 
-  return [...athletesByKey.values()].sort((a, b) => a.displayOrder - b.displayOrder);
+  return [...athletesByKey.values()];
+};
+
+const fetchFeaturedAthleteRows = async (rpc, parameters, signal) => {
+  let query = parameters === undefined ? supabase.rpc(rpc) : supabase.rpc(rpc, parameters);
+  if (signal) query = query.abortSignal(signal);
+  const { data, error } = await query;
+  if (error) throw error;
+  return data ?? [];
+};
+
+export const getFeaturedAthletePreview = async (signal) => {
+  const rows = await fetchFeaturedAthleteRows('get_homepage_featured_athlete_profiles', undefined, signal);
+  return normalizeFeaturedAthletes(rows, 6);
+};
+
+export const getFeaturedAthleteDirectory = async (signal) => {
+  const pageSize = 100;
+  const rows = [];
+
+  for (let offset = 0; ; offset += pageSize) {
+    const page = await fetchFeaturedAthleteRows('get_featured_athlete_profiles', {
+      requested_limit: pageSize,
+      requested_offset: offset,
+    }, signal);
+    rows.push(...page);
+    if (page.length < pageSize) break;
+  }
+
+  return normalizeFeaturedAthletes(rows);
 };
 
 export const getPublishedAthletes = async (membershipType, signal) => {
