@@ -1,155 +1,26 @@
 begin;
-
 do $$
 declare
-  test_athlete_id uuid;
-  draft_athlete_id uuid;
-  editor_id uuid;
-  viewer_id uuid := gen_random_uuid();
-  asset_id uuid;
-  approved_source_id uuid;
-  pending_source_id uuid;
-  matching_evidence_source_id uuid;
-  mismatched_evidence_source_id uuid;
-  achievement_id uuid;
-  blocked boolean;
+  admin_id uuid := gen_random_uuid(); editor_id uuid := gen_random_uuid(); viewer_id uuid := gen_random_uuid();
+  v_athlete_id uuid; v_other_athlete_id uuid; v_event_id uuid; v_second_event_id uuid; v_relay_id uuid; v_inactive_id uuid; v_group_id uuid; v_extra_group_id uuid;
+  v_record_id uuid; v_category_id uuid; blocked boolean; v_before_count integer; v_after_count integer; i integer; candidate_event_id uuid;
 begin
-  if to_regclass('public.athlete_achievements') is null
-    or has_table_privilege('anon', 'public.athlete_achievements', 'SELECT')
-  then raise exception 'The private athlete achievement contract is missing.'; end if;
-  select id into strict editor_id from public.profiles
-  where role in ('administrator', 'editor') and is_active
-  order by role = 'administrator' desc, id limit 1;
-  insert into auth.users (id) values (viewer_id);
-  insert into public.profiles (id, display_name, role, is_active)
-  values (viewer_id, 'Achievement SQL viewer', 'viewer', true);
-  insert into public.athletes (display_name)
-  values ('Published achievement athlete') returning id into test_athlete_id;
-  insert into public.athletes (display_name)
-  values ('Draft achievement athlete') returning id into draft_athlete_id;
-  insert into public.athlete_consents (athlete_id, consent_type, status, granted_at) values
-    (test_athlete_id, 'public_profile', 'granted', now()),
-    (test_athlete_id, 'results_publication', 'granted', now());
-  update public.athletes set publication_status = 'published' where id = test_athlete_id;
-  insert into public.media_assets (provider, external_url, resource_type, is_public)
-  values ('local', '/achievement-evidence.pdf', 'document', false) returning id into asset_id;
-  insert into public.source_documents (source_type, asset_id, checksum, status, processed_at)
-  values ('manual', asset_id, repeat('b', 64), 'processed', now()) returning id into approved_source_id;
-  insert into public.source_documents (source_type, asset_id, checksum, status, processed_at)
-  values ('manual', asset_id, repeat('c', 64), 'processed', now()) returning id into pending_source_id;
-  insert into public.source_documents (
-    source_type, athlete_id, evidence_kind, evidence_label, official_url,
-    checksum, status, processed_at
-  ) values (
-    'manual', test_athlete_id, 'official_url', 'Matching official evidence',
-    'https://example.test/evidence/matching', repeat('d', 64), 'processed', now()
-  ) returning id into matching_evidence_source_id;
-  insert into public.source_documents (
-    source_type, athlete_id, evidence_kind, evidence_label, official_url,
-    checksum, status, processed_at
-  ) values (
-    'manual', draft_athlete_id, 'official_url', 'Other athlete evidence',
-    'https://example.test/evidence/other-athlete', repeat('e', 64), 'processed', now()
-  ) returning id into mismatched_evidence_source_id;
-  perform set_config('request.jwt.claim.sub', editor_id::text, true);
-  execute 'set local role authenticated';
-  update public.source_documents set approval_status = 'approved' where id = approved_source_id;
-  update public.source_documents set approval_status = 'approved' where id = matching_evidence_source_id;
-  execute 'reset role';
-
-  perform set_config('request.jwt.claim.sub', viewer_id::text, true);
-  execute 'set local role authenticated';
-  blocked := false;
-  begin
-    insert into public.athlete_achievements (
-      athlete_id, source_document_id, achievement_type, title, valid_from
-    ) values (test_athlete_id, pending_source_id, 'national_team', 'Viewer draft', current_date);
-  exception when insufficient_privilege then blocked := true; end;
-  execute 'reset role';
-  if not blocked then raise exception 'A viewer managed athlete achievements.'; end if;
-
-  perform set_config('request.jwt.claim.sub', editor_id::text, true);
-  execute 'set local role authenticated';
-  blocked := false;
-  begin
-    insert into public.athlete_achievements (
-      athlete_id, source_document_id, achievement_type, title, competition_name,
-      medal, achieved_on, publication_status, published_at
-    ) values (
-      test_athlete_id, pending_source_id, 'international_medal', 'Unapproved evidence',
-      'International meet', 'gold', current_date, 'published', now()
-    );
-  exception when others then
-    if sqlerrm not like 'Published athlete achievements require an approved source document%' then raise; end if;
-    blocked := true;
-  end;
-  if not blocked then raise exception 'An achievement with unapproved evidence was published.'; end if;
-
-  blocked := false;
-  begin
-    insert into public.athlete_achievements (
-      athlete_id, source_document_id, achievement_type, title, valid_from,
-      publication_status, published_at
-    ) values (
-      draft_athlete_id, approved_source_id, 'national_team', 'Draft athlete selection',
-      current_date, 'published', now()
-    );
-  exception when others then
-    if sqlerrm not like 'Published athlete achievements require a published athlete%' then raise; end if;
-    blocked := true;
-  end;
-  if not blocked then raise exception 'A draft or unconsented athlete received a published achievement.'; end if;
-
-  blocked := false;
-  begin
-    insert into public.athlete_achievements (
-      athlete_id, source_document_id, achievement_type, title, valid_from
-    ) values (
-      test_athlete_id, mismatched_evidence_source_id, 'national_team',
-      'Mismatched athlete evidence', current_date
-    );
-  exception when check_violation then
-    if sqlerrm not like 'Athlete achievement evidence must belong to the same athlete%' then raise; end if;
-    blocked := true;
-  end;
-  if not blocked then raise exception 'An achievement accepted evidence owned by another athlete.'; end if;
-
-  insert into public.athlete_achievements (
-    athlete_id, source_document_id, achievement_type, title, competition_name,
-    place, achieved_on, publication_status, published_at
-  ) values (
-    test_athlete_id, matching_evidence_source_id, 'national_podium', 'Published national podium',
-    'National meet', 2, current_date, 'published', now()
-  ) returning id into achievement_id;
-  execute 'reset role';
-
-  if not exists (
-    select 1 from private.admin_audit_log
-    where actor_id = editor_id and action = 'INSERT'
-      and entity_table = 'athlete_achievements' and entity_id = achievement_id::text
-  ) then raise exception 'Achievement creation was not audited.'; end if;
-
-  update public.athlete_consents set status = 'withdrawn', granted_at = null
-  where athlete_consents.athlete_id = test_athlete_id and consent_type = 'results_publication';
-  perform set_config('request.jwt.claim.sub', editor_id::text, true);
-  execute 'set local role authenticated';
-  update public.athlete_achievements set publication_status = 'draft', published_at = null
-  where id = achievement_id;
-  blocked := false;
-  begin
-    update public.athlete_achievements set publication_status = 'published', published_at = now()
-    where id = achievement_id;
-  exception when others then
-    if sqlerrm not like 'Published athlete achievements require a published athlete%' then raise; end if;
-    blocked := true;
-  end;
-  execute 'reset role';
-  if not blocked then raise exception 'An achievement was published without active results consent.'; end if;
-  if not exists (
-    select 1 from public.athlete_achievements
-    where id = achievement_id and publication_status = 'draft' and published_at is null
-  ) then raise exception 'A blocked achievement republication did not preserve its draft state.'; end if;
+  if to_regclass('public.athlete_achievements') is not null or to_regclass('public.athlete_achievements_legacy') is null or has_table_privilege('authenticated', 'public.athlete_achievement_groups', 'INSERT') then raise exception 'The grouped achievement security boundary is missing.'; end if;
+  if not exists (select 1 from pg_trigger where tgname = 'athlete_achievement_groups_require_child' and tgrelid = 'public.athlete_achievement_groups'::regclass and not tgisinternal) or not exists (select 1 from pg_trigger where tgname = 'athlete_achievement_results_require_child' and tgrelid = 'public.athlete_achievement_results'::regclass and not tgisinternal) then raise exception 'The deferred group completeness contract is missing.'; end if;
+  if to_regprocedure('public.save_athlete_achievement_group_draft(uuid,uuid,text,text,text,text,date,jsonb)') is null or to_regprocedure('public.publish_athlete_achievement_group(uuid)') is null or to_regprocedure('public.delete_athlete_achievement_group(uuid)') is null or to_regprocedure('public.list_athlete_achievement_groups(uuid)') is null then raise exception 'The grouped achievement RPC contract is missing.'; end if;
+  insert into auth.users (id) values (admin_id), (editor_id), (viewer_id); insert into public.profiles (id, display_name, role, is_active) values (admin_id, 'Achievement SQL administrator', 'administrator', true), (editor_id, 'Achievement SQL editor', 'editor', true), (viewer_id, 'Achievement SQL viewer', 'viewer', true);
+  insert into public.athletes (display_name) values ('Grouped achievement athlete') returning id into v_athlete_id; insert into public.athletes (display_name) values ('Other record owner') returning id into v_other_athlete_id; insert into public.athlete_consents (athlete_id, consent_type, status, granted_at) values (v_athlete_id, 'public_profile', 'granted', now()), (v_athlete_id, 'results_publication', 'granted', now()); update public.athletes set publication_status = 'published' where id = v_athlete_id;
+  select e.id into strict v_event_id from public.event_definitions e join public.disciplines d on d.id = e.discipline_id where d.code = 'swimming' and e.is_active and e.relay_size is null order by e.code limit 1; select e.id into strict v_second_event_id from public.event_definitions e join public.disciplines d on d.id = e.discipline_id where d.code = 'swimming' and e.is_active and e.relay_size is null and e.id <> v_event_id order by e.code limit 1;
+  insert into public.event_definitions (discipline_id, code, name, course, relay_size) select d.id, 'achievement-relay-' || replace(gen_random_uuid()::text, '-', ''), 'Synthetic relay', 'long_course', 4 from public.disciplines d where d.code = 'swimming' returning id into v_relay_id; insert into public.event_definitions (discipline_id, code, name, course, is_active) select d.id, 'achievement-inactive-' || replace(gen_random_uuid()::text, '-', ''), 'Synthetic inactive event', 'long_course', false from public.disciplines d where d.code = 'swimming' returning id into v_inactive_id;
+  perform set_config('request.jwt.claim.sub', editor_id::text, true); execute 'set local role authenticated'; blocked := false; begin insert into public.athlete_achievement_groups (athlete_id, achievement_type, title, competition_name, location, achieved_on) values (v_athlete_id, 'national_podium', 'Direct write', 'Meet', 'Pool', current_date); exception when insufficient_privilege then blocked := true; end; execute 'reset role'; if not blocked then raise exception 'An editor retained direct grouped-achievement DML.'; end if;
+  v_before_count := (select count(*) from public.athlete_achievement_groups g where g.athlete_id = v_athlete_id); perform set_config('request.jwt.claim.sub', editor_id::text, true); execute 'set local role authenticated'; blocked := false; begin perform public.save_athlete_achievement_group_draft(null, v_athlete_id, 'national_podium', 'Editor write', 'Meet', 'Pool', current_date, jsonb_build_array(jsonb_build_object('event_definition_id', v_event_id, 'podium_place', 1))); exception when insufficient_privilege then blocked := true; end; execute 'reset role'; v_after_count := (select count(*) from public.athlete_achievement_groups g where g.athlete_id = v_athlete_id); if not blocked or v_before_count <> v_after_count then raise exception 'An editor was not denied without mutation.'; end if;
+  perform set_config('request.jwt.claim.sub', admin_id::text, true); execute 'set local role authenticated'; select group_id into strict v_group_id from public.save_athlete_achievement_group_draft(null, v_athlete_id, 'national_podium', 'Two-event podium', 'Test meet', 'Test pool', current_date, jsonb_build_array(jsonb_build_object('event_definition_id', v_second_event_id, 'podium_place', 2), jsonb_build_object('event_definition_id', v_event_id, 'podium_place', 1))); if jsonb_array_length((select listed.children from public.list_athlete_achievement_groups(v_athlete_id) listed where listed.group_id = v_group_id)) <> 2 then raise exception 'The admin read did not return both ordered children.'; end if; perform public.publish_athlete_achievement_group(v_group_id);
+  foreach candidate_event_id in array array[v_relay_id, gen_random_uuid()] loop blocked := false; begin perform public.save_athlete_achievement_group_draft(null, v_athlete_id, 'national_podium', 'Bad event', 'Test meet', 'Test pool', current_date, jsonb_build_array(jsonb_build_object('event_definition_id', candidate_event_id, 'podium_place', 1))); exception when others then blocked := true; end; if not blocked then raise exception 'A relay or custom event was accepted.'; end if; end loop; blocked := false; begin perform public.save_athlete_achievement_group_draft(null, v_athlete_id, 'national_podium', 'Duplicate event', 'Test meet', 'Test pool', current_date, jsonb_build_array(jsonb_build_object('event_definition_id', v_second_event_id, 'podium_place', 1), jsonb_build_object('event_definition_id', v_second_event_id, 'podium_place', 2))); exception when others then blocked := true; end; if not blocked then raise exception 'Duplicate events were accepted.'; end if;
+  blocked := false; begin perform public.save_athlete_achievement_group_draft(null, v_athlete_id, 'national_podium', 'Empty group', 'Test meet', 'Test pool', current_date, '[]'::jsonb); exception when others then blocked := true; end; if not blocked then raise exception 'A childless group was accepted.'; end if; blocked := false; begin perform public.save_athlete_achievement_group_draft(null, v_athlete_id, 'international_participation', 'Bad outcome', 'Test meet', 'Test pool', current_date, jsonb_build_array(jsonb_build_object('event_definition_id', v_event_id, 'participation_outcome', 'gold'))); exception when others then blocked := true; end; if not blocked then raise exception 'An invalid participation outcome was accepted.'; end if;
+  select group_id into strict v_group_id from public.save_athlete_achievement_group_draft(null, v_athlete_id, 'national_podium', 'Inactive event', 'Test meet', 'Test pool', current_date, jsonb_build_array(jsonb_build_object('event_definition_id', v_inactive_id, 'podium_place', 1))); blocked := false; begin perform public.publish_athlete_achievement_group(v_group_id); exception when others then blocked := true; end; if not blocked then raise exception 'An inactive event was published.'; end if; perform public.delete_athlete_achievement_group(v_group_id);
+  execute 'reset role'; insert into public.age_categories (code, name) values ('achievement-record-' || substr(gen_random_uuid()::text, 1, 8), 'Synthetic category') returning id into v_category_id; insert into public.records (scope_type, athlete_id, athlete_name_snapshot, club_name_snapshot, event_definition_id, event_name_snapshot, age_category_id, age_category_name_snapshot, competitive_sex, time_ms, achieved_year, competition_name_snapshot, course, publication_status, published_at) select 'state', v_athlete_id, 'Grouped achievement athlete', 'Synthetic club', v_event_id, e.name, v_category_id, 'Synthetic category', 'female', 60000, 2026, 'State meet', 'long_course', 'published', now() from public.event_definitions e where e.id = v_event_id returning id into v_record_id; perform set_config('request.jwt.claim.sub', admin_id::text, true); execute 'set local role authenticated'; blocked := false; begin perform public.save_athlete_achievement_group_draft(null, v_athlete_id, 'state_record', 'Mismatch', 'Test meet', 'Test pool', current_date, jsonb_build_array(jsonb_build_object('event_definition_id', v_second_event_id, 'record_id', v_record_id))); exception when others then blocked := true; end; if not blocked then raise exception 'A mismatched state record was accepted.'; end if; select group_id into strict v_group_id from public.save_athlete_achievement_group_draft(null, v_athlete_id, 'state_record', 'State record', 'Test meet', 'Test pool', current_date, jsonb_build_array(jsonb_build_object('event_definition_id', v_event_id, 'record_id', v_record_id))); perform public.publish_athlete_achievement_group(v_group_id); execute 'reset role'; update public.records set athlete_id = v_other_athlete_id where id = v_record_id; blocked := false; begin insert into public.athlete_achievement_results (group_id, event_definition_id, record_id) values (v_group_id, v_event_id, v_record_id); exception when check_violation then blocked := true; end; if not blocked then raise exception 'A state record for another athlete was accepted.'; end if; update public.records set athlete_id = v_athlete_id where id = v_record_id;
+  for i in 1..4 loop perform public.save_athlete_achievement_group_draft(null, v_athlete_id, 'national_podium', 'Cap ' || i, 'Test meet', 'Test pool', current_date, jsonb_build_array(jsonb_build_object('event_definition_id', v_event_id, 'podium_place', 1))); end loop; execute 'reset role'; select count(*) into v_before_count from public.athlete_achievement_groups g where g.athlete_id = v_athlete_id; if v_before_count <> 6 then raise exception 'The six-group count was not reached.'; end if; perform set_config('request.jwt.claim.sub', admin_id::text, true); execute 'set local role authenticated'; blocked := false; begin perform public.save_athlete_achievement_group_draft(null, v_athlete_id, 'national_podium', 'Seventh', 'Test meet', 'Test pool', current_date, jsonb_build_array(jsonb_build_object('event_definition_id', v_event_id, 'podium_place', 1))); exception when others then blocked := true; end; if not blocked then raise exception 'A seventh group was accepted.'; end if;
+  execute 'reset role'; blocked := false; begin insert into public.athlete_achievement_groups (athlete_id, achievement_type, title, competition_name, location, achieved_on) values (v_athlete_id, 'national_podium', 'Childless direct group', 'Test meet', 'Test pool', current_date) returning id into v_extra_group_id; execute 'set constraints athlete_achievement_groups_require_child immediate'; exception when check_violation then blocked := true; end; execute 'set constraints all deferred'; if not blocked then raise exception 'A direct childless group was persisted.'; end if; execute 'reset role'; insert into public.athlete_achievement_groups (athlete_id, achievement_type, title, competition_name, location, achieved_on) values (v_athlete_id, 'national_podium', 'Legacy over limit', 'Test meet', 'Test pool', current_date) returning id into v_extra_group_id; insert into public.athlete_achievement_results (group_id, event_definition_id, podium_place) values (v_extra_group_id, v_event_id, 1); perform set_config('request.jwt.claim.sub', admin_id::text, true); execute 'set local role authenticated'; blocked := false; begin perform public.save_athlete_achievement_group_draft(null, v_athlete_id, 'national_podium', 'Remediation blocked', 'Test meet', 'Test pool', current_date, jsonb_build_array(jsonb_build_object('event_definition_id', v_event_id, 'podium_place', 1))); exception when others then blocked := true; end; if not blocked then raise exception 'Creation was not blocked for an over-limit athlete.'; end if; perform public.delete_athlete_achievement_group(v_extra_group_id); perform public.delete_athlete_achievement_group(v_group_id);
 end;
 $$;
-
 rollback;
