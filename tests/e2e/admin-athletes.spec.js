@@ -92,97 +92,21 @@ const routeAthleteEditor = async (page, handlers = {}) => {
   await page.route('**/rest/v1/athlete_achievements**', handlers.achievements || ((route) => route.fulfill(json([]))));
 };
 
-test('keeps evidence unavailable until the athlete is saved', async ({ page }) => {
-  let evidenceRequests = 0;
-  await routeAdminAuth(page);
-  await page.route('**/rest/v1/source_documents**', (route) => { evidenceRequests += 1; return route.fulfill(json([])); });
-  await page.route('**/rest/v1/athletes**', (route) => route.fulfill(json(isAthleteListRequest(route.request()) ? [] : athlete)));
-  await page.route(/\/rest\/v1\/(media_assets|age_categories|disciplines|organizations).*/, (route) => route.fulfill(json([])));
-  await signInEditor(page);
-  await page.goto('/admin/atletas/nuevo');
-  await expect(page.getByText('Guardá primero la ficha para cargar pruebas y logros.')).toBeVisible();
-  expect(evidenceRequests).toBe(0);
-});
-
-test('uploads editor evidence with an opaque private path without saving or review controls', async ({ page }) => {
-  const storagePaths = [];
-  const evidenceWrites = [];
-  let saveCalls = 0;
-  let evidenceRows = [];
-  await routeAdminAuth(page);
-  await routeAthleteEditor(page, { evidence: (route) => route.fulfill(json(evidenceRows)) });
-  await page.route('**/storage/v1/object/athlete-evidence/**', (route) => {
-    storagePaths.push(decodeURIComponent(new URL(route.request().url()).pathname));
-    return route.fulfill(json({ Key: 'private-object' }));
-  });
-  await page.route('**/rest/v1/rpc/create_athlete_evidence_source', (route) => {
-    const payload = route.request().postDataJSON();
-    evidenceWrites.push(payload);
-    evidenceRows = [{ id: 'evidence-1', athlete_id: athlete.id, evidence_kind: 'private_object', evidence_label: payload.requested_evidence_label, storage_bucket_id: 'athlete-evidence', storage_object_path: payload.requested_storage_object_path, official_url: null, approval_status: 'pending', created_at: '2026-08-30T12:00:00Z' }];
-    return route.fulfill(json(evidenceRows[0]));
-  });
-  await page.route('**/rest/v1/rpc/save_admin_athlete', (route) => { saveCalls += 1; return route.fulfill(json([athlete])); });
-  await signInEditor(page);
-  await page.goto('/admin/atletas/athlete-relations');
-  await page.getByLabel('Etiqueta').fill('Acta regional');
-  await page.getByLabel('Archivo de evidencia', { exact: true }).setInputFiles({ name: 'nombre-privado.pdf', mimeType: 'application/pdf', buffer: Buffer.from('private evidence') });
-  await page.getByRole('button', { name: 'Agregar prueba' }).click();
-  await expect(page.getByText('Acta regional', { exact: true })).toBeVisible();
-  expect(evidenceWrites).toHaveLength(1);
-  expect(evidenceWrites[0].requested_checksum).toMatch(/^[0-9a-f]{64}$/);
-  expect(evidenceWrites[0].requested_storage_object_path).toMatch(new RegExp(`^${userId}/[0-9a-f-]+\\.pdf$`));
-  expect(storagePaths.join(' ')).not.toContain('nombre-privado.pdf');
-  expect(saveCalls).toBe(0);
-  await expect(page.getByRole('button', { name: 'Aprobar' })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Rechazar' })).toHaveCount(0);
-});
-
-test('reports cleanup failure while preserving evidence registration failure', async ({ page }) => {
-  const storageMethods = [];
-  await routeAdminAuth(page);
-  await routeAthleteEditor(page);
-  await page.route('**/storage/v1/object/athlete-evidence**', (route) => {
-    const method = route.request().method(); storageMethods.push(method);
-    return route.fulfill(method === 'DELETE' ? { ...json({ message: 'cleanup failed' }), status: 500 } : json({ Key: 'private-object' }));
-  });
-  await page.route('**/rest/v1/rpc/create_athlete_evidence_source', (route) => route.fulfill({ ...json({ code: 'P0002', message: 'private details' }), status: 400 }));
-  await signInEditor(page);
-  await page.goto('/admin/atletas/athlete-relations');
-  await page.getByLabel('Etiqueta').fill('Acta fallida');
-  await page.getByLabel('Archivo de evidencia', { exact: true }).setInputFiles({ name: 'acta.pdf', mimeType: 'application/pdf', buffer: Buffer.from('private evidence') });
-  await page.getByRole('button', { name: 'Agregar prueba' }).click();
-  await expect(page.getByRole('alert')).toContainText('No fue posible registrar la prueba privada ni retirar el archivo cargado');
-  expect(storageMethods).toEqual(['POST', 'DELETE']);
-});
-
-test('lets administrators create HTTPS evidence, review it, and request private signed URLs', async ({ page }) => {
-  const rpcCalls = [];
-  let signedRequests = 0;
-  let rows = [{ id: 'private-evidence', athlete_id: athlete.id, evidence_kind: 'private_object', evidence_label: 'Acta privada', storage_bucket_id: 'athlete-evidence', storage_object_path: `${userId}/opaque.pdf`, official_url: null, approval_status: 'pending', created_at: '2026-08-30T11:00:00Z' }];
+test('does not mount the athlete evidence workflow for administrators', async ({ page }) => {
+  let sourceDocumentRequests = 0;
+  let evidenceRpcRequests = 0;
   await routeAdminAuth(page, 'administrator');
-  await routeAthleteEditor(page, { evidence: (route) => route.fulfill(json(rows)) });
-  await page.route('**/rest/v1/rpc/create_athlete_evidence_source', (route) => {
-    const payload = route.request().postDataJSON(); rpcCalls.push({ name: 'create', payload });
-    rows = [...rows, { id: 'official-evidence', athlete_id: athlete.id, evidence_kind: 'official_url', evidence_label: payload.requested_evidence_label, storage_bucket_id: null, storage_object_path: null, official_url: payload.requested_official_url, approval_status: 'pending', created_at: '2026-08-30T12:00:00Z' }];
-    return route.fulfill(json(rows[1]));
+  await routeAthleteEditor(page, {
+    evidence: (route) => { sourceDocumentRequests += 1; return route.fulfill(json([])); },
+    achievements: (route) => route.fulfill(json([])),
   });
-  await page.route('**/rest/v1/rpc/review_athlete_evidence', (route) => { rpcCalls.push({ name: 'review', payload: route.request().postDataJSON() }); return route.fulfill(json({ ...rows[0], approval_status: 'approved' })); });
-  await page.route('**/storage/v1/object/sign/athlete-evidence/**', (route) => { signedRequests += 1; return route.fulfill(json({ signedURL: '/signed-private-evidence' })); });
+  await page.route(/\/rest\/v1\/rpc\/.*athlete_evidence.*/, (route) => { evidenceRpcRequests += 1; return route.fulfill(json([])); });
   await signInEditor(page);
   await page.goto('/admin/atletas/athlete-relations');
-  await page.getByLabel('Origen de la prueba').selectOption('official_url');
-  await page.getByLabel('Etiqueta').fill('Resultado federativo');
-  await page.getByLabel('Enlace oficial HTTPS', { exact: true }).fill('https://federacion.example/resultados');
-  await page.getByRole('button', { name: 'Agregar prueba' }).click();
-  await expect(page.getByText('Resultado federativo', { exact: true })).toBeVisible();
-  expect(rpcCalls[0].payload.requested_official_url).toBe('https://federacion.example/resultados');
-  const privateItem = page.getByRole('listitem').filter({ hasText: 'Acta privada' });
-  await privateItem.getByRole('button', { name: 'Aprobar' }).click();
-  expect(rpcCalls[1]).toEqual({ name: 'review', payload: { requested_source_document_id: 'private-evidence', requested_decision: 'approved' } });
-  const popupPromise = page.waitForEvent('popup');
-  await privateItem.getByRole('button', { name: 'Abrir prueba' }).click();
-  const popup = await popupPromise; await popup.close();
-  expect(signedRequests).toBe(1);
+  await expect(page.getByRole('heading', { name: 'Logros deportivos' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Pruebas y evidencias' })).toHaveCount(0);
+  await expect.poll(() => sourceDocumentRequests).toBe(2);
+  expect(evidenceRpcRequests).toBe(0);
 });
 
 test('manages evidence-backed achievement drafts without saving the athlete profile', async ({ page }) => {
