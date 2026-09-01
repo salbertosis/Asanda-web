@@ -53,19 +53,23 @@ export const saveAthleteAchievementGroup = async (athleteId, values) => { const 
 export const publishAthleteAchievementGroup = async (groupId) => { const db = await database(); return rpcRow(await read(db.rpc('publish_athlete_achievement_group', { requested_group_id: id(groupId, 'ACHIEVEMENT_ID_REQUIRED') }))); };
 export const deleteAthleteAchievementGroup = async (groupId) => { const db = await database(); return read(db.rpc('delete_athlete_achievement_group', { requested_group_id: id(groupId, 'ACHIEVEMENT_ID_REQUIRED') })); };
 export const formatAchievementError = (error) => {
+  return describeAchievementError(error).message;
+};
+export const describeAchievementError = (error) => {
   const message = `${error?.code || ''} ${error?.message || error || ''}`.toLowerCase();
-  if (message.includes('42501') || message.includes('unauthorized') || message.includes('permission') || message.includes('administrator')) return 'No tenés autorización para gestionar logros deportivos.';
-  if (message.includes('six') || message.includes('seis') || message.includes('limit') || message.includes('límite')) return 'El atleta ya tiene seis o más competencias. Remediá los datos existentes antes de crear otra.';
-  if (message.includes('duplicate') || message.includes('una vez') || message.includes('unique')) return 'Cada prueba puede aparecer una sola vez en la competencia.';
-  if (message.includes('podium') || message.includes('podio') || message.includes('primer') || message.includes('segundo') || message.includes('tercer') || message.includes('position')) return 'Elegí primer, segundo o tercer lugar para cada resultado de podio.';
-  if (message.includes('participation') || message.includes('participación') || message.includes('top 8') || message.includes('destacada')) return 'Elegí Top 8 o participación destacada para cada resultado.';
-  if (message.includes('record') || message.includes('récord')) return 'Seleccioná un récord estatal oficial publicado del mismo evento.';
-  if (message.includes('inactive') || message.includes('activo') || message.includes('relay') || message.includes('individual') || message.includes('evento')) return 'Seleccioná una prueba individual activa del catálogo de natación.';
-  if (message.includes('title_required') || message.includes('título') || message.includes('title')) return 'Ingresá un título de hasta 180 caracteres.';
-  if (message.includes('competition_name') || message.includes('competencia')) return 'Ingresá el nombre de la competencia.';
-  if (message.includes('location') || message.includes('ubicación')) return 'Ingresá la ubicación de la competencia.';
-  if (message.includes('achieved_on') || message.includes('fecha') || message.includes('date')) return 'Ingresá una fecha válida para la competencia.';
-  if (message.includes('result') || message.includes('resultado') || message.includes('children')) return 'Agregá al menos un resultado y completá sus datos.';
-  if (message.includes('consent') || message.includes('published athlete')) return 'Para publicar, el atleta debe estar publicado y tener consentimientos vigentes.';
-  return 'No fue posible completar la operación de logros. Intentá nuevamente.';
+  if (message.includes('duplicate') || message.includes('una vez') || message.includes('unique')) return { field: 'event', message: 'Esta prueba ya aparece y solo puede incluirse una sola vez. Elegí otra para este resultado.' };
+  if (message.includes('podium') || message.includes('podio') || message.includes('primer') || message.includes('segundo') || message.includes('tercer') || message.includes('position')) return { field: 'podiumPlace', message: 'Elegí primer, segundo o tercer lugar para este resultado.' };
+  if (message.includes('participation') || message.includes('participación') || message.includes('top 8') || message.includes('destacada')) return { field: 'participationOutcome', message: 'Elegí Top 8 o participación destacada para este resultado.' };
+  if (message.includes('record') || message.includes('récord')) return { field: 'recordId', message: 'Seleccioná un récord estatal oficial, ya publicado y de la misma prueba.' };
+  if (message.includes('achievement_type') || message.includes('tipo de logro')) return { field: 'type', message: 'Seleccioná un tipo de logro válido.' };
+  if (message.includes('inactive') || message.includes('activo') || message.includes('relay') || message.includes('individual') || message.includes('evento')) return { field: 'event', message: 'Seleccioná una prueba individual activa del catálogo de natación para este resultado.' };
+  if (message.includes('42501') || message.includes('unauthorized') || message.includes('permission') || message.includes('administrator')) return { field: null, message: 'No tenés autorización para gestionar logros deportivos.' };
+  if (message.includes('six') || message.includes('seis') || message.includes('limit') || message.includes('límite')) return { field: null, message: 'El atleta ya tiene seis o más competencias. Remediá los datos existentes antes de crear otra.' };
+  if (message.includes('title_required') || message.includes('título') || message.includes('title')) return { field: 'title', message: 'Ingresá un título de hasta 180 caracteres.' };
+  if (message.includes('competition_name') || message.includes('competencia')) return { field: 'competitionName', message: 'Ingresá el nombre de la competencia.' };
+  if (message.includes('location') || message.includes('ubicación')) return { field: 'location', message: 'Ingresá la ubicación de la competencia.' };
+  if (message.includes('achieved_on') || message.includes('fecha') || message.includes('date')) return { field: 'achievedOn', message: 'Ingresá una fecha válida para la competencia.' };
+  if (message.includes('result') || message.includes('resultado') || message.includes('children')) return { field: 'event', message: 'Agregá al menos un resultado y completá sus datos.' };
+  if (message.includes('consent') || message.includes('published athlete')) return { field: null, message: 'Para publicar, el atleta debe estar publicado y tener consentimientos vigentes.' };
+  return { field: null, message: 'No fue posible completar la operación de logros. Intentá nuevamente.' };
 };
