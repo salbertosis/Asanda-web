@@ -1,33 +1,64 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
-const empty = { type: 'national_podium', sourceDocumentId: '', title: '', competitionName: '', place: '1', medal: 'gold', achievedOn: '', validFrom: '', validTo: '' };
-const field = 'mt-2 min-h-11 w-full rounded-md border border-asanda-line bg-white px-3 text-asanda-ink dark:border-slate-600 dark:bg-slate-800 dark:text-white';
-const fromItem = (item) => item ? { ...empty, ...item, place: item.place ? String(item.place) : '1', medal: item.medal || 'gold' } : empty;
+const field = 'mt-2 min-h-11 w-full rounded-md border border-asanda-line bg-white px-3 text-asanda-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-asanda-orange dark:border-slate-600 dark:bg-slate-800 dark:text-white';
+const typeOptions = [['national_podium', 'Podio nacional'], ['international_podium', 'Podio internacional'], ['international_participation', 'Participación internacional'], ['state_record', 'Récord estatal']];
+const newChild = (key, type) => ({ key, id: '', eventDefinitionId: '', eventName: '', eventActive: true, podiumPlace: ['national_podium', 'international_podium'].includes(type) ? '1' : '', participationOutcome: type === 'international_participation' ? 'top_8' : '', recordId: '', recordStatus: null, legacyEventLabel: '', legacyPayload: null, legacySourceIdentifier: '' });
+const newGroup = (key = 'new-0') => ({ id: '', type: 'national_podium', title: '', competitionName: '', location: '', achievedOn: '', children: [newChild(key, 'national_podium')] });
+const fromItem = (item) => item ? { ...item, children: item.children.length ? item.children.map((child, index) => ({ ...child, key: child.id || `saved-${index}` })) : [newChild('new-0', item.type)] } : newGroup();
+const isLegacy = (child) => !child.eventDefinitionId && child.legacyEventLabel && child.legacyPayload && child.legacySourceIdentifier;
+const recordAvailable = (record) => record?.publicationStatus === 'published' && record.publishedAt && Date.parse(record.publishedAt) <= Date.now();
 
-const AthleteAchievementForm = ({ evidence, editing, busy, onSubmit, onCancel }) => {
-  const [values, setValues] = useState(empty);
-  useEffect(() => { setValues(fromItem(editing)); }, [editing]);
-  const update = (key) => (event) => setValues((current) => ({ ...current, [key]: event.target.value }));
-  const submit = async (event) => { event.preventDefault(); if (await onSubmit(values)) setValues(empty); };
-  return (
-    <form aria-label={editing ? `Editar logro ${editing.title}` : 'Agregar logro del atleta'} onSubmit={submit} className="mt-5 rounded-md border border-asanda-line bg-asanda-foam p-4 dark:border-slate-700 dark:bg-slate-900">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="text-sm font-bold">Tipo de logro<select className={field} value={values.type} onChange={update('type')}><option value="national_podium">Podio nacional</option><option value="international_medal">Medalla internacional</option><option value="national_team">Selección nacional</option></select></label>
-        <label className="text-sm font-bold">Prueba aprobada<select className={field} required value={values.sourceDocumentId} onChange={update('sourceDocumentId')}><option value="">Seleccioná una prueba</option>{evidence.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
-        <p className="text-xs leading-5 text-slate-600 sm:col-span-2 dark:text-slate-300">Sólo aparecen pruebas aprobadas para este atleta. Aprobá primero una prueba pendiente para poder vincularla.</p>
-        <label className="text-sm font-bold sm:col-span-2">Título<input className={field} required maxLength="180" value={values.title} onChange={update('title')} placeholder={values.type === 'national_team' ? 'Ej. Selección Venezuela' : 'Ej. Campeón nacional juvenil'} /></label>
-        {values.type === 'national_team' ? <>
-          <label className="text-sm font-bold">Vigente desde<input className={field} type="date" required value={values.validFrom} onChange={update('validFrom')} /></label>
-          <label className="text-sm font-bold">Vigente hasta<span className="sr-only"> (opcional)</span><input className={field} type="date" min={values.validFrom || undefined} value={values.validTo} onChange={update('validTo')} /></label>
-        </> : <>
-          <label className="text-sm font-bold">Competencia<input className={field} required maxLength="180" value={values.competitionName} onChange={update('competitionName')} /></label>
-          <label className="text-sm font-bold">Fecha del logro<input className={field} type="date" required value={values.achievedOn} onChange={update('achievedOn')} /></label>
-          {values.type === 'national_podium' ? <label className="text-sm font-bold">Posición<select className={field} value={values.place} onChange={update('place')}><option value="1">1 - Campeón nacional</option><option value="2">2</option><option value="3">3</option></select></label> : <label className="text-sm font-bold">Medalla<select className={field} value={values.medal} onChange={update('medal')}><option value="gold">Oro</option><option value="silver">Plata</option><option value="bronze">Bronce</option></select></label>}
-        </>}
-      </div>
-      <div className="mt-4 flex flex-wrap gap-3"><button className="min-h-11 rounded-md bg-asanda-deep px-4 font-bold text-white disabled:opacity-60" disabled={busy} type="submit">{busy ? 'Guardando…' : editing ? 'Guardar cambios' : 'Agregar logro'}</button>{editing && <button className="min-h-11 px-3 font-bold text-asanda-deep dark:text-white" type="button" onClick={onCancel}>Cancelar edición</button>}</div>
-    </form>
-  );
+const AthleteAchievementForm = ({ events = [], records = [], editing, busy, canCreate = true, onSubmit, onCancel }) => {
+  const [values, setValues] = useState(() => newGroup());
+  const [focusTarget, setFocusTarget] = useState(null);
+  const [error, setError] = useState(null);
+  const nextKey = useRef(0); const controlRefs = useRef({}); const addButton = useRef(null);
+  useEffect(() => { nextKey.current = 0; setValues(fromItem(editing)); setFocusTarget(null); setError(null); }, [editing]);
+  useEffect(() => { if (focusTarget) { controlRefs.current[focusTarget]?.focus(); setFocusTarget(null); } }, [focusTarget]);
+  const controlRef = (target) => (node) => { if (node) controlRefs.current[target] = node; };
+  const clearError = (target) => setError((current) => current?.target === target ? null : current);
+  const update = (key) => (event) => { clearError(`group:${key}`); setValues((current) => ({ ...current, [key]: event.target.value })); };
+  const updateType = (event) => { clearError('group:type'); setValues((current) => ({ ...current, type: event.target.value, children: current.children.map((child) => ({ ...child, podiumPlace: ['national_podium', 'international_podium'].includes(event.target.value) ? child.podiumPlace || '1' : '', participationOutcome: event.target.value === 'international_participation' ? child.participationOutcome || 'top_8' : '', recordId: event.target.value === 'state_record' ? child.recordId : '' })) })); };
+  const updateChild = (index, key) => (event) => { clearError(`${values.children[index].key}:${key === 'eventDefinitionId' ? 'event' : key}`); setValues((current) => ({ ...current, children: current.children.map((child, childIndex) => childIndex !== index ? child : { ...child, [key]: event.target.value, ...(key === 'eventDefinitionId' && event.target.value ? { legacyEventLabel: '', legacyPayload: null, legacySourceIdentifier: '' } : {}) }) })); };
+  const addResult = () => { const key = `new-${++nextKey.current}`; setValues((current) => ({ ...current, children: [...current.children, newChild(key, current.type)] })); setFocusTarget(`${key}:event`); };
+  const removeResult = (index) => { const next = values.children[index - 1] || values.children[index + 1]; setValues((current) => ({ ...current, children: current.children.filter((_, childIndex) => childIndex !== index) })); setError(null); if (next) setFocusTarget(`${next.key}:event`); else addButton.current?.focus(); };
+  const eventOptions = (child) => { const current = events.find((event) => event.id === child.eventDefinitionId); const stale = child.eventDefinitionId && (!current || child.eventActive === false) ? [{ id: child.eventDefinitionId, name: child.eventName || child.legacyEventLabel || 'Prueba no disponible', isActive: false }] : []; return [...stale, ...events.filter((event) => !stale.some((item) => item.id === event.id))]; };
+  const recordOptions = (child) => { const current = records.find((record) => record.id === child.recordId); const retained = child.recordId && (!current || !recordAvailable(current)) ? [current || { id: child.recordId, eventName: 'Récord no disponible', competitionName: '', publicationStatus: null }] : []; return [...retained, ...records.filter((record) => recordAvailable(record) && !retained.some((item) => item.id === record.id))]; };
+  const errorProps = (target) => error?.target === target ? { 'aria-invalid': true, 'aria-describedby': `${target.replaceAll(':', '-')}-error` } : {};
+  const errorText = (target) => error?.target === target && <span id={`${target.replaceAll(':', '-')}-error`} className="mt-2 block text-xs font-semibold text-red-700 dark:text-red-300">{error.message}</span>;
+  const submit = async (event) => {
+    event.preventDefault(); setError(null);
+    const result = await onSubmit(values);
+    if (result?.ok || result === true) { setValues(newGroup(`new-${++nextKey.current}`)); return; }
+    if (!result?.error?.field) return;
+    const groupFields = ['type', 'title', 'competitionName', 'location', 'achievedOn'];
+    let target = groupFields.includes(result.error.field) ? `group:${result.error.field}` : `${values.children[0]?.key}:${result.error.field}`;
+    if (result.error.field === 'event' && result.error.message.includes('una sola vez')) {
+      const seen = new Set(); const duplicate = values.children.find((child) => child.eventDefinitionId && seen.has(child.eventDefinitionId) ? true : (seen.add(child.eventDefinitionId), false));
+      if (duplicate) target = `${duplicate.key}:event`;
+    }
+    setError({ target, message: result.error.message }); setFocusTarget(target);
+  };
+  return <form aria-label={editing ? `Editar competencia ${editing.title}` : 'Agregar competencia del atleta'} onSubmit={submit} className="mt-5 min-w-0 rounded-md border border-asanda-line bg-asanda-foam p-4 dark:border-slate-700 dark:bg-slate-900">
+    <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+      <label className="text-sm font-bold">Tipo de logro<select ref={controlRef('group:type')} className={field} value={values.type} onChange={updateType} {...errorProps('group:type')}>{typeOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>{errorText('group:type')}</label>
+      <label className="text-sm font-bold">Título<input ref={controlRef('group:title')} className={field} required maxLength="180" value={values.title} onChange={update('title')} placeholder="Ej. Podio nacional juvenil" {...errorProps('group:title')} />{errorText('group:title')}</label>
+      <label className="text-sm font-bold">Competencia<input ref={controlRef('group:competitionName')} className={field} required maxLength="180" value={values.competitionName} onChange={update('competitionName')} {...errorProps('group:competitionName')} />{errorText('group:competitionName')}</label>
+      <label className="text-sm font-bold">Ubicación<input ref={controlRef('group:location')} className={field} required maxLength="180" value={values.location} onChange={update('location')} placeholder="Ej. Complejo de piscinas" {...errorProps('group:location')} />{errorText('group:location')}</label>
+      <label className="text-sm font-bold sm:col-span-2">Fecha de la competencia<input ref={controlRef('group:achievedOn')} className={field} type="date" required value={values.achievedOn} onChange={update('achievedOn')} {...errorProps('group:achievedOn')} />{errorText('group:achievedOn')}</label>
+    </div>
+    <div className="mt-5 space-y-3" aria-label="Resultados de la competencia">{values.children.map((child, index) => {
+      const legacy = isLegacy(child); const eventTarget = `${child.key}:event`; const podiumTarget = `${child.key}:podiumPlace`; const outcomeTarget = `${child.key}:participationOutcome`; const recordTarget = `${child.key}:recordId`; const selectedRecord = records.find((record) => record.id === child.recordId); const unavailableRecord = child.recordId && (!selectedRecord || !recordAvailable(selectedRecord));
+      return <fieldset key={child.key} className="min-w-0 rounded-md border border-asanda-line bg-white p-4 dark:border-slate-700 dark:bg-slate-800"><legend className="px-2 font-bold">Resultado {index + 1}</legend><div className="grid min-w-0 gap-4 sm:grid-cols-2">
+        <label className="text-sm font-bold sm:col-span-2">Prueba del resultado {index + 1}<select ref={controlRef(eventTarget)} className={field} required={!legacy} value={child.eventDefinitionId} onChange={updateChild(index, 'eventDefinitionId')} {...errorProps(eventTarget)}><option value="">{legacy ? 'Remediar: seleccioná una prueba' : 'Seleccioná una prueba'}</option>{eventOptions(child).map((item) => <option key={item.id} value={item.id}>{item.name}{item.isActive === false ? ' (no disponible)' : ''}</option>)}</select>{errorText(eventTarget)}</label>
+        {legacy && <p className="text-xs leading-5 text-amber-800 dark:text-amber-200 sm:col-span-2">Resultado legado pendiente de remediación: {child.legacyEventLabel}. Seleccioná una prueba oficial para habilitar la publicación.</p>}
+        {['national_podium', 'international_podium'].includes(values.type) && <label className="text-sm font-bold">Posición del resultado {index + 1}<select ref={controlRef(podiumTarget)} className={field} value={child.podiumPlace} onChange={updateChild(index, 'podiumPlace')} {...errorProps(podiumTarget)}><option value="1">1 - Primer lugar</option><option value="2">2 - Segundo lugar</option><option value="3">3 - Tercer lugar</option></select>{errorText(podiumTarget)}</label>}
+        {values.type === 'international_participation' && <label className="text-sm font-bold">Resultado de participación {index + 1}<select ref={controlRef(outcomeTarget)} className={field} value={child.participationOutcome} onChange={updateChild(index, 'participationOutcome')} {...errorProps(outcomeTarget)}><option value="top_8">Top 8</option><option value="outstanding_participation">Participación destacada</option></select>{errorText(outcomeTarget)}</label>}
+        {values.type === 'state_record' && <label className="text-sm font-bold sm:col-span-2">Récord estatal oficial {index + 1}<select ref={controlRef(recordTarget)} className={field} required={!legacy} value={child.recordId} onChange={updateChild(index, 'recordId')} {...errorProps(recordTarget)}><option value="">Seleccioná un récord publicado</option>{recordOptions(child).map((item) => <option key={item.id} value={item.id} disabled={!recordAvailable(item)}>{item.eventName}{item.competitionName ? ` · ${item.competitionName}` : ''}{recordAvailable(item) ? '' : ' (no disponible)'}</option>)}</select>{errorText(recordTarget)}</label>}
+      </div><div className="mt-3 flex flex-wrap items-center gap-3"><button type="button" disabled={values.children.length === 1 || busy} onClick={() => removeResult(index)} className="min-h-10 font-bold text-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-asanda-orange disabled:opacity-50 dark:text-red-300">Eliminar resultado</button>{child.eventDefinitionId && child.eventActive === false && <span className="text-xs font-semibold text-amber-800 dark:text-amber-200">La prueba guardada ya no está activa.</span>}{values.type === 'state_record' && unavailableRecord && <span className="text-xs font-semibold text-amber-800 dark:text-amber-200">El récord guardado todavía no está disponible para publicación.</span>}</div></fieldset>;
+    })}</div>
+    <div className="mt-4 flex flex-wrap items-center gap-3"><button ref={addButton} type="button" onClick={addResult} disabled={busy} className="min-h-11 rounded-md border border-asanda-deep px-4 font-bold text-asanda-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-asanda-orange dark:border-slate-400 dark:text-white">Agregar resultado</button>{!editing && !canCreate && <p role="note" className="text-sm font-semibold text-amber-800 dark:text-amber-200">El atleta ya tiene seis o más competencias. Remediá los datos existentes antes de crear otra.</p>}</div><div className="mt-4 flex flex-wrap gap-3"><button className="min-h-11 rounded-md bg-asanda-deep px-4 font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-asanda-orange disabled:opacity-60" disabled={busy || (!editing && !canCreate)} type="submit">{busy ? 'Guardando…' : editing ? 'Guardar cambios' : 'Agregar competencia'}</button>{editing && <button className="min-h-11 px-3 font-bold text-asanda-deep dark:text-white" type="button" onClick={onCancel}>Cancelar edición</button>}</div>
+  </form>;
 };
 
 export default AthleteAchievementForm;
