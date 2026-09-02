@@ -1,11 +1,11 @@
 # Production Athlete Migrations Rollout Runbook
 
-> **Status: BLOCKED — current `origin/main` is not frontend-compatible with the grouped schema.**
+> **Status: PRE-DEPLOYMENT BLOCKED — compatibility integration passes; authorization and clone rehearsal remain pending.**
 > **Production execution authorization: NOT GRANTED BY THIS DOCUMENT.**
 
 ## Decision
 
-After the compatibility blockers in this runbook are closed, deploy exactly four canonical migrations from a newly frozen `origin/main` candidate to production project `fuxlohqricsfsxkjztne`, in timestamp order:
+After every remaining gate in this runbook is closed, deploy exactly four canonical migrations from a newly frozen `origin/main` candidate to production project `fuxlohqricsfsxkjztne`, in timestamp order:
 
 1. `20260830120000_expand_featured_athlete_ordering.sql`
 2. `20260830122000_paginate_featured_athlete_profiles.sql`
@@ -24,26 +24,27 @@ The release is fail-closed: all four reviewed migrations deploy in order or none
 | Production ledger head | Exactly `20260829152000` |
 | Pending manifest | Exactly the four files listed above, in that order |
 | Retired evidence migration | Absent locally and absent from the production ledger |
-| Current `origin/main` | **BLOCKED:** legacy admin/public consumers are incompatible with `130000`; required concurrency/regression scripts are absent |
-| Runtime evidence | Migration contracts, concurrency harness, application regression, E2E, and build must pass again after compatibility is integrated |
+| Candidate compatibility | The frozen candidate must contain grouped admin/public consumers plus concurrency/regression scripts and pass the readiness validator 25/25 |
+| Runtime evidence | Migration contracts, concurrency harness, application regression, E2E, and build must pass again for the frozen candidate |
 | Authorization | Must be granted separately; this runbook grants none |
 
 This baseline must be rechecked immediately before rehearsal and again during the approved production window. Historical SDD evidence is not part of the `origin/main` release candidate and is not a substitute for current, repeatable runtime evidence.
 
-## Current Blocking Findings
+## Compatibility Integration Status
 
-Production deployment is prohibited from current `origin/main` (`1f096aa`) for three independent reasons:
+The grouped release tracker closes the previously identified application/schema mismatch:
 
-1. `src/services/admin/athleteAchievements.js` still performs direct CRUD against `public.athlete_achievements`. Migration `130000` renames that table to `athlete_achievements_legacy` and removes client access, so the current administrator workflow would fail.
-2. `src/services/athletes.js` still normalizes the legacy flat `snake_case` achievement payload. The grouped RPC returns grouped `camelCase` cards with child results, so the current public adapter would silently discard achievements.
-3. `scripts/athlete-achievements-concurrency-harness.mjs` and `scripts/athlete-achievements-regression.mjs` are not present in current `origin/main`. The SQL contract covers the sequential six-group limit but does not prove the concurrent seventh-group race.
+1. Administration writes through grouped RPCs instead of direct CRUD against `public.athlete_achievements`.
+2. The public adapter accepts grouped `camelCase` cards and validated child results instead of the retired flat payload.
+3. The candidate includes the real concurrency harness and dependency-free regression script.
+4. Integrated verification passed the readiness validator 25/25, regression 7/7, Playwright 131/131, production build, and `git diff --check`.
 
-Do not weaken the gate to accommodate these gaps. First integrate reviewed grouped admin/public consumers and both repeatable runtime scripts, then freeze a new candidate and rerun every gate in this document.
+This evidence proves compatibility of the integrated tracker, not authorization to deploy. If the reviewed chain is not present in the final `origin/main` candidate, or any file changes after the candidate is frozen, stop and repeat the gates.
 
 ## Quick Path
 
-1. Integrate the grouped administrator/public consumers and the concurrency/regression scripts into `origin/main`.
-2. Freeze a new immutable Git candidate and record the four migration checksums.
+1. Merge the reviewed grouped-release chain into `origin/main` without changing its verified contents.
+2. Freeze the resulting immutable Git candidate and record the four migration checksums.
 3. Complete the approval envelope, backup/PITR confirmation, maintenance window, operator, reviewer, and stop authority.
 4. Confirm the production ledger and exact pre-deploy schema fingerprint.
 5. Rehearse the four migrations on Restore Test and then on a fresh production clone.
