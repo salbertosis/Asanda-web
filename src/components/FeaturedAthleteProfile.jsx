@@ -1,35 +1,34 @@
 import React from 'react';
-import { CalendarDays, Flag, Medal, Timer, Trophy } from 'lucide-react';
+import { CalendarDays, MapPin, Timer, Trophy } from 'lucide-react';
 import { formatPerformanceTime } from './FeaturedAthleteCard';
+import { formatStateRecordTime } from '../services/stateRecords';
 
 const DATE_FORMATTER = new Intl.DateTimeFormat('es-VE', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
-const PLACE_LABELS = { 1: 'Campeón nacional', 2: 'Subcampeón nacional', 3: 'Bronce nacional' };
-const MEDAL_LABELS = { gold: 'Oro', silver: 'Plata', bronze: 'Bronce' };
+const TYPE_LABELS = { national_podium: 'Podio nacional', international_podium: 'Podio internacional', international_participation: 'Participación internacional', state_record: 'Récord estatal' };
+const PLACE_LABELS = { 1: 'Primer lugar', 2: 'Segundo lugar', 3: 'Tercer lugar' };
+const OUTCOME_LABELS = { top_8: 'Top 8', outstanding_participation: 'Participación destacada' };
 
 const formatDate = (value) => value ? DATE_FORMATTER.format(new Date(`${value}T00:00:00Z`)) : null;
 
-const AchievementList = ({ achievements, empty }) => achievements.length > 0 ? (
-  <ul className="mt-4 space-y-3">
-    {achievements.map((achievement, index) => (
-      <li key={`${achievement.title}-${achievement.achievedOn || achievement.validFrom}-${index}`} className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
-        <p className="min-w-0 break-words font-bold text-slate-950 [overflow-wrap:anywhere] dark:text-white">{achievement.title}</p>
-        {achievement.competitionName && <p className="mt-1 min-w-0 break-words text-sm text-slate-700 [overflow-wrap:anywhere] dark:text-slate-200">{achievement.competitionName}</p>}
-        <p className="mt-2 text-sm font-semibold text-blue-700 dark:text-cyan-300">
-          {achievement.type === 'national_podium' && PLACE_LABELS[achievement.place]}
-          {achievement.type === 'international_medal' && `Medalla de ${MEDAL_LABELS[achievement.medal]}`}
-          {achievement.type === 'national_team' && `Vigencia: ${formatDate(achievement.validFrom)}${achievement.validTo ? ` al ${formatDate(achievement.validTo)}` : ' en adelante'}`}
-          {achievement.achievedOn && ` · ${formatDate(achievement.achievedOn)}`}
-        </p>
-      </li>
-    ))}
-  </ul>
-) : <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">{empty}</p>;
+const AchievementChild = ({ child }) => <li className="min-w-0 rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
+  <p className="break-words font-bold text-slate-950 [overflow-wrap:anywhere] dark:text-white">{child.eventName}</p>
+  {child.podiumPlace && <p className="mt-1 text-sm font-semibold text-blue-700 dark:text-cyan-300">{PLACE_LABELS[child.podiumPlace]}</p>}
+  {child.participationOutcome && <p className="mt-1 text-sm font-semibold text-blue-700 dark:text-cyan-300">{OUTCOME_LABELS[child.participationOutcome]}</p>}
+  {child.record && <dl className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 gap-y-1 text-sm text-slate-700 dark:text-slate-200"><dt className="font-semibold">Marca</dt><dd className="font-bold tabular-nums">{formatStateRecordTime(child.record.timeMs)}</dd><dt className="font-semibold">Categoría</dt><dd className="break-words">{child.record.categoryName}</dd><dt className="font-semibold">Registro</dt><dd className="break-words">{child.record.competitionName} · {child.record.achievedYear}</dd></dl>}
+</li>;
+
+const AchievementGroups = ({ achievements }) => achievements.length > 0 ? <ol className="mt-4 space-y-4">
+  {achievements.map((group, index) => <li key={`${group.title}-${group.achievedOn}-${index}`}>
+    <article className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+      <p className="text-xs font-bold uppercase tracking-wide text-blue-700 dark:text-cyan-300">{TYPE_LABELS[group.type]}</p>
+      <h4 className="mt-1 break-words text-lg font-black text-slate-950 [overflow-wrap:anywhere] dark:text-white">{group.title}</h4>
+      <dl className="mt-3 grid gap-2 text-sm text-slate-700 dark:text-slate-200 sm:grid-cols-3"><div><dt className="font-semibold">Competencia</dt><dd className="break-words">{group.competitionName}</dd></div><div><dt className="flex items-center gap-1 font-semibold"><MapPin size={15} aria-hidden="true" />Lugar</dt><dd className="break-words">{group.location}</dd></div><div><dt className="font-semibold">Fecha</dt><dd>{formatDate(group.achievedOn)}</dd></div></dl>
+      <ul aria-label={`Resultados de ${group.title}`} className="mt-4 grid min-w-0 gap-2 sm:grid-cols-2">{group.children.map((child, childIndex) => <AchievementChild key={`${child.eventName}-${childIndex}`} child={child} />)}</ul>
+    </article>
+  </li>)}
+</ol> : <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">No hay logros competitivos publicados.</p>;
 
 const FeaturedAthleteProfile = ({ athlete }) => {
-  const nationalPodiums = athlete.achievements.filter(({ type }) => type === 'national_podium');
-  const internationalMedals = athlete.achievements.filter(({ type }) => type === 'international_medal');
-  const nationalTeams = athlete.achievements.filter(({ type }) => type === 'national_team');
-
   return (
     <div className="min-w-0">
       <section aria-labelledby={`${athlete.profileKey}-public-profile`} className="grid gap-5 border-b border-slate-200 p-5 dark:border-slate-700 sm:grid-cols-[10rem_minmax(0,1fr)] sm:p-7">
@@ -55,19 +54,9 @@ const FeaturedAthleteProfile = ({ athlete }) => {
           {athlete.results.length > 0 ? <ol className="mt-4 min-w-0 space-y-3">{athlete.results.map((result, index) => <li key={`${result.eventName}-${result.competitionDate}-${index}`} className="min-w-0 rounded-2xl border border-slate-200 p-4 dark:border-slate-700"><div className="flex min-w-0 flex-wrap items-start justify-between gap-2"><p className="min-w-0 break-words font-bold text-slate-950 [overflow-wrap:anywhere] dark:text-white">{result.eventName}</p>{result.timeMs && <strong className="shrink-0 tabular-nums text-blue-700 dark:text-cyan-300">{formatPerformanceTime(result.timeMs)}</strong>}</div><p className="mt-2 min-w-0 break-words text-sm text-slate-700 [overflow-wrap:anywhere] dark:text-slate-200">{result.competitionName}</p><p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{result.place && `Puesto ${result.place} · `}{formatDate(result.competitionDate)}</p></li>)}</ol> : <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">No hay resultados oficiales recientes publicados.</p>}
         </section>
 
-        <section aria-labelledby={`${athlete.profileKey}-national-podiums`}>
-          <h3 id={`${athlete.profileKey}-national-podiums`} className="flex items-center gap-2 text-xl font-black text-slate-950 dark:text-white"><Trophy className="text-asanda-orange" aria-hidden="true" />Podios nacionales</h3>
-          <AchievementList achievements={nationalPodiums} empty="No hay podios nacionales editoriales publicados." />
-        </section>
-
-        <section aria-labelledby={`${athlete.profileKey}-international-medals`}>
-          <h3 id={`${athlete.profileKey}-international-medals`} className="flex items-center gap-2 text-xl font-black text-slate-950 dark:text-white"><Medal className="text-asanda-orange" aria-hidden="true" />Medallas internacionales</h3>
-          <AchievementList achievements={internationalMedals} empty="No hay medallas internacionales editoriales publicadas." />
-        </section>
-
-        <section aria-labelledby={`${athlete.profileKey}-national-team`} className="lg:col-span-2">
-          <h3 id={`${athlete.profileKey}-national-team`} className="flex items-center gap-2 text-xl font-black text-slate-950 dark:text-white"><Flag className="text-blue-700 dark:text-cyan-300" aria-hidden="true" />Selección Nacional</h3>
-          <AchievementList achievements={nationalTeams} empty="No hay convocatorias editoriales publicadas para la Selección Nacional." />
+        <section aria-labelledby={`${athlete.profileKey}-achievements`} className="lg:col-span-2">
+          <h3 id={`${athlete.profileKey}-achievements`} className="flex items-center gap-2 text-xl font-black text-slate-950 dark:text-white"><Trophy className="text-asanda-orange" aria-hidden="true" />Logros competitivos</h3>
+          <AchievementGroups achievements={athlete.achievements} />
         </section>
       </div>
     </div>

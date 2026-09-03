@@ -4,7 +4,7 @@ do $$
 declare
   visible_athlete_id uuid; hidden_athlete_id uuid; future_athlete_id uuid; expired_athlete_id uuid; editor_id uuid; asset_id uuid;
   approved_source_id uuid; pending_source_id uuid; calendar_id uuid; event_definition_id uuid;
-  sport_id uuid; competition_id uuid; competition_event_id uuid; entry_id uuid; paginated_athlete_id uuid; payload jsonb;
+  sport_id uuid; competition_id uuid; competition_event_id uuid; entry_id uuid; paginated_athlete_id uuid; achievement_group_id uuid; payload jsonb;
   page_one_keys text[]; page_two_keys text[]; homepage_keys text[];
   page_one_orders integer[]; page_two_orders integer[]; homepage_orders integer[]; blocked boolean; i integer;
 begin
@@ -53,15 +53,22 @@ begin
   insert into public.source_documents (source_type, asset_id, checksum, status, processed_at) values ('manual', asset_id, repeat('e', 64), 'processed', now()) returning id into pending_source_id;
   perform set_config('request.jwt.claim.sub', editor_id::text, true); execute 'set local role authenticated';
   update public.source_documents set approval_status = 'approved' where id = approved_source_id;
-  insert into public.athlete_achievements (athlete_id, source_document_id, achievement_type, title, competition_name, place, achieved_on, publication_status, published_at)
-  values (visible_athlete_id, approved_source_id, 'national_podium', 'Visible sourced podium', 'RPC national meet', 2, current_date, 'published', now());
-  insert into public.athlete_achievements (athlete_id, source_document_id, achievement_type, title, valid_from)
-  values (visible_athlete_id, pending_source_id, 'national_team', 'Private draft selection', current_date); execute 'reset role';
 
   select calendar.id, definition.id, discipline.sport_id into strict calendar_id, event_definition_id, sport_id
   from public.competition_calendars calendar join public.disciplines discipline on discipline.id = calendar.discipline_id
   join public.event_definitions definition on definition.discipline_id = discipline.id
   where calendar.season_year = 2026 and discipline.code = 'swimming' and definition.is_active order by definition.code limit 1;
+  select group_id into strict achievement_group_id
+  from public.save_athlete_achievement_group_draft(
+    null, visible_athlete_id, 'national_podium', 'Visible sourced podium', 'RPC national meet', 'RPC pool', current_date,
+    jsonb_build_array(jsonb_build_object('event_definition_id', event_definition_id, 'podium_place', 2))
+  );
+  perform public.publish_athlete_achievement_group(achievement_group_id);
+  perform public.save_athlete_achievement_group_draft(
+    null, visible_athlete_id, 'international_participation', 'Private draft selection', 'RPC invitational', 'RPC pool', current_date,
+    jsonb_build_array(jsonb_build_object('event_definition_id', event_definition_id, 'participation_outcome', 'top_8'))
+  );
+  execute 'reset role';
   insert into public.competitions (name, slug, sport_id, calendar_id, starts_on, status, published_at)
   values ('Visible RPC competition', 'visible-rpc-' || replace(gen_random_uuid()::text, '-', ''), sport_id, calendar_id, date '2026-08-10', 'completed', now()) returning id into competition_id;
   insert into public.competition_events (competition_id, event_definition_id, sequence_number, status) values (competition_id, event_definition_id, 1, 'completed') returning id into competition_event_id;
