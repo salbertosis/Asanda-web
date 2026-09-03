@@ -20,6 +20,10 @@ const [ordering, pagination, grouped, guards] = migrations
 const runbook = read(runbookPath)
 const adminAchievementService = read(adminAchievementServicePath)
 const publicAthleteService = read(publicAthleteServicePath)
+const contractFilesExist = contractPaths.every((path) => existsSync(resolve(root, path)))
+const featuredProfileContract = contractFilesExist
+  ? read(resolve(root, 'supabase/tests/featured-athlete-profiles-rpc.sql'))
+  : ''
 const allMigrationNames = readdirSync(migrationDirectory)
   .filter((name) => /^\d{14}_.+\.sql$/.test(name))
   .sort()
@@ -72,7 +76,12 @@ const checks = [
     'create or replace function public.publish_athlete_achievement_group',
     'create or replace function private.get_public_athlete_achievement_groups',
   ])],
-  ['all required contract and harness files exist', contractPaths.every((path) => existsSync(resolve(root, path)))],
+  ['all required contract and harness files target the grouped schema', contractFilesExist
+    && hasAll(featuredProfileContract, [
+      'public.save_athlete_achievement_group_draft',
+      'public.publish_athlete_achievement_group',
+    ])
+    && !/public\.athlete_achievements\b/.test(featuredProfileContract)],
   ['admin frontend consumes grouped achievement RPCs', hasAll(adminAchievementService, [
     'normalizeAchievementGroup',
     'requested_children',
