@@ -10,7 +10,7 @@ const publicAthleteServicePath = resolve(root, 'src/services/athletes.js')
 const migrationNames = ['20260830120000_expand_featured_athlete_ordering.sql', '20260830122000_paginate_featured_athlete_profiles.sql', '20260830130000_robust_athlete_achievement_groups.sql', '20260830131000_robust_athlete_achievement_guards.sql']
 const retiredEvidenceMigrationName = '20260830121000_add_athlete_evidence_sources.sql'
 
-const contractPaths = ['supabase/tests/featured-athlete-ordering-contract.sql', 'supabase/tests/featured-athlete-source-approval.sql', 'supabase/tests/featured-athlete-profiles-rpc.sql', 'supabase/tests/athlete-achievements-contract.sql', 'scripts/athlete-achievements-concurrency-harness.mjs', 'scripts/athlete-achievements-regression.mjs']
+const contractPaths = ['supabase/tests/featured-athlete-ordering-contract.sql', 'supabase/tests/featured-athlete-source-approval.sql', 'supabase/tests/featured-athlete-profiles-rpc.sql', 'supabase/tests/athlete-achievements-contract.sql', 'scripts/athlete-achievements-concurrency-harness.mjs', 'scripts/athlete-achievements-concurrency-regression.mjs', 'scripts/athlete-achievements-regression.mjs']
 
 const read = (path) => readFileSync(path, 'utf8')
 const hasAll = (text, markers) => markers.every((marker) => text.includes(marker))
@@ -28,11 +28,28 @@ const allMigrationNames = readdirSync(migrationDirectory)
   .filter((name) => /^\d{14}_.+\.sql$/.test(name))
   .sort()
 const pendingSlice = allMigrationNames
-  .filter((name) => name >= migrationNames[0] && name <= migrationNames.at(-1))
-  .filter((name) => name !== retiredEvidenceMigrationName)
+  .filter((name) => name.slice(0, 14) >= migrationNames[0].slice(0, 14) && name.slice(0, 14) <= migrationNames.at(-1).slice(0, 14))
 const runbookPositions = migrationNames.map((name) => runbook.indexOf(name))
+const currentStateHeadings = [...runbook.matchAll(/^## Current Production State\s*$/gm)]
+const currentStateStart = currentStateHeadings[0] ? currentStateHeadings[0].index + currentStateHeadings[0][0].length : undefined
+const nextHeadingOffset = currentStateStart === undefined ? -1 : runbook.slice(currentStateStart).search(/^##\s/m)
+const currentState = currentStateStart === undefined ? '' : runbook.slice(currentStateStart, nextHeadingOffset < 0 ? undefined : currentStateStart + nextHeadingOffset)
+const exactCurrentStateRows = [
+  '| Production ledger head | Exactly `20260830131000` |',
+  '| Applied manifest | Exactly `20260830120000`, `20260830122000`, `20260830130000`, and `20260830131000`, in that order |',
+  '| Retired evidence migration | `20260830121000` absent locally and absent from the production ledger |',
+  '| Frontend state | Compatible frontend deployment and smoke test remain pending |',
+  '| Administration | Closed until the compatible frontend commit is deployed and smoke-tested |',
+]
+const currentStateRows = currentState.split(/\r?\n/).filter((line) => line.startsWith('| '))
+const resultDigests = [
+  '5794da794f3871ca54d7d9bda455292181a06599a0186957a4681782bd596865',
+  'e213ba743c63a4830a31ed4f718e925772434d184fbc5df3c43451df6b8c8c68',
+  '873880498dc926b851a0ff2c4d6bc4c2da88b15ace95aa510b8917ad2da2b51f',
+  'aa9ba3001de2eb1352ca56f1a1fe502f0d0f251a4e6547caa2cc104039cff991',
+]
 
-const retiredEvidenceMigrationExcluded = !migrationNames.includes(retiredEvidenceMigrationName)
+const retiredEvidenceMigrationExcluded = !existsSync(resolve(migrationDirectory, retiredEvidenceMigrationName))
 const unsafeShortcutsProhibited = [
   /do not deploy migration sql through .*db query/i,
   /do not use `?supabase migration repair`?/i,
@@ -116,21 +133,21 @@ const checks = [
     'backup',
     'PITR',
   ])],
-  ['runbook requires exact remote migration end and old-schema fingerprint', hasAll(runbook, [
+  ['bounded current production state records the exact closed deployment state', currentStateHeadings.length === 1 && exactCurrentStateRows.every((row) => currentStateRows.includes(row) && currentStateRows.filter((candidate) => candidate.split('|')[1] === row.split('|')[1]).length === 1)],
+  ['runbook records result digests and historical starting fingerprint', hasAll(runbook, [
     '20260829152000',
     'featured_athletes_display_order_check',
     'public.get_featured_athlete_profiles()',
     'public.athlete_achievements',
-    'athlete_achievements_public_idx',
-    'athlete_achievements_source_idx',
+    ...resultDigests,
   ])],
-  ['runbook requires Restore Test and fresh production-clone rehearsals', /Restore Test/i.test(runbook) && /fresh production clone/i.test(runbook)],
-  ['runbook names every contract and concurrency command target', contractPaths.every((path) => runbook.includes(path))],
+  ['runbook records Restore Test and fresh production-clone rehearsals', /Restore Test/i.test(runbook) && /fresh production clone/i.test(runbook)],
+  ['runbook names every contract and concurrency command target', contractPaths.every((path) => runbook.includes(path)) && /^node scripts\/athlete-achievements-concurrency-regression\.mjs\r?$/m.test(runbook)],
   ['runbook defines the exact four-migration scope', /(?:four|4)\s+(?:canonical\s+)?migrations/i.test(runbook)],
   ['runbook documents that origin/main excludes the retired evidence migration', runbook.includes('origin/main') && runbook.includes('20260830121000') && /(?:retired|removed|excluded|no longer)/i.test(runbook)],
-  ['runbook preserves fail-closed rollout semantics', /fail-closed/i.test(runbook) && /stop (?:the )?(?:entire )?rollout/i.test(runbook)],
+  ['runbook preserves fail-closed rollout semantics', /fail-closed/i.test(runbook) && /stops? the rollout/i.test(runbook)],
   ['runbook prohibits unsafe migration shortcuts', unsafeShortcutsProhibited],
-  ['runbook defines coordinated frontend and database rollout', /frontend/i.test(runbook) && /database/i.test(runbook) && /coordinated/i.test(runbook)],
+  ['runbook records completed database deployment and pending frontend gate', /database deployment is complete/i.test(runbook) && /administration remains closed/i.test(runbook) && /frontend/i.test(runbook)],
   ['runbook defines stop evidence and post-deploy checks', hasAll(runbook, [
     'Stop Conditions',
     'Evidence Record',
