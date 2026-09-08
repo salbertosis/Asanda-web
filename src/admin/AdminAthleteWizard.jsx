@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Check, Image, Plus, Save, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAdminSession } from './AdminSessionContext';
 import AthleteAchievementPanel from './AthleteAchievementPanel';
 import {
   addAthleteCategory,
@@ -32,6 +33,7 @@ const relationKeys = { category: 'categories', discipline: 'disciplines', member
 
 const AdminAthleteWizard = ({ athleteId }) => {
   const navigate = useNavigate();
+  const { profile } = useAdminSession();
   const [status, setStatus] = useState('loading');
   const [pageError, setPageError] = useState(null);
   const [references, setReferences] = useState({ media: [], categories: [], disciplines: [], organizations: [] });
@@ -221,12 +223,12 @@ const AdminAthleteWizard = ({ athleteId }) => {
           <button type="button" className="min-h-12 rounded-md bg-asanda-orange-strong px-5 font-bold text-white hover:bg-[#a94320] disabled:opacity-60" onClick={() => saveProfile('published')} disabled={busy === 'profile'}>Publicar atleta</button>
         </div>
       </form>
-      {athleteId ? <AthleteAchievementPanel athleteId={athleteId} /> : (
+      {profile?.role === 'administrator' && (athleteId ? <AthleteAchievementPanel athleteId={athleteId} /> : (
         <section aria-labelledby="athlete-achievement-title" className="rounded-[14px] border border-dashed border-asanda-line bg-white p-5 sm:p-6 dark:border-slate-700 dark:bg-dark-surface">
           <h2 id="athlete-achievement-title" className="font-display text-2xl font-bold">Logros deportivos</h2>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Guardá primero la ficha para cargar logros.</p>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Guardá primero la ficha para cargar logros deportivos.</p>
         </section>
-      )}
+      ))}
     </section>
   );
 };

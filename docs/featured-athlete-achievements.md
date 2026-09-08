@@ -1,14 +1,17 @@
 # Featured athlete achievements
 
-Featured athlete achievements use editorial evidence, not inferred competition labels or placements.
+Featured athlete achievements are published as competition groups with one or more event results. They do not depend on editorial evidence.
 
 ## Editorial contract
 
-- Store the evidence in `source_documents` and move it to `approved` only after an active editor reviews a processed document.
-- Return an approved source to `pending` or `rejected` before changing its asset, checksum, type, organization, competition, processing state, or other material source metadata.
-- Create `athlete_achievements` as `draft`, using one controlled type: `national_podium`, `international_medal`, or `national_team`.
-- Publish only after the athlete has active `public_profile` and `results_publication` consent. Publication is blocked until the linked evidence is approved.
-- The dependent public profile RPC must immediately hide achievements and official results when either consent is withdrawn.
-- That RPC must exclude source documents, internal identifiers, consent records, contact data, birth data, representatives, notes, and administrative history.
+- Administrators create a group with type, title, competition, location, date, and at least one canonical individual event result.
+- Supported types are `national_podium`, `international_podium`, `international_participation`, and `state_record`.
+- Podiums accept first, second, or third place. International participation accepts Top 8 or Outstanding Participation.
+- State Record children reference a currently published official record; public facts resolve live rather than being copied into the group.
+- An athlete may have at most six groups. Public output preserves database order and exposes at most six eligible cards.
+- Publication requires a published athlete plus active `public_profile` and `results_publication` consent. Evidence approval is not a dependency.
+- Public output excludes drafts, invalid children, newly empty groups, evidence fields, internal identifiers, consent records, contact data, birth data, representatives, notes, and administrative history.
 
-The existing authenticated table/RLS and audit surfaces support controlled editorial loading. A dedicated achievement editor UI is outside this work unit; until one is approved, editors must use the existing authenticated data administration workflow. No achievement data is seeded by this migration.
+The profile renders one semantic card per eligible competition and one list item per result. When no eligible group remains, it shows the Spanish empty state `No hay logros competitivos publicados.`
+
+Evidence tables and shared evidence workflows remain unchanged for other domains. Production migration and deployment require separate authorization.

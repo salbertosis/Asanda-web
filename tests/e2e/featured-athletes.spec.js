@@ -19,9 +19,11 @@ const featuredRows = [
       { event_name: '50 m mariposa', time_ms: 30120, place: 1, competition_name: 'Copa ASANDA', competition_date: '2026-07-15' },
     ],
     achievements: [
-      { achievement_type: 'national_podium', title: 'Final nacional juvenil', competition_name: 'Nacional Juvenil 2026', place: 2, achieved_on: '2026-06-21', medal: null, valid_from: null, valid_to: null },
-      { achievement_type: 'international_medal', title: 'Relevo 4 × 100 m libre', competition_name: 'Copa Internacional', medal: 'bronze', place: null, achieved_on: '2026-05-18', valid_from: null, valid_to: null },
-      { achievement_type: 'national_team', title: 'Selección Nacional Juvenil', competition_name: null, medal: null, place: null, achieved_on: null, valid_from: '2026-01-01', valid_to: '2026-12-31' },
+      { type: 'national_podium', title: 'Final nacional juvenil', competitionName: 'Nacional Juvenil 2026', location: 'Caracas', achievedOn: '2026-06-21', children: [{ eventName: '100 m libre', podiumPlace: 2 }, { eventName: '50 m mariposa', podiumPlace: 1 }] },
+      { type: 'international_podium', title: 'Podio de velocidad', competitionName: 'Copa Internacional', location: 'Bogotá', achievedOn: '2026-05-18', children: [{ eventName: '50 m libre', podiumPlace: 3 }] },
+      { type: 'international_participation', title: 'Final continental', competitionName: 'Campeonato Continental', location: 'Lima', achievedOn: '2026-04-12', children: [{ eventName: '200 m libre', participationOutcome: 'top_8' }] },
+      { type: 'state_record', title: 'Nueva marca estadal', competitionName: 'Estadal 2026', location: 'Barcelona', achievedOn: '2026-03-08', children: [{ eventName: '100 m mariposa', record: { timeMs: 60000, achievedYear: 2026, competitionName: 'Estadal 2026', categoryName: 'Infantil B', competitiveSex: 'female', course: 'long_course' } }] },
+      { type: 'state_record', title: 'Dato inválido privado', competitionName: 'No visible', location: 'No visible', achievedOn: '2026-03-01', children: [{ eventName: '400 m libre', record: { timeMs: null, achievedYear: 2026, competitionName: 'No visible', categoryName: 'Infantil B' } }], source_document_id: 'private' },
     ],
   },
   {
@@ -214,9 +216,15 @@ test('opens the allowlisted public profile and restores focus and scroll for eve
   await expect(dialog).toContainText('Estadal 2026');
   await expect(dialog).toContainText('Puesto 2');
   await expect(dialog).toContainText('Final nacional juvenil');
-  await expect(dialog).toContainText('Subcampeón nacional');
-  await expect(dialog).toContainText('Medalla de Bronce');
-  await expect(dialog).toContainText('Selección Nacional Juvenil');
+  await expect(dialog).toContainText('Segundo lugar');
+  await expect(dialog.getByRole('list', { name: 'Resultados de Final nacional juvenil' }).getByRole('listitem')).toHaveCount(2);
+  await expect(dialog).toContainText('Podio internacional');
+  await expect(dialog).toContainText('Tercer lugar');
+  await expect(dialog).toContainText('Participación internacional');
+  await expect(dialog).toContainText('Top 8');
+  await expect(dialog).toContainText('Récord estatal');
+  await expect(dialog).toContainText('1:00.00');
+  await expect(dialog).not.toContainText('Dato inválido privado');
   const serialized = await dialog.textContent();
   expect(serialized).not.toMatch(/athlete_id|source_document|approved_by|consent|notes/i);
 
@@ -256,6 +264,25 @@ test('keeps the modal usable at 320 and 390 pixels in dark reduced-motion mode',
     if (width === 320) await expect(dialog).toContainText('NombreCompetitivoExtremadamenteLargo');
     await page.getByRole('button', { name: 'Cerrar perfil público' }).click();
   }
+});
+
+test('renders a private-data-free Spanish empty state for grouped achievements', async ({ page }) => {
+  await routeFeaturedDirectory(page);
+  await page.goto('/atletas-destacados');
+  await page.getByRole('button', { name: 'Ver perfil público de Ana Pérez' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Perfil público de Ana Pérez' });
+  await expect(dialog).toContainText('No hay logros competitivos publicados.');
+  expect(await dialog.textContent()).not.toMatch(/athlete_id|source_document|approved_by|consent|notes/i);
+});
+
+test('caps grouped achievement cards at six after public normalization', async ({ page }) => {
+  const achievements = Array.from({ length: 7 }, (_, index) => ({ type: 'national_podium', title: `Logro ${index + 1}`, competitionName: 'Nacional', location: 'Caracas', achievedOn: `2026-0${7 - index}-01`, children: [{ eventName: `${index + 1}00 m libre`, podiumPlace: 1 }] }));
+  await routeFeaturedDirectory(page, [[{ ...featuredRows[0], achievements }]]);
+  await page.goto('/atletas-destacados');
+  await page.getByRole('button', { name: 'Ver perfil público de Lucía' }).click();
+  const section = page.getByRole('heading', { name: 'Logros competitivos' }).locator('..');
+  await expect(section.locator('article')).toHaveCount(6);
+  await expect(section).not.toContainText('Logro 7');
 });
 
 test('announces loading and empty featured directory states', async ({ page }) => {

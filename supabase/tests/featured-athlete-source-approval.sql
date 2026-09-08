@@ -52,18 +52,23 @@ begin
 
   perform set_config('request.jwt.claim.sub', editor_id::text, true);
   execute 'set local role authenticated';
-  foreach mutation in array array['approved', 'rejected'] loop
-    blocked := false;
-    begin
-      update public.source_documents set approval_status = mutation
-      where id = approved_source_id;
-    exception when insufficient_privilege then
-      if sqlerrm not like 'Only active administrators may review source documents%' then raise; end if;
-      blocked := true;
-    end;
-    if not blocked then raise exception 'An editor reviewed editorial evidence as %.', mutation; end if;
-  end loop;
+  update public.source_documents set approval_status = 'approved'
+  where id = approved_source_id;
   execute 'reset role';
+  if not exists (
+    select 1 from public.source_documents where id = approved_source_id
+      and approval_status = 'approved' and approved_at is not null
+      and approved_by = editor_id
+  ) then raise exception 'Editor approval did not capture reviewer metadata.'; end if;
+
+  execute 'set local role authenticated';
+  update public.source_documents set approval_status = 'rejected'
+  where id = approved_source_id;
+  execute 'reset role';
+  if not exists (
+    select 1 from public.source_documents where id = approved_source_id
+      and approval_status = 'rejected' and approved_at is null and approved_by is null
+  ) then raise exception 'Editor rejection did not clear approval metadata.'; end if;
 
   perform set_config('request.jwt.claim.sub', administrator_id::text, true);
   execute 'set local role authenticated';

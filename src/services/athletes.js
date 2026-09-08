@@ -45,6 +45,44 @@ const collapseMembershipsByOrganization = (memberships = []) => {
 
 const normalizeDate = (value) => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
 
+const clean = (value) => typeof value === 'string' && value.trim() ? value.trim() : null;
+const GROUP_TYPES = new Set(['national_podium', 'international_podium', 'international_participation', 'state_record']);
+const PARTICIPATION_OUTCOMES = new Set(['top_8', 'outstanding_participation']);
+
+const normalizeAchievementChild = (child, type) => {
+  const eventName = clean(child?.eventName);
+  if (!eventName) return null;
+  if (type === 'national_podium' || type === 'international_podium') {
+    const podiumPlace = Number(child.podiumPlace);
+    return [1, 2, 3].includes(podiumPlace) ? { eventName, podiumPlace } : null;
+  }
+  if (type === 'international_participation') {
+    return PARTICIPATION_OUTCOMES.has(child.participationOutcome)
+      ? { eventName, participationOutcome: child.participationOutcome }
+      : null;
+  }
+  const record = child?.record;
+  const timeMs = Number(record?.timeMs);
+  const achievedYear = Number(record?.achievedYear);
+  const competitionName = clean(record?.competitionName);
+  const categoryName = clean(record?.categoryName);
+  if (!Number.isSafeInteger(timeMs) || timeMs <= 0 || !Number.isInteger(achievedYear) || achievedYear <= 0 || !competitionName || !categoryName) return null;
+  return { eventName, record: { timeMs, achievedYear, competitionName, categoryName } };
+};
+
+const normalizeAchievementGroups = (achievements) => (Array.isArray(achievements) ? achievements : []).flatMap((group) => {
+  const type = group?.type;
+  const title = clean(group?.title);
+  const competitionName = clean(group?.competitionName);
+  const location = clean(group?.location);
+  const achievedOn = normalizeDate(group?.achievedOn);
+  if (!GROUP_TYPES.has(type) || !title || !competitionName || !location || !achievedOn) return [];
+  const children = (Array.isArray(group.children) ? group.children : [])
+    .map((child) => normalizeAchievementChild(child, type))
+    .filter(Boolean);
+  return children.length ? [{ type, title, competitionName, location, achievedOn, children }] : [];
+}).slice(0, 6);
+
 const normalizeFeaturedProfile = (profile) => ({
   events: [...new Set(Array.isArray(profile?.events) ? profile.events.filter((event) => typeof event === 'string' && event.trim()) : [])]
     .sort((a, b) => a.localeCompare(b, 'es')),
@@ -60,23 +98,7 @@ const normalizeFeaturedProfile = (profile) => ({
       competitionDate: normalizeDate(result.competition_date),
     }];
   }),
-  achievements: (Array.isArray(profile?.achievements) ? profile.achievements : []).flatMap((achievement) => {
-    if (!achievement || !['national_podium', 'international_medal', 'national_team'].includes(achievement.achievement_type) || typeof achievement.title !== 'string' || !achievement.title.trim()) return [];
-    const normalized = {
-      type: achievement.achievement_type,
-      title: achievement.title,
-      competitionName: typeof achievement.competition_name === 'string' ? achievement.competition_name : null,
-      medal: ['gold', 'silver', 'bronze'].includes(achievement.medal) ? achievement.medal : null,
-      place: [1, 2, 3].includes(Number(achievement.place)) ? Number(achievement.place) : null,
-      achievedOn: normalizeDate(achievement.achieved_on),
-      validFrom: normalizeDate(achievement.valid_from),
-      validTo: normalizeDate(achievement.valid_to),
-    };
-    const isComplete = normalized.type === 'national_team'
-      ? normalized.validFrom
-      : normalized.competitionName && normalized.achievedOn && (normalized.type === 'national_podium' ? normalized.place : normalized.medal);
-    return isComplete ? [normalized] : [];
-  }),
+  achievements: normalizeAchievementGroups(profile?.achievements),
 });
 
 const normalizeFeaturedAthletes = (rows, maximum = Infinity) => {
