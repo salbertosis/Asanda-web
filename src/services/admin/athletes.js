@@ -130,7 +130,8 @@ export const getAdminAthlete = async (athleteId) => {
   ));
 
   const [consents, categories, disciplines, memberships] = await Promise.all([
-    readOptional(supabase.from('athlete_consents').select('id,consent_type,status,expires_at').eq('athlete_id', athleteId)),
+    readRequired(supabase.from('athlete_consents').select('id,consent_type,status,expires_at').eq('athlete_id', athleteId))
+      .catch(() => { throw new Error('ATHLETE_CONSENTS_UNAVAILABLE'); }),
     readOptional(supabase.from('athlete_category_assignments').select('id,category_id,valid_from,valid_to,category:age_categories(id,code,name,federation_eligible)').eq('athlete_id', athleteId).order('valid_from', { ascending: false })),
     readOptional(supabase.from('athlete_disciplines').select('athlete_id,discipline_id,is_primary,valid_from,valid_to,discipline:disciplines(id,code,name)').eq('athlete_id', athleteId)),
     readOptional(supabase.from('athlete_memberships').select('id,organization_id,membership_type,status,valid_from,valid_to,organization:organizations(id,name,short_name)').eq('athlete_id', athleteId).order('valid_from', { ascending: false })),
@@ -219,6 +220,9 @@ export const formatAthleteError = (error) => {
   const code = `${error?.code || ''} ${error?.message || String(error || '')}`;
   const normalized = code.toLowerCase();
 
+  if (normalized.includes('athlete_consents_unavailable')) {
+    return 'No se pudieron cargar los consentimientos. Recarga la página antes de guardar.';
+  }
   if (normalized.includes('pgrst202') || normalized.includes('schema cache') || normalized.includes('save_admin_athlete')) {
     return 'La actualización necesaria para guardar atletas todavía no está disponible. Intentá nuevamente más tarde.';
   }
