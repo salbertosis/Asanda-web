@@ -395,3 +395,78 @@ test('preserves federated membership values when coverage and pre-infant rules r
   await expect(page.getByLabel('Desde')).toHaveValue('2026-06-01');
   await expect(page.getByLabel('Hasta')).toHaveValue('2026-12-31');
 });
+
+for (const failure of ['http', 'network']) {
+  test(`blocks athlete editing when consent loading fails: ${failure}`, async ({ page }) => {
+    let writes = 0;
+    let lastRetry = 0;
+    await routeAdminAuth(page);
+    await routeAthleteEditor(page);
+    await page.route('**/rest/v1/athlete_consents**', (route) => {
+      lastRetry = Math.max(lastRetry, Number(route.request().headers()['x-retry-count'] || 0));
+      return failure === 'network'
+        ? route.abort('timedout')
+        : route.fulfill({ ...json({ message: 'private-consent-details' }), status: 403 });
+    });
+    await page.route('**/rest/v1/rpc/save_admin_athlete', (route) => {
+      writes += 1;
+      return route.fulfill(json([athlete]));
+    });
+    await signInEditor(page);
+    await page.goto('/admin/atletas/athlete-relations');
+    if (failure === 'network') {
+      await expect(page.getByRole('status')).toHaveText('Cargando datos del atleta…');
+      await expect(page.getByRole('button', { name: 'Guardar borrador' })).toHaveCount(0);
+      // The SDK retries GET network failures three times with 1s, 2s, and 4s backoff.
+      // Inspect retry metadata rather than totals: StrictMode mounts duplicate effect chains.
+      await expect.poll(() => lastRetry, { timeout: 10_000 }).toBe(3);
+    }
+    await expect(page.getByRole('alert')).toContainText('No se pudieron cargar los consentimientos');
+    await expect(page.getByRole('alert')).not.toContainText('private-consent-details');
+    await expect(page.getByLabel('Consentimiento de perfil público')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Guardar borrador' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Publicar atleta' })).toHaveCount(0);
+    expect(writes).toBe(0);
+  });
+}
+
+test('waits for slow consent loading instead of clearing granted consents', async ({ page }) => {
+  const writes = [];
+  await routeAdminAuth(page);
+  await routeAthleteEditor(page);
+  await page.route('**/rest/v1/athlete_consents**', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    return route.fulfill(json(['public_profile', 'photo', 'results_publication'].map((type) => ({
+      id: type, consent_type: type, status: 'granted', expires_at: null,
+    }))));
+  });
+  await page.route('**/rest/v1/rpc/save_admin_athlete', (route) => {
+    writes.push(route.request().postDataJSON());
+    return route.fulfill(json([athlete]));
+  });
+  await signInEditor(page);
+  await page.goto('/admin/atletas/athlete-relations');
+  await expect(page.getByRole('status')).toHaveText('Cargando datos del atleta…');
+  await expect(page.getByRole('button', { name: 'Guardar borrador' })).toHaveCount(0);
+  for (const label of ['Consentimiento de perfil público', 'Consentimiento de foto', 'Consentimiento de resultados']) {
+    await expect(page.getByLabel(label)).toBeChecked();
+  }
+  await page.getByRole('button', { name: 'Guardar borrador' }).click();
+  await expect(page.getByRole('status')).toHaveText('Borrador guardado correctamente.');
+  expect(writes).toHaveLength(1);
+  expect(writes[0]).toMatchObject({
+    requested_profile_consent: true, requested_photo_consent: true, requested_results_consent: true,
+  });
+});
+
+test('allows editing after a genuinely empty successful consent response', async ({ page }) => {
+  await routeAdminAuth(page);
+  await routeAthleteEditor(page);
+  await signInEditor(page);
+  await page.goto('/admin/atletas/athlete-relations');
+  for (const label of ['Consentimiento de perfil público', 'Consentimiento de foto', 'Consentimiento de resultados']) {
+    await expect(page.getByLabel(label)).not.toBeChecked();
+  }
+  await expect(page.getByRole('button', { name: 'Guardar borrador' })).toBeEnabled();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+});
