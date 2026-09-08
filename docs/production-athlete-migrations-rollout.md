@@ -1,34 +1,42 @@
 # Production Athlete Migrations Rollout Runbook
 
-> **Status: PRE-DEPLOYMENT BLOCKED — compatibility integration passes; authorization and clone rehearsal remain pending.**
-> **Production execution authorization: NOT GRANTED BY THIS DOCUMENT.**
+> **Status: DATABASE DEPLOYMENT COMPLETE — production is at the reviewed ledger; administration remains closed pending compatible frontend deployment and smoke testing.**
+> **Production execution authorization: NOT GRANTED BY THIS DOCUMENT. No production migration or retry may run without fresh explicit authorization.**
 
-## Decision
+## Recorded Decision and Result
 
-After every remaining gate in this runbook is closed, deploy exactly four canonical migrations from a newly frozen `origin/main` candidate to production project `fuxlohqricsfsxkjztne`, in timestamp order:
+The authorized production operation applied exactly four canonical migrations to production project `fuxlohqricsfsxkjztne`, in timestamp order:
 
 1. `20260830120000_expand_featured_athlete_ordering.sql`
 2. `20260830122000_paginate_featured_athlete_profiles.sql`
 3. `20260830130000_robust_athlete_achievement_groups.sql`
 4. `20260830131000_robust_athlete_achievement_guards.sql`
 
-Migration `20260830121000_add_athlete_evidence_sources.sql` was intentionally removed from the canonical branch before production deployment. It is not a pending migration, must not appear in the release candidate, and must not be recreated, repaired into the ledger, or applied manually.
+Migration `20260830121000_add_athlete_evidence_sources.sql` was retired before production deployment. It remains absent from the `origin/main` repository release chain and production ledger and must not be recreated, repaired into the ledger, or applied manually.
 
-The release is fail-closed: all four reviewed migrations deploy in order or none deploys. Any mismatch, failed gate, partial application, or ambiguous result stops the rollout.
+The executed release remained fail-closed: all four reviewed migrations were applied in order. This record does not authorize a rerun, retry, repair, or new production operation.
 
-## Current Reviewed Baseline
+## Current Production State
 
-| Item | Expected state before release |
+| Item | Recorded state after database deployment |
 |---|---|
 | Production project | `fuxlohqricsfsxkjztne` |
-| Production ledger head | Exactly `20260829152000` |
-| Pending manifest | Exactly the four files listed above, in that order |
-| Retired evidence migration | Absent locally and absent from the production ledger |
-| Candidate compatibility | The frozen candidate must contain grouped admin/public consumers plus concurrency/regression scripts and pass the readiness validator 25/25 |
-| Runtime evidence | Migration contracts, concurrency harness, application regression, E2E, and build must pass again for the frozen candidate |
-| Authorization | Must be granted separately; this runbook grants none |
+| Production ledger head | Exactly `20260830131000` |
+| Applied manifest | Exactly `20260830120000`, `20260830122000`, `20260830130000`, and `20260830131000`, in that order |
+| Retired evidence migration | `20260830121000` absent locally and absent from the production ledger |
+| Database contract | Applied and verified through the recorded post-deploy checks |
+| Frontend state | Compatible frontend deployment and smoke test remain pending |
+| Administration | Closed until the compatible frontend commit is deployed and smoke-tested |
+| Further authorization | No migration or retry is authorized by this record |
 
-This baseline must be rechecked immediately before rehearsal and again during the approved production window. Historical SDD evidence is not part of the `origin/main` release candidate and is not a substitute for current, repeatable runtime evidence.
+### Recorded Result Digests
+
+| Applied migration | Result digest |
+|---|---|
+| `20260830120000` | `5794da794f3871ca54d7d9bda455292181a06599a0186957a4681782bd596865` |
+| `20260830122000` | `e213ba743c63a4830a31ed4f718e925772434d184fbc5df3c43451df6b8c8c68` |
+| `20260830130000` | `873880498dc926b851a0ff2c4d6bc4c2da88b15ace95aa510b8917ad2da2b51f` |
+| `20260830131000` | `aa9ba3001de2eb1352ca56f1a1fe502f0d0f251a4e6547caa2cc104039cff991` |
 
 ## Compatibility Integration Status
 
@@ -37,11 +45,13 @@ The grouped release tracker closes the previously identified application/schema 
 1. Administration writes through grouped RPCs instead of direct CRUD against `public.athlete_achievements`.
 2. The public adapter accepts grouped `camelCase` cards and validated child results instead of the retired flat payload.
 3. The candidate includes the real concurrency harness and dependency-free regression script.
-4. Integrated verification passed the readiness validator 25/25, regression 7/7, Playwright 131/131, production build, and `git diff --check`.
+4. Integrated verification passed the readiness validator 26/26, regression 11/11, Playwright 131/131, production build, and `git diff --check`.
 
-This evidence proves compatibility of the integrated tracker, not authorization to deploy. If the reviewed chain is not present in the final `origin/main` candidate, or any file changes after the candidate is frozen, stop and repeat the gates.
+This evidence established candidate compatibility for the completed database operation. It grants no authorization for another production action.
 
-## Quick Path
+## Historical Preflight and Recovery Procedure
+
+Everything below through production database verification records the executed procedure; it is not an instruction to rerun production. The original imperative wording is retained for audit clarity.
 
 1. Merge the reviewed grouped-release chain into `origin/main` without changing its verified contents.
 2. Freeze the resulting immutable Git candidate and record the four migration checksums.
@@ -92,7 +102,7 @@ Do not start until every field is populated through an approved, non-secret chan
 | PITR | Recovery coverage, earliest recovery point, retention, and restore owner |
 | Frontend | Immutable frontend artifact/SHA compatible with the final database contract |
 
-Any missing, stale, ambiguous, or inconsistent value blocks the release.
+Any missing, stale, ambiguous, or inconsistent value blocks the release. Any future operation requires a new envelope and fresh explicit authorization.
 
 ## Exact Production Starting Fingerprint
 
@@ -117,6 +127,8 @@ Any mismatch means production is not at the reviewed starting state. Stop; do no
 
 ### Gate 1: Restore Test
 
+The dependency-free local regression is fresh-clone safe because it makes no remote calls. The live concurrency harness remains hard-locked to non-production Restore Test project `dsttiqzjrrbcjtwgxqju`, requires fresh explicit non-production authorization, and is not production-safe or fresh-clone safe.
+
 Use an isolated checkout linked only to Restore Test. Confirm the displayed project reference before every remote command. Restore a pre-`20260830120000` database state, review the exact four-file manifest, apply the four migrations through the reviewed migration mechanism, and run:
 
 ```powershell
@@ -125,6 +137,7 @@ npx.cmd --yes supabase@2.115.0 db query --linked --file supabase/tests/featured-
 npx.cmd --yes supabase@2.115.0 db query --linked --file supabase/tests/athlete-achievements-contract.sql --agent no --output table
 npx.cmd --yes supabase@2.115.0 db query --linked --file supabase/tests/featured-athlete-profiles-rpc.sql --agent no --output table
 node scripts/athlete-achievements-concurrency-harness.mjs
+node scripts/athlete-achievements-concurrency-regression.mjs
 node scripts/athlete-achievements-regression.mjs
 npm.cmd run test:e2e
 npm.cmd run build
@@ -143,7 +156,7 @@ Create a fresh provider-supported clone from the approved production backup or r
 2. Confirm the pending manifest contains exactly the four canonical files in order and excludes `20260830121000`.
 3. Review the dry-run output with the independent reviewer.
 4. Apply the four migrations using the same mechanism intended for production.
-5. Repeat every Gate 1 contract, harness, application, build, and diff check.
+5. Run the fresh-clone-safe local regression and applicable contracts, application, build, and diff checks; do not run the Restore Test-hard-locked live harness against the clone.
 6. Compare aggregate pre/post counts and prove complete legacy-to-grouped migration.
 7. Exercise public and administrator paths with synthetic data only, then remove all rehearsal fixtures.
 8. Destroy or expire the clone according to the approved data-handling policy.
@@ -167,7 +180,7 @@ Any candidate, SQL, manifest, frontend, test, or environment change invalidates 
 
 ### 3. Deploy the Compatible Frontend
 
-Keep incompatible administrative writes stopped while the database changes. Deploy the frozen compatible frontend only after all four migrations pass database verification. Never reopen the legacy administration UI after the legacy achievement table is renamed.
+The database deployment is complete, but the compatible frontend commit has not yet been deployed and smoke-tested. Keep administration closed. Never reopen the legacy administration UI after the legacy achievement table was renamed.
 
 ### 4. Reopen Gradually
 
@@ -176,7 +189,7 @@ Keep incompatible administrative writes stopped while the database changes. Depl
 3. Confirm the removed athlete-evidence UI and backend remain absent.
 4. Re-enable normal traffic and administration only after operator and reviewer sign off.
 
-## Post-Deploy Verification
+## Recorded Post-Deploy Verification
 
 ### Migration Metadata
 
@@ -184,7 +197,7 @@ Keep incompatible administrative writes stopped while the database changes. Depl
 - The four expected versions appear once and in order.
 - `20260830121000` remains absent.
 - No unexpected migration is present.
-- Applied migration checksums match the frozen candidate.
+- Applied result digests match the recorded values above.
 
 ### Schema and Privilege Checks
 
@@ -206,7 +219,7 @@ Keep incompatible administrative writes stopped while the database changes. Depl
 - Grouped mutations enforce administrator-only access, six-group concurrency limits, active-event rules, record ownership, and publication consent.
 - Public payloads exclude internal IDs, private fields, drafts, inactive events, and invalid/future/unpublished records.
 
-Production verification must be read-only or use an explicitly approved cleanup-safe smoke path. Do not run rehearsal contracts or the concurrency harness against production.
+Production database verification was read-only. Any future production smoke mutation requires explicit authorization and a cleanup-safe path. Never run rehearsal contracts or the concurrency harness against production.
 
 ## Stop Conditions
 
@@ -254,19 +267,18 @@ Never record credentials, connection strings, access tokens, raw UUIDs, source r
 
 ## Completion Checklist
 
-- [ ] Authorization names the operator, reviewer, window, and stop authority.
-- [ ] Backup and PITR references are verified.
-- [ ] Production ledger ends at `20260829152000` before execution.
-- [ ] Exact starting fingerprint passes.
-- [ ] Git SHA, frontend artifact, four-file manifest, and checksums are frozen.
-- [ ] `20260830121000` is absent from candidate and remote ledger.
-- [ ] Restore Test rehearsal passes with zero durable fixtures.
-- [ ] Fresh production-clone rehearsal passes with zero durable fixtures.
-- [ ] Reviewer approves the exact manifest and dry-run.
-- [ ] All four migrations apply in order; ledger ends at `20260830131000`.
-- [ ] Post-deploy metadata, schema, privilege, data, and RPC checks pass.
-- [ ] Compatible frontend deployment and public/admin smoke checks pass.
-- [ ] No private data, credentials, or durable fixtures were produced.
-- [ ] Operator, reviewer, and maintainer accept the recorded evidence.
+- [x] Authorization named the operator, reviewer, window, and stop authority for the completed operation.
+- [x] Backup and PITR references were verified.
+- [x] Production ledger ended at `20260829152000` before execution.
+- [x] Exact starting fingerprint passed.
+- [x] Git SHA, four-file manifest, and checksums were frozen.
+- [x] `20260830121000` was absent from candidate and production ledger.
+- [x] Restore Test rehearsal passed with zero durable fixtures.
+- [x] Fresh production-clone rehearsal passed with zero durable fixtures.
+- [x] Reviewer approved the exact manifest and dry-run.
+- [x] All four migrations applied in order; ledger ends at `20260830131000`.
+- [x] Post-deploy metadata, schema, privilege, data, and RPC checks passed.
+- [ ] Compatible frontend commit is deployed and public/admin smoke checks pass.
+- [x] No private data, credentials, or durable fixtures were produced.
 
-The rollout is complete only when every item is checked. Any unchecked or failed item leaves the release stopped and unaccepted.
+Database deployment is complete. Administration remains closed until the sole unchecked frontend and smoke item is completed; this record grants no authority to run or retry a production migration.
