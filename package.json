@@ -8,6 +8,7 @@
     "prebuild": "node scripts/generate-public-assets.mjs",
     "build": "vite build",
     "test:admin-staff": "node scripts/admin-staff-regression.mjs",
+    "test:outcome": "node scripts/admin-command-outcome-regression.mjs",
     "test:admin-sign-media": "node scripts/admin-sign-media-regression.mjs",
     "test:admin-sign-media-harness": "node scripts/admin-sign-media-harness.mjs",
     "test:admin-editorial": "node scripts/admin-editorial-regression.mjs",
