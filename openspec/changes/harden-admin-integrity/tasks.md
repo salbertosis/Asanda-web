@@ -27,7 +27,7 @@ Tracker is draft/no-merge. PR01 targets the tracker branch; each later child tar
 ## 1. Shared foundations
 
 - [x] 1.1 WU01/PR01 `src/services/admin/commandOutcome.js` Outcomes; T:D(outcome);H:N/A-pure;R:APP.
-- [ ] 1.2 WU02/PR02 `src/admin/AdminSessionContext.jsx` Session-fence; T:auth-E2E;H:E;R:APP.
+- [x] 1.2 WU02/PR02 `src/admin/AdminSessionContext.jsx` Session-fence; T:auth-E2E;H:E;R:APP.
 - [ ] 1.3 WU03/PR03 `src/admin/AdminCommandContext.jsx` Feedback/dialog; T:command-E2E;H:E;R:APP.
 - [ ] 1.4 WU04/PR04 `src/admin/AdminShell.jsx` Focus/theme/responsive; T:shell-E2E;H:E;R:APP.
 

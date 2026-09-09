@@ -68,7 +68,7 @@ Remove `src/services/admin/commandOutcome.js` and `scripts/admin-command-outcome
 
 ### Remaining implementation tasks
 
-- [ ] 1.2 WU02/PR02 `src/admin/AdminSessionContext.jsx` Session-fence; T:auth-E2E;H:E;R:APP.
+- [x] 1.2 WU02/PR02 `src/admin/AdminSessionContext.jsx` Session-fence; T:auth-E2E;H:E;R:APP.
 - [ ] 1.3 WU03/PR03 `src/admin/AdminCommandContext.jsx` Feedback/dialog; T:command-E2E;H:E;R:APP.
 - [ ] 1.4 WU04/PR04 `src/admin/AdminShell.jsx` Focus/theme/responsive; T:shell-E2E;H:E;R:APP.
 - [ ] 2.1 WU05/PR05 `supabase/migrations/` News-RPC; T:S(editorial);H:AUTH-SQL;R:FWD.
@@ -104,3 +104,46 @@ Remove `src/services/admin/commandOutcome.js` and `scripts/admin-command-outcome
 - [ ] 7.1 WU28/PR28 `supabase/migrations/` Zero-gated-alt-enforcement; T:S(media);H:AUTH-public;R:FWD.
 - [ ] 7.2 WU29/PR29 `supabase/migrations/` Evidence-gated-legacy-tightening; T:S(all);H:AUTH-roles;R:FWD.
 - [ ] 7.3 `openspec/changes/harden-admin-integrity/` (read-only) B+E; audit AUTH/#207/budgets/smoke/public/cleanup/`src/data/`/SEO/privacy/AthleteEvidence-zero; H:receipts;R:STOP.
+
+## WU02 / PR02 — Session fence
+
+**Status:** Complete after the single corrective gatekeeper rerun
+**Boundary:** `tracker → PR01 → PR02 📍 → PR03`; PR02 targets the PR01 branch.
+
+### Completed task and persisted checkbox
+
+- [x] 1.2 WU02/PR02 `src/admin/AdminSessionContext.jsx` Session-fence; T:auth-E2E;H:E;R:APP.
+- The task remains checked because the corrective implementation passed its focused browser contract and baseline gates.
+
+### Implementation and files
+
+- `src/admin/AdminSessionContext.jsx`: fences profile resolution by session generation and identity, distinguishes unavailable authority, revokes locally before remote sign-out, and ignores stale completions.
+- `tests/e2e/admin-auth.spec.js`: retains the existing auth coverage and adds focused stale-completion and failed-remote-sign-out scenarios while reusing shared setup and sign-in helpers.
+- `openspec/changes/harden-admin-integrity/{tasks.md,apply-progress.md}`: persists completion and cumulative evidence.
+
+### Verification evidence
+
+- Parent-owned runtime attempt authority was authenticated for this exact bounded remediation. The earlier WU02 attempt was later settled by the parent; settlement of this remediation remains parent-owned and was not performed here. No opaque attempt token or hash is persisted.
+- Final formatted-candidate focused mocked runtime harness: `npx playwright test tests/e2e/admin-auth.spec.js` — **6 passed (52.9s)** using one Chromium worker and the local Vite server.
+- Transient retry history, reported separately: an earlier post-format run had 5 passing tests and 1 timeout at `page.reload`; the unchanged suite then passed with 6 tests. This history is not presented as the final candidate run.
+- Final formatted-candidate baseline: `npm run build` — **passed** with Vite 5.4.21, 1,509 modules transformed, built in 31.86s; the only warning was stale Browserslist data.
+- Whitespace validation first run: `git diff --check` — **failed** on three trailing-whitespace lines introduced in this evidence artifact; those lines were corrected without formatting.
+- Final formatted-candidate whitespace validation corrective rerun: `git diff --check` — **passed** with no whitespace errors; it emitted only LF-to-CRLF working-tree warnings for `.gitignore` and the three touched text files.
+- No authenticated server, production, or deployment evidence is claimed.
+
+### Corrective workload result
+
+- One honest simplification pass restored surrounding quote/layout conventions and reused test fixtures/helpers without deleting either valuable focused behavior scenario.
+- The cohesive PR02 boundary remains the session-fence behavior, its focused E2E tests, and matching OpenSpec evidence as one rollback unit; WU03 was not started.
+- Maintainer `salbertosis` explicitly approved `size:exception`: session-fence behavior and valuable focused tests are one cohesive rollback unit, and the one honest simplification pass could not stay under 400 changed lines after enforced formatting.
+- Final scoped diff: **482 changed lines (+349/-133)** across `src/admin/AdminSessionContext.jsx`, `tests/e2e/admin-auth.spec.js`, `openspec/changes/harden-admin-integrity/tasks.md`, and this apply-progress artifact; the evidence remediation accounts for the increase from the pre-remediation formatted count.
+
+### Design deviations and rollback
+
+The implementation has no behavioral design deviation; server-side fresh-role enforcement remains assigned to later server work units. The 400-line delivery bound is exceeded only under the explicit maintainer-approved `size:exception` recorded above.
+
+Rollback only the WU02 changes in `src/admin/AdminSessionContext.jsx` and `tests/e2e/admin-auth.spec.js`, then revert task 1.2 and this WU02 progress section. This does not remove WU01, later work, database state, static data, or SEO metadata.
+
+### Structured status and remaining tasks
+
+The user resolved the selected change as `harden-admin-integrity`; the authoritative action context is repo-local with the repository root as the allowed edit root. This remediation edited only `apply-progress.md`, as authorized. Unrelated source, test, tasks, `.gitignore`, `.pi/`, and `.codegraph/` state was preserved. Every exact unchecked `- [ ]` line in the cumulative **Remaining implementation tasks** list above remains pending; task 1.3 / WU03 is next.
