@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   getCurrentSession,
   getStaffProfile,
@@ -7,93 +13,140 @@ import {
   signInStaff,
   signOutStaff,
   updateStaffPassword,
-} from '../services/admin/auth';
+} from "../services/admin/auth";
 
 const AdminSessionContext = createContext(null);
 
 export const AdminSessionProvider = ({ children }) => {
-  const [state, setState] = useState({ status: 'loading', profile: null });
+  const [state, setState] = useState({ status: "loading", profile: null });
   const passwordRecoveryActive = useRef(false);
+  const generation = useRef(0);
+  const currentUserId = useRef(null);
+  const active = useRef(true);
 
-  const resolveSession = async (session) => {
-    if (!session?.user) {
-      setState({ status: 'anonymous', profile: null });
+  const revokeAuthority = (status = "anonymous") => {
+    generation.current += 1;
+    currentUserId.current = null;
+    if (active.current) setState({ status, profile: null });
+  };
+
+  const beginResolution = (session) => {
+    const userId = session?.user?.id;
+    if (typeof userId !== "string" || !userId.trim()) {
+      revokeAuthority(session?.user ? "unavailable" : "anonymous");
       return null;
     }
+    if (currentUserId.current !== userId) generation.current += 1;
+    currentUserId.current = userId;
+    const fence = { generation: generation.current, userId };
+    if (active.current) setState({ status: "loading", profile: null });
+    return fence;
+  };
+
+  const fenceIsCurrent = (fence) =>
+    active.current &&
+    fence?.generation === generation.current &&
+    fence.userId === currentUserId.current;
+
+  const resolveSession = async (session, fence = beginResolution(session)) => {
+    if (!fence) return session?.user ? "unavailable" : "anonymous";
 
     try {
-      const profile = await getStaffProfile(session.user.id);
-      if (!profile) {
-        setState({ status: 'denied', profile: null });
-        return null;
+      const profile = await getStaffProfile(fence.userId);
+      if (!fenceIsCurrent(fence)) return "stale";
+      if (!profile || profile.id !== fence.userId) {
+        setState({ status: "denied", profile: null });
+        return "denied";
       }
-      setState({ status: 'authorized', profile });
-      return profile;
+      setState({ status: "authorized", profile });
+      return "authorized";
     } catch {
-      setState({ status: 'denied', profile: null });
-      return null;
+      if (!fenceIsCurrent(fence)) return "stale";
+      setState({ status: "unavailable", profile: null });
+      return "unavailable";
     }
   };
 
   useEffect(() => {
-    let active = true;
-    getCurrentSession().then(({ data }) => {
-      if (active && !passwordRecoveryActive.current) resolveSession(data.session);
-    }).catch(() => {
-      if (active) setState({ status: 'anonymous', profile: null });
-    });
+    active.current = true;
+    getCurrentSession()
+      .then(({ data }) => {
+        if (active.current && !passwordRecoveryActive.current)
+          resolveSession(data?.session);
+      })
+      .catch(() => revokeAuthority("unavailable"));
 
     const { data: subscription } = onStaffAuthChange((event, session) => {
-      if (!active) return;
-      if (event === 'PASSWORD_RECOVERY') {
+      if (!active.current) return;
+      if (event === "PASSWORD_RECOVERY") {
         passwordRecoveryActive.current = true;
-        setState({ status: 'password_recovery', profile: null });
+        revokeAuthority("password_recovery");
         return;
       }
-      if (event === 'SIGNED_OUT') {
+      if (event === "SIGNED_OUT" || !session?.user) {
         passwordRecoveryActive.current = false;
-        setState({ status: 'anonymous', profile: null });
+        revokeAuthority("anonymous");
         return;
       }
       if (passwordRecoveryActive.current) return;
-      window.setTimeout(() => {
-        if (active) resolveSession(session);
-      }, 0);
+      const fence = beginResolution(session);
+      window.setTimeout(() => resolveSession(session, fence), 0);
     });
 
     return () => {
-      active = false;
-      subscription.subscription.unsubscribe();
+      active.current = false;
+      generation.current += 1;
+      subscription?.subscription?.unsubscribe();
     };
   }, []);
 
   const signIn = async (email, password) => {
     const { data, error } = await signInStaff(email, password);
-    if (error || !data.session) throw new Error('AUTH_FAILED');
-    const profile = await resolveSession(data.session);
-    if (!profile) {
-      await signOutStaff();
-      throw new Error('AUTH_FAILED');
+    if (error || !data?.session) throw new Error("AUTH_FAILED");
+    const fence = beginResolution(data.session);
+    const status = await resolveSession(data.session, fence);
+    if (status !== "authorized") {
+      if (fenceIsCurrent(fence)) {
+        revokeAuthority(status === "unavailable" ? "unavailable" : "denied");
+        try {
+          await signOutStaff();
+        } catch {
+          // Local authority is already revoked; a later sign-in can retry remote cleanup.
+        }
+      }
+      throw new Error("AUTH_FAILED");
     }
   };
 
   const signOut = async () => {
-    setState({ status: 'loading', profile: null });
-    await signOutStaff();
-    setState({ status: 'anonymous', profile: null });
+    passwordRecoveryActive.current = false;
+    revokeAuthority();
+    try {
+      await signOutStaff();
+    } catch {
+      // Fail closed locally even when the remote session cannot be cleared.
+    }
   };
 
   const updatePassword = async (password) => {
     const { error } = await updateStaffPassword(password);
     if (error) throw error;
 
-    await signOutStaff();
     passwordRecoveryActive.current = false;
-    setState({ status: 'anonymous', profile: null });
+    revokeAuthority();
+    await signOutStaff();
   };
 
   return (
-    <AdminSessionContext.Provider value={{ ...state, signIn, signOut, requestPasswordReset, updatePassword }}>
+    <AdminSessionContext.Provider
+      value={{
+        ...state,
+        signIn,
+        signOut,
+        requestPasswordReset,
+        updatePassword,
+      }}
+    >
       {children}
     </AdminSessionContext.Provider>
   );
@@ -101,6 +154,9 @@ export const AdminSessionProvider = ({ children }) => {
 
 export const useAdminSession = () => {
   const value = useContext(AdminSessionContext);
-  if (!value) throw new Error('useAdminSession must be used inside AdminSessionProvider.');
+  if (!value)
+    throw new Error(
+      "useAdminSession must be used inside AdminSessionProvider.",
+    );
   return value;
 };
