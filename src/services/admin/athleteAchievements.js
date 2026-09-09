@@ -57,6 +57,7 @@ export const formatAchievementError = (error) => {
 };
 export const describeAchievementError = (error) => {
   const message = `${error?.code || ''} ${error?.message || error || ''}`.toLowerCase();
+  if (message.includes('achievement_persistence_unconfirmed')) return { field: null, message: 'No fue posible confirmar la persistencia del cambio. No repitas la operación y solicitá asistencia.' };
   if (message.includes('duplicate') || message.includes('una vez') || message.includes('unique')) return { field: 'event', message: 'Esta prueba ya aparece y solo puede incluirse una sola vez. Elegí otra para este resultado.' };
   if (message.includes('podium') || message.includes('podio') || message.includes('primer') || message.includes('segundo') || message.includes('tercer') || message.includes('position')) return { field: 'podiumPlace', message: 'Elegí primer, segundo o tercer lugar para este resultado.' };
   if (message.includes('participation') || message.includes('participación') || message.includes('top 8') || message.includes('destacada')) return { field: 'participationOutcome', message: 'Elegí Top 8 o participación destacada para este resultado.' };
