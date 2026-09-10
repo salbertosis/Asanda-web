@@ -98,7 +98,7 @@ const AdminAthleteWizard = ({ athleteId }) => {
       const saved = await saveAdminAthlete({ id: athleteId, ...form, publicationStatus });
       setAthlete((current) => ({ ...(current || {}), ...saved }));
       setForm((current) => ({ ...current, publicationStatus }));
-      setMessage({ type: 'success', text: publicationStatus === 'published' ? 'Atleta publicado correctamente.' : 'Borrador guardado correctamente.' });
+      setMessage({ type: 'success', text: publicationStatus === 'published' ? 'Ficha del atleta publicada correctamente.' : 'Ficha guardada como borrador.' });
       if (!athleteId) navigate(`/admin/atletas/${saved.id}`);
     } catch (error) {
       setMessage({ type: 'error', text: formatAthleteError(error) });
@@ -218,9 +218,12 @@ const AdminAthleteWizard = ({ athleteId }) => {
           {activePanel === 'membership' && <div className="mt-4 grid gap-4 rounded-md border border-asanda-line bg-asanda-foam p-4 sm:grid-cols-3"><label className="text-sm font-bold sm:col-span-3">Club<select className={formField} value={membership.organizationId} onChange={(event) => setMembership({ ...membership, organizationId: event.target.value })} required><option value="">Seleccioná un club</option>{references.organizations.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="text-sm font-bold">Tipo de membresía<select className={formField} value={membership.membershipType} onChange={(event) => setMembership({ ...membership, membershipType: event.target.value })} required><option value="associated">Asociada</option><option value="federated">Federada</option></select></label><label className="text-sm font-bold">Desde<input className={formField} type="date" value={membership.validFrom} onChange={(event) => setMembership({ ...membership, validFrom: event.target.value })} required /></label><label className="text-sm font-bold">Hasta<input className={formField} type="date" value={membership.validTo} onChange={(event) => setMembership({ ...membership, validTo: event.target.value })} /></label><button type="button" className="min-h-11 rounded-md bg-asanda-deep px-4 font-bold text-white disabled:opacity-60 sm:col-span-3 sm:justify-self-start" onClick={() => addRelation('membership')} disabled={busy === 'membership'}>{busy === 'membership' ? 'Guardando…' : 'Guardar membresía'}</button></div>}
         </fieldset>
 
-        <div className="flex flex-col gap-3 border-t border-asanda-line pt-5 sm:flex-row sm:justify-end">
-          <button type="submit" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md border border-asanda-deep px-5 font-bold text-asanda-deep hover:bg-asanda-mist disabled:opacity-60 dark:border-slate-400 dark:text-slate-100 dark:hover:bg-slate-800" disabled={busy === 'profile'}><Save size={17} aria-hidden="true" /> {busy === 'profile' ? 'Guardando…' : 'Guardar borrador'}</button>
-          <button type="button" className="min-h-12 rounded-md bg-asanda-orange-strong px-5 font-bold text-white hover:bg-[#a94320] disabled:opacity-60" onClick={() => saveProfile('published')} disabled={busy === 'profile'}>Publicar atleta</button>
+        <div className="border-t border-asanda-line pt-5">
+          <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">Estas acciones guardan únicamente la ficha y sus consentimientos. Los logros deportivos se guardan por separado en la sección siguiente.</p>
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:justify-end">
+            <button type="submit" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md border border-asanda-deep px-5 font-bold text-asanda-deep hover:bg-asanda-mist disabled:opacity-60 dark:border-slate-400 dark:text-slate-100 dark:hover:bg-slate-800" disabled={busy === 'profile'}><Save size={17} aria-hidden="true" /> {busy === 'profile' ? 'Guardando ficha…' : 'Guardar ficha como borrador'}</button>
+            <button type="button" className="min-h-12 rounded-md bg-asanda-orange-strong px-5 font-bold text-white hover:bg-[#a94320] disabled:opacity-60" onClick={() => saveProfile('published')} disabled={busy === 'profile'}>Publicar ficha del atleta</button>
+          </div>
         </div>
       </form>
       {profile?.role === 'administrator' && (athleteId ? <AthleteAchievementPanel athleteId={athleteId} /> : (
