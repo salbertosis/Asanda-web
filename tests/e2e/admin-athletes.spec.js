@@ -114,10 +114,28 @@ test('lets administrators create grouped achievements with multiple results and 
   await page.route('**/rest/v1/rpc/save_athlete_achievement_group_draft', (route) => { const payload = route.request().postDataJSON(); writes.push({ name: 'save', payload }); if (payload.requested_title === 'Título rechazado') return route.fulfill({ ...json({ code: '23514', message: 'The group limit was reached.' }), status: 400 }); const id = payload.requested_group_id || 'group-new'; saved = { group_id: id, athlete_id: athlete.id, achievement_type: payload.requested_achievement_type, title: payload.requested_title, competition_name: payload.requested_competition_name, location: payload.requested_location, achieved_on: payload.requested_achieved_on, publication_status: 'draft', published_at: null, children: payload.requested_children.map((child, index) => ({ id: `${id}-result-${index}`, ...child, event_name: events.find((item) => item.id === child.event_definition_id)?.name || null, event_active: true })).sort((left, right) => events.findIndex((event) => event.id === left.event_definition_id) - events.findIndex((event) => event.id === right.event_definition_id)) }; return route.fulfill(json([{ group_id: id, athlete_id: athlete.id, publication_status: 'draft' }])); });
   await page.route('**/rest/v1/rpc/publish_athlete_achievement_group', (route) => { const id = route.request().postDataJSON().requested_group_id; writes.push({ name: 'publish' }); saved = { ...saved, publication_status: 'published', published_at: '2026-08-30T12:00:00Z' }; return route.fulfill(json([{ group_id: id, publication_status: 'published', published_at: saved.published_at }])); });
   await page.route('**/rest/v1/rpc/delete_athlete_achievement_group', (route) => { writes.push({ name: 'delete' }); saved = null; return route.fulfill(json('group-new')); }); await signInEditor(page); await page.goto('/admin/atletas/athlete-relations');
+  await expect(page.getByText('Estas acciones guardan únicamente la ficha y sus consentimientos.')).toBeVisible(); await expect(page.getByText('Publicar la ficha del atleta no guarda ni publica este formulario.')).toBeVisible(); await expect(page.getByRole('button', { name: 'Guardar ficha como borrador' })).toBeVisible(); await expect(page.getByRole('button', { name: 'Guardar logro como borrador' })).toBeVisible();
   await expect(page.getByText('Resultado legado pendiente de remediación: Prueba histórica')).toBeVisible(); await expect(page.getByRole('button', { name: 'Publicar Logro legado' })).toBeDisabled();
-  const form = page.getByRole('form', { name: 'Agregar competencia del atleta' }); await form.getByLabel('Título').fill('Podio nacional juvenil'); await form.getByLabel('Competencia', { exact: true }).fill('Nacional juvenil'); await form.getByLabel('Ubicación').fill('Complejo acuático'); await form.getByLabel('Fecha de la competencia').fill('2026-08-20'); await form.getByLabel('Prueba del resultado 1').selectOption('event-100-free'); await form.getByRole('button', { name: 'Agregar resultado' }).click(); await form.getByLabel('Prueba del resultado 2').selectOption('event-50-free'); await form.getByLabel('Posición del resultado 2').selectOption('2'); await form.getByRole('button', { name: 'Agregar competencia' }).click();
+  const form = page.getByRole('form', { name: 'Agregar competencia del atleta' }); await form.getByLabel('Título').fill('Podio nacional juvenil'); await form.getByLabel('Competencia', { exact: true }).fill('Nacional juvenil'); await form.getByLabel('Ubicación').fill('Complejo acuático'); await form.getByLabel('Fecha de la competencia').fill('2026-08-20'); await form.getByLabel('Prueba del resultado 1').selectOption('event-100-free'); await form.getByRole('button', { name: 'Agregar resultado' }).click(); await form.getByLabel('Prueba del resultado 2').selectOption('event-50-free'); await form.getByLabel('Posición del resultado 2').selectOption('2'); await form.getByRole('button', { name: 'Guardar logro como borrador' }).click();
   await expect(page.getByText('Competencia agregada como borrador.')).toBeVisible(); await expect(page.getByRole('heading', { name: 'Podio nacional juvenil' })).toBeVisible(); expect(writes[0].payload).toMatchObject({ requested_group_id: null, requested_children: [{ event_definition_id: 'event-100-free', podium_place: 1 }, { event_definition_id: 'event-50-free', podium_place: 2 }] }); expect(writes[0].payload).not.toHaveProperty('source_document_id'); await page.getByRole('button', { name: 'Publicar Podio nacional juvenil' }).click(); await expect(page.getByRole('listitem').filter({ hasText: 'Podio nacional juvenil' }).getByText('Publicado', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Editar Podio nacional juvenil' }).click(); const editForm = page.getByRole('form', { name: 'Editar competencia Podio nacional juvenil' }); await editForm.getByLabel('Título').fill('Título rechazado'); await editForm.getByRole('button', { name: 'Guardar cambios' }).click(); await expect(page.getByRole('alert')).toContainText('seis o más'); await expect(page.getByRole('alert')).toBeFocused(); await expect(editForm.getByLabel('Título')).toHaveValue('Título rechazado'); await editForm.getByRole('button', { name: 'Cancelar edición' }).click(); await page.getByRole('button', { name: 'Eliminar Podio nacional juvenil' }).click(); await expect(page.getByRole('heading', { name: 'Podio nacional juvenil' })).toHaveCount(0); expect(writes.map((write) => write.name)).toEqual(['save', 'publish', 'save', 'delete']);
+  await page.getByRole('button', { name: 'Editar Podio nacional juvenil' }).click(); const editForm = page.getByRole('form', { name: 'Editar competencia Podio nacional juvenil' }); await editForm.getByLabel('Título').fill('Título rechazado'); await editForm.getByRole('button', { name: 'Guardar cambios del logro' }).click(); await expect(page.getByRole('alert')).toContainText('seis o más'); await expect(page.getByRole('alert')).toBeFocused(); await expect(editForm.getByLabel('Título')).toHaveValue('Título rechazado'); await editForm.getByRole('button', { name: 'Cancelar edición' }).click(); await page.getByRole('button', { name: 'Eliminar Podio nacional juvenil' }).click(); await expect(page.getByRole('heading', { name: 'Podio nacional juvenil' })).toHaveCount(0); expect(writes.map((write) => write.name)).toEqual(['save', 'publish', 'save', 'delete']);
+});
+
+test('saves only the athlete profile while preserving an unsaved achievement', async ({ page }) => {
+  const event = { id: 'event-unsaved-achievement', code: 'unsaved_achievement', name: '50 m libre', course: 'long_course', relay_size: null, is_active: true };
+  let profileSaves = 0;
+  let achievementSaves = 0;
+  await routeAdminAuth(page, 'administrator');
+  await routeAthleteEditor(page, { events: (route) => route.fulfill(json([event])) });
+  await page.route('**/rest/v1/rpc/list_athlete_achievement_groups', (route) => route.fulfill(json([])));
+  await page.route('**/rest/v1/rpc/save_admin_athlete', (route) => { profileSaves += 1; return route.fulfill(json([{ ...athlete, publication_status: 'draft' }])); });
+  await page.route('**/rest/v1/rpc/save_athlete_achievement_group_draft', (route) => { achievementSaves += 1; return route.fulfill(json([])); });
+  await signInEditor(page); await page.goto('/admin/atletas/athlete-relations');
+  const form = page.getByRole('form', { name: 'Agregar competencia del atleta' }); await form.getByLabel('Título').fill('Logro todavía sin guardar'); await form.getByLabel('Competencia', { exact: true }).fill('Copa pendiente'); await form.getByLabel('Ubicación').fill('Piscina pendiente'); await form.getByLabel('Fecha de la competencia').fill('2026-08-20'); await form.getByLabel('Prueba del resultado 1').selectOption(event.id);
+  await page.getByRole('button', { name: 'Guardar ficha como borrador' }).click();
+  await expect(page.getByRole('status')).toHaveText('Ficha guardada como borrador.'); expect(profileSaves).toBe(1); expect(achievementSaves).toBe(0);
+  await expect(form.getByLabel('Título')).toHaveValue('Logro todavía sin guardar'); await expect(form.getByLabel('Competencia', { exact: true })).toHaveValue('Copa pendiente'); await expect(form.getByLabel('Ubicación')).toHaveValue('Piscina pendiente'); await expect(form.getByLabel('Fecha de la competencia')).toHaveValue('2026-08-20'); await expect(form.getByLabel('Prueba del resultado 1')).toHaveValue(event.id);
+  await expect(page.getByRole('heading', { name: 'Logro todavía sin guardar' })).toHaveCount(0);
 });
 
 test('does not acknowledge a saved achievement that is absent from the independent reload', async ({ page }) => {
@@ -126,7 +144,7 @@ test('does not acknowledge a saved achievement that is absent from the independe
   await page.route('**/rest/v1/rpc/list_athlete_achievement_groups', (route) => route.fulfill(json([])));
   await page.route('**/rest/v1/rpc/save_athlete_achievement_group_draft', (route) => route.fulfill(json([{ group_id: 'group-unconfirmed-save', athlete_id: athlete.id, publication_status: 'draft' }])));
   await signInEditor(page); await page.goto('/admin/atletas/athlete-relations');
-  const form = page.getByRole('form', { name: 'Agregar competencia del atleta' }); await form.getByLabel('Título').fill('Guardado sin persistencia'); await form.getByLabel('Competencia', { exact: true }).fill('Copa'); await form.getByLabel('Ubicación').fill('Piscina'); await form.getByLabel('Fecha de la competencia').fill('2026-08-20'); await form.getByLabel('Prueba del resultado 1').selectOption(event.id); await form.getByRole('button', { name: 'Agregar competencia' }).click();
+  const form = page.getByRole('form', { name: 'Agregar competencia del atleta' }); await form.getByLabel('Título').fill('Guardado sin persistencia'); await form.getByLabel('Competencia', { exact: true }).fill('Copa'); await form.getByLabel('Ubicación').fill('Piscina'); await form.getByLabel('Fecha de la competencia').fill('2026-08-20'); await form.getByLabel('Prueba del resultado 1').selectOption(event.id); await form.getByRole('button', { name: 'Guardar logro como borrador' }).click();
   await expect(page.getByRole('alert')).toContainText('No fue posible confirmar la persistencia'); await expect(page.getByRole('alert')).toContainText('No repitas la operación'); await expect(page.getByText('Competencia agregada como borrador.')).toHaveCount(0); await expect(form.getByLabel('Título')).toHaveValue('Guardado sin persistencia');
 });
 
@@ -135,7 +153,7 @@ test('shows persistence unconfirmed without retry guidance when reload fails aft
   await routeAdminAuth(page, 'administrator'); await routeAthleteEditor(page, { events: (route) => route.fulfill(json([event])) });
   await page.route('**/rest/v1/rpc/list_athlete_achievement_groups', (route) => saved ? route.fulfill({ ...json({ message: 'reload failed' }), status: 500 }) : route.fulfill(json([])));
   await page.route('**/rest/v1/rpc/save_athlete_achievement_group_draft', (route) => { saved = true; return route.fulfill(json([{ group_id: 'group-reload-failure', athlete_id: athlete.id, publication_status: 'draft' }])); });
-  await signInEditor(page); await page.goto('/admin/atletas/athlete-relations'); const form = page.getByRole('form', { name: 'Agregar competencia del atleta' }); await form.getByLabel('Título').fill('Recarga fallida'); await form.getByLabel('Competencia', { exact: true }).fill('Copa'); await form.getByLabel('Ubicación').fill('Piscina'); await form.getByLabel('Fecha de la competencia').fill('2026-08-20'); await form.getByLabel('Prueba del resultado 1').selectOption(event.id); await form.getByRole('button', { name: 'Agregar competencia' }).click();
+  await signInEditor(page); await page.goto('/admin/atletas/athlete-relations'); const form = page.getByRole('form', { name: 'Agregar competencia del atleta' }); await form.getByLabel('Título').fill('Recarga fallida'); await form.getByLabel('Competencia', { exact: true }).fill('Copa'); await form.getByLabel('Ubicación').fill('Piscina'); await form.getByLabel('Fecha de la competencia').fill('2026-08-20'); await form.getByLabel('Prueba del resultado 1').selectOption(event.id); await form.getByRole('button', { name: 'Guardar logro como borrador' }).click();
   await expect(page.getByRole('alert')).toContainText('No fue posible confirmar la persistencia'); await expect(page.getByRole('alert')).toContainText('No repitas la operación'); await expect(page.getByRole('alert')).not.toContainText('Intentá nuevamente'); await expect(form.getByLabel('Título')).toHaveValue('Recarga fallida');
 });
 
@@ -144,7 +162,7 @@ test('does not acknowledge an update when reloaded scalar and child values remai
   const stale = { group_id: 'group-stale-update', athlete_id: athlete.id, achievement_type: 'national_podium', title: 'Título anterior', competition_name: 'Copa anterior', location: 'Piscina anterior', achieved_on: '2026-08-19', publication_status: 'draft', published_at: null, children: [{ id: 'result-stale-update', event_definition_id: event.id, event_name: event.name, event_active: true, podium_place: 1 }] };
   await routeAdminAuth(page, 'administrator'); await routeAthleteEditor(page, { events: (route) => route.fulfill(json([event])) }); await page.route('**/rest/v1/rpc/list_athlete_achievement_groups', (route) => route.fulfill(json([stale])));
   await page.route('**/rest/v1/rpc/save_athlete_achievement_group_draft', (route) => route.fulfill(json([{ group_id: stale.group_id, athlete_id: athlete.id, publication_status: 'draft' }])));
-  await signInEditor(page); await page.goto('/admin/atletas/athlete-relations'); await page.getByRole('button', { name: 'Editar Título anterior' }).click(); const form = page.getByRole('form', { name: 'Editar competencia Título anterior' }); await form.getByLabel('Título').fill('Título actualizado'); await form.getByLabel('Posición del resultado 1').selectOption('2'); await form.getByRole('button', { name: 'Guardar cambios' }).click();
+  await signInEditor(page); await page.goto('/admin/atletas/athlete-relations'); await page.getByRole('button', { name: 'Editar Título anterior' }).click(); const form = page.getByRole('form', { name: 'Editar competencia Título anterior' }); await form.getByLabel('Título').fill('Título actualizado'); await form.getByLabel('Posición del resultado 1').selectOption('2'); await form.getByRole('button', { name: 'Guardar cambios del logro' }).click();
   await expect(page.getByRole('alert')).toContainText('No fue posible confirmar la persistencia'); await expect(page.getByText('Competencia actualizada.')).toHaveCount(0); await expect(form.getByLabel('Título')).toHaveValue('Título actualizado'); await expect(form.getByLabel('Posición del resultado 1')).toHaveValue('2');
 });
 
@@ -153,7 +171,7 @@ test('does not acknowledge an update when the independent reload remains publish
   const published = { group_id: 'group-published-update', athlete_id: athlete.id, achievement_type: 'national_podium', title: 'Actualización publicada', competition_name: 'Copa', location: 'Piscina', achieved_on: '2026-08-20', publication_status: 'published', published_at: '2026-08-21T12:00:00Z', children: [{ id: 'result-published-update', event_definition_id: event.id, event_name: event.name, event_active: true, podium_place: 1 }] };
   await routeAdminAuth(page, 'administrator'); await routeAthleteEditor(page, { events: (route) => route.fulfill(json([event])) }); await page.route('**/rest/v1/rpc/list_athlete_achievement_groups', (route) => route.fulfill(json([published])));
   await page.route('**/rest/v1/rpc/save_athlete_achievement_group_draft', (route) => route.fulfill(json([{ group_id: published.group_id, athlete_id: athlete.id, publication_status: 'draft' }])));
-  await signInEditor(page); await page.goto('/admin/atletas/athlete-relations'); await page.getByRole('button', { name: 'Editar Actualización publicada' }).click(); const form = page.getByRole('form', { name: 'Editar competencia Actualización publicada' }); await form.getByRole('button', { name: 'Guardar cambios' }).click();
+  await signInEditor(page); await page.goto('/admin/atletas/athlete-relations'); await page.getByRole('button', { name: 'Editar Actualización publicada' }).click(); const form = page.getByRole('form', { name: 'Editar competencia Actualización publicada' }); await form.getByRole('button', { name: 'Guardar cambios del logro' }).click();
   await expect(page.getByRole('alert')).toContainText('No fue posible confirmar la persistencia'); await expect(page.getByText('Competencia actualizada.')).toHaveCount(0); await expect(form.getByLabel('Título')).toHaveValue(published.title); await expect(page.getByRole('listitem').filter({ hasText: published.title }).getByText('Publicado', { exact: true })).toBeVisible();
 });
 
@@ -190,7 +208,7 @@ test('links result errors and blocks future state records with keyboard-safe foc
   const createForm = page.getByRole('form', { name: 'Agregar competencia del atleta' }); await createForm.getByLabel('Tipo de logro').selectOption('state_record'); await expect(createForm.getByRole('option', { name: /Copa futura/ })).toHaveCount(0); await expect(createForm.getByRole('option', { name: /Copa vigente/ })).toHaveCount(1);
   await page.getByRole('button', { name: 'Editar Récord futuro' }).click(); const editForm = page.getByRole('form', { name: 'Editar competencia Récord futuro' }); const retained = editForm.getByRole('option', { name: /Copa futura.*no disponible/ }); await expect(retained).toHaveAttribute('disabled'); await expect(editForm.getByLabel('Récord estatal oficial 1')).toHaveValue(futureRecord.id);
   await editForm.getByRole('button', { name: 'Cancelar edición' }).click(); await createForm.getByLabel('Título').fill('Pruebas repetidas'); await createForm.getByLabel('Competencia', { exact: true }).fill('Copa'); await createForm.getByLabel('Ubicación').fill('Piscina'); await createForm.getByLabel('Fecha de la competencia').fill('2026-08-20'); await createForm.getByLabel('Prueba del resultado 1').selectOption(event.id);
-  const add = createForm.getByRole('button', { name: 'Agregar resultado' }); await add.focus(); await page.keyboard.press('Enter'); const duplicate = createForm.getByLabel('Prueba del resultado 2'); await expect(duplicate).toBeFocused(); await duplicate.selectOption(event.id); await createForm.getByRole('button', { name: 'Agregar competencia' }).click();
+  const add = createForm.getByRole('button', { name: 'Agregar resultado' }); await add.focus(); await page.keyboard.press('Enter'); const duplicate = createForm.getByLabel('Prueba del resultado 2'); await expect(duplicate).toBeFocused(); await duplicate.selectOption(event.id); await createForm.getByRole('button', { name: 'Guardar logro como borrador' }).click();
   await expect(duplicate).toBeFocused(); await expect(duplicate).toHaveAttribute('aria-invalid', 'true'); const errorId = await duplicate.getAttribute('aria-describedby'); await expect(page.locator(`#${errorId}`)).toContainText('una sola vez'); await expect(createForm.getByLabel('Título')).toHaveValue('Pruebas repetidas');
 });
 
@@ -235,7 +253,7 @@ test('creates a draft through one atomic athlete RPC', async ({ page }) => {
   await page.getByRole('link', { name: 'Atletas' }).click();
   await page.getByRole('link', { name: 'Nuevo atleta' }).click();
   await page.getByLabel('Nombre público').fill('Atleta nuevo');
-  await page.getByRole('button', { name: 'Guardar borrador' }).click();
+  await page.getByRole('button', { name: 'Guardar ficha como borrador' }).click();
   await expect(page).toHaveURL(/\/admin\/atletas\/created-athlete$/);
   expect(writes).toEqual([{
     requested_athlete_id: null, requested_display_name: 'Atleta nuevo', requested_preferred_name: null,
@@ -270,7 +288,7 @@ test('publishes through one atomic athlete RPC and keeps errors safe', async ({ 
   await page.getByRole('link', { name: 'Nuevo atleta' }).click();
   await page.getByLabel('Nombre público').fill('Atleta publicado');
   await page.getByLabel('Consentimiento de perfil público').check();
-  await page.getByRole('button', { name: 'Publicar atleta' }).click();
+  await page.getByRole('button', { name: 'Publicar ficha del atleta' }).click();
   await expect(page).toHaveURL(/\/admin\/atletas\/published-athlete$/);
   expect(calls).toBe(1);
   expect(publishedPayload.requested_publication_status).toBe('published');
@@ -279,7 +297,7 @@ test('publishes through one atomic athlete RPC and keeps errors safe', async ({ 
 
   await page.goto('/admin/atletas/nuevo');
   await page.getByLabel('Nombre público').fill('Otro atleta');
-  await page.getByRole('button', { name: 'Guardar borrador' }).click();
+  await page.getByRole('button', { name: 'Guardar ficha como borrador' }).click();
   await expect(page.getByRole('alert')).toContainText('actualización necesaria');
   await expect(page.getByRole('alert')).not.toContainText('leaked-private-id-123');
   expect(calls).toBe(2);
@@ -471,7 +489,7 @@ for (const failure of ['http', 'network']) {
     await page.goto('/admin/atletas/athlete-relations');
     if (failure === 'network') {
       await expect(page.getByRole('status')).toHaveText('Cargando datos del atleta…');
-      await expect(page.getByRole('button', { name: 'Guardar borrador' })).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'Guardar ficha como borrador' })).toHaveCount(0);
       // The SDK retries GET network failures three times with 1s, 2s, and 4s backoff.
       // Inspect retry metadata rather than totals: StrictMode mounts duplicate effect chains.
       await expect.poll(() => lastRetry, { timeout: 10_000 }).toBe(3);
@@ -479,8 +497,8 @@ for (const failure of ['http', 'network']) {
     await expect(page.getByRole('alert')).toContainText('No se pudieron cargar los consentimientos');
     await expect(page.getByRole('alert')).not.toContainText('private-consent-details');
     await expect(page.getByLabel('Consentimiento de perfil público')).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Guardar borrador' })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Publicar atleta' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Guardar ficha como borrador' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Publicar ficha del atleta' })).toHaveCount(0);
     expect(writes).toBe(0);
   });
 }
@@ -502,12 +520,12 @@ test('waits for slow consent loading instead of clearing granted consents', asyn
   await signInEditor(page);
   await page.goto('/admin/atletas/athlete-relations');
   await expect(page.getByRole('status')).toHaveText('Cargando datos del atleta…');
-  await expect(page.getByRole('button', { name: 'Guardar borrador' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Guardar ficha como borrador' })).toHaveCount(0);
   for (const label of ['Consentimiento de perfil público', 'Consentimiento de foto', 'Consentimiento de resultados']) {
     await expect(page.getByLabel(label)).toBeChecked();
   }
-  await page.getByRole('button', { name: 'Guardar borrador' }).click();
-  await expect(page.getByRole('status')).toHaveText('Borrador guardado correctamente.');
+  await page.getByRole('button', { name: 'Guardar ficha como borrador' }).click();
+  await expect(page.getByRole('status')).toHaveText('Ficha guardada como borrador.');
   expect(writes).toHaveLength(1);
   expect(writes[0]).toMatchObject({
     requested_profile_consent: true, requested_photo_consent: true, requested_results_consent: true,
@@ -522,6 +540,6 @@ test('allows editing after a genuinely empty successful consent response', async
   for (const label of ['Consentimiento de perfil público', 'Consentimiento de foto', 'Consentimiento de resultados']) {
     await expect(page.getByLabel(label)).not.toBeChecked();
   }
-  await expect(page.getByRole('button', { name: 'Guardar borrador' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Guardar ficha como borrador' })).toBeEnabled();
   await expect(page.getByRole('alert')).toHaveCount(0);
 });
