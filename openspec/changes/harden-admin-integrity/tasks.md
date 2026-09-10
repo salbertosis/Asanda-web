@@ -34,7 +34,7 @@ Tracker is draft/no-merge. PR01 targets the tracker branch; each later child tar
 ## 2. Server-first editorial/media
 
 - [x] 2.1 WU05/PR05 `supabase/migrations/` News-RPC; T:S(editorial);H:AUTH-SQL;R:FWD.
-- [ ] 2.2 WU06/PR06 `src/admin/NewsEditorPage.jsx` News-editor; T:D(admin-editorial);H:E;R:APP.
+- [x] 2.2 WU06/PR06 `src/admin/NewsEditorPage.jsx` News-editor; T:D(admin-editorial);H:E;R:APP.
 - [ ] 2.3 WU07/PR07 `src/admin/AdminNewsPage.jsx` News-list; T:news-E2E;H:E;R:APP.
 - [ ] 2.4 WU08S/PR08S `supabase/migrations/` Featured-authority; T:S(editorial);H:AUTH-SQL;R:FWD.
 - [ ] 2.5 WU08C/PR08C `src/services/admin/dateTime.js` Featured-UTC; T:D(admin-editorial);H:E;R:APP.
