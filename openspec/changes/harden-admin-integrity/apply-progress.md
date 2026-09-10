@@ -70,7 +70,7 @@ Remove `src/services/admin/commandOutcome.js` and `scripts/admin-command-outcome
 
 - [x] 1.2 WU02/PR02 `src/admin/AdminSessionContext.jsx` Session-fence; T:auth-E2E;H:E;R:APP.
 - [x] 1.3 WU03/PR03 `src/admin/AdminCommandContext.jsx` Feedback/dialog; T:command-E2E;H:E;R:APP.
-- [ ] 1.4 WU04/PR04 `src/admin/AdminShell.jsx` Focus/theme/responsive; T:shell-E2E;H:E;R:APP.
+- [x] 1.4 WU04/PR04 `src/admin/AdminShell.jsx` Focus/theme/responsive; T:shell-E2E;H:E;R:APP.
 - [ ] 2.1 WU05/PR05 `supabase/migrations/` News-RPC; T:S(editorial);H:AUTH-SQL;R:FWD.
 - [ ] 2.2 WU06/PR06 `src/admin/NewsEditorPage.jsx` News-editor; T:D(admin-editorial);H:E;R:APP.
 - [ ] 2.3 WU07/PR07 `src/admin/AdminNewsPage.jsx` News-list; T:news-E2E;H:E;R:APP.
@@ -161,3 +161,62 @@ The user resolved the selected change as `harden-admin-integrity`; the authorita
 - The cohesive boundary is exactly **400 changed lines (+396/-4)** including untracked files. `App.jsx` content matches branch HEAD, and the WU03-owned surfaces contain no opaque authority values. The same parent-owned remediation attempt authenticated as `proceed`; settlement remains parent-owned and no opaque value is persisted.
 - No design deviation or deployed-server claim. Rollback the context, guard mount, focused test, task checkbox, and this section only.
 - Consumed the explicit `harden-admin-integrity` OpenSpec status and repo-local edit roots; no action-context warnings. Task 1.4 and all later unchecked tasks remain pending.
+
+## WU04 / PR04 — Accessible administrative shell
+
+**Status:** Complete after bounded independent-verification remediation
+**Boundary:** `tracker → PR01 → PR02 → PR03 → PR04 📍 → PR05`; PR04 targets `feat/harden-admin-integrity-03-command-feedback`.
+
+### Completed task and persisted checkbox
+
+- [x] 1.4 WU04/PR04 `src/admin/AdminShell.jsx` Focus/theme/responsive; T:shell-E2E;H:E;R:APP.
+- The matching checkbox in `tasks.md` was marked only after focused, full browser, build, and whitespace gates passed.
+
+### Implementation and files
+
+- `src/admin/AdminShell.jsx`: adds a first-practical skip control, route-driven focus transfer, the shared theme toggle, contained horizontal module navigation, responsive header reflow, 44px targets, visible focus, and reduced-motion-safe transitions.
+- `src/components/DarkModeToggle.jsx`: disables its color transition under reduced motion and removes its unused React import.
+- `tests/e2e/admin-shell.spec.js`: covers one main landmark, skip and route focus, semantic current-route state, system and persisted themes, 320/390px overflow containment, reduced-motion transition behavior, and both target dimensions.
+- `openspec/changes/harden-admin-integrity/{tasks.md,apply-progress.md}`: persists WU04 completion and cumulative evidence.
+
+### TDD Cycle Evidence
+
+| Stage | Command | Result |
+| --- | --- | --- |
+| RED | `npx playwright test tests/e2e/admin-shell.spec.js` | Failed as expected: 3 failed because route focus, theme control, and the bounded navigation marker were absent. |
+| GREEN | Same focused command after shell implementation | Theme passed; focus and narrow-loop harness assumptions exposed 2 failures. |
+| TRIANGULATE | Corrected the tests to distinguish route-focused tab order and one authenticated session across both viewports; reran focused tests. | First rerun had 2 passed and 1 skip-focus harness failure; final rerun passed 3 tests in 10.3s. |
+| REFACTOR | Consolidated module navigation into one immutable configuration and retained shared `DarkModeToggle`. | Final focused and full browser suites remained green. |
+
+### Verification evidence
+
+- Focused mocked runtime harness: `npx playwright test tests/e2e/admin-shell.spec.js` — **3 passed (10.3s)**.
+- Full browser regression: `npm run test:e2e` — **149 passed (5.8m)** with one Chromium worker.
+- Baseline build: `npm run build` — **passed**, Vite 5.4.21 transformed 1,513 modules and built in 9.98s; only the stale Browserslist-data warning appeared.
+- Final whitespace validation after artifact persistence: `git diff --check` — **passed** with only preserved LF-to-CRLF warnings for unrelated `.gitignore` and content-identical `src/App.jsx`, plus the touched shell.
+- Runtime evidence is local and mocked; no authenticated server, production, or deployment evidence is claimed.
+- The same parent-owned WU04 attempt authenticated as `proceed`; settlement remains parent-owned and no authority value is persisted.
+
+### Design, workload, and rollback
+
+- No design deviation. The shell reuses the existing theme lifecycle and does not start route-level WU05 adoption.
+- Strategy: Feature Branch Chain. PR04 is one cohesive shell-plus-E2E rollback unit and targets PR03; PR05 and later were not started. Final scoped diff, including the untracked focused test, is **363 changed lines (+306/-57)**, within the 400-line budget.
+- Rollback `src/admin/AdminShell.jsx`, remove `tests/e2e/admin-shell.spec.js`, and revert task 1.4 plus this WU04 section. No database, static-data, SEO, predecessor, or unrelated working-tree state is affected.
+
+### Structured status consumed
+
+- Fresh `gentle-ai.sdd-status@2` selected `harden-admin-integrity`; OpenSpec proposal, specs, design, tasks, and prior progress were complete enough for apply.
+- Action context was repo-local with the repository root authorized and no warnings. Edits stayed within the four WU04 allowed surfaces.
+- Delivery authority was the resolved `feature-branch-chain` strategy with a 400-line review budget.
+
+### Independent-verification remediation
+
+- The same parent-owned remediation attempt authenticated as `proceed`; settlement remains parent-owned and no authority value is persisted.
+- RED: the strengthened focused test failed because the shared theme control still exposed an active transition under reduced motion.
+- Remediation guarantees at least 44px width and height for theme, sign-out, and every module navigation control at 320px and 390px; the computed reduced-motion transition property is `none`.
+- Final unchanged-candidate checks: focused Playwright **3 passed (49.5s)**; build **passed** with 1,513 modules transformed in 45.05s; primary pi-lens LSP diagnostics were clean for the three touched code/test files; whitespace validation passed with only unrelated line-ending warnings.
+- No design deviation. Rollback additionally restores `src/components/DarkModeToggle.jsx`; no unrelated source or generated state was changed.
+
+### Remaining implementation tasks
+
+Every exact unchecked `- [ ]` task line under sections 2–7 of `tasks.md` remains pending. WU05/PR05 is next and was not started.
