@@ -1,6 +1,7 @@
+begin;
 do $$
 declare
-  editor_id uuid;
+  editor_id uuid := gen_random_uuid();
   draft_id uuid;
   scheduled_id uuid;
   published_id uuid;
@@ -9,17 +10,108 @@ declare
   expired_athlete uuid;
   feature_active uuid;
   feature_expired uuid;
+  saved_article record;
   visible bigint;
+  blocked boolean;
   violated_constraint text;
+
   audit_start_id bigint := coalesce((select max(id) from private.admin_audit_log), 0);
 begin
-  select id into strict editor_id from public.profiles where role in ('administrator', 'editor') and is_active
-  order by role = 'administrator' desc, id limit 1;
+  if has_function_privilege(
+    'anon',
+    'public.save_admin_news(uuid,bigint,text,text,text,text,text,uuid)',
+    'EXECUTE'
+  ) or not has_function_privilege(
+    'authenticated',
+    'public.save_admin_news(uuid,bigint,text,text,text,text,text,uuid)',
+    'EXECUTE'
+  ) then
+    raise exception 'News RPC grants do not enforce the authenticated boundary.';
+  end if;
+
+  insert into auth.users (id) values (editor_id);
+  insert into public.profiles (id, display_name, role, is_active)
+  values (editor_id, 'Synthetic editorial editor', 'editor', true);
+
+  execute 'set local role anon';
+  blocked := false;
+  begin
+    perform public.set_admin_news_status(gen_random_uuid(), 1, 'archived', null);
+  exception when insufficient_privilege then
+    blocked := true;
+  end;
+  if not blocked then raise exception 'Anonymous callers can invoke the news status RPC.'; end if;
+  reset role;
+
+  update public.profiles set is_active = false where id = editor_id;
   perform set_config('request.jwt.claim.sub', editor_id::text, true);
   execute 'set local role authenticated';
+  blocked := false;
+  begin
+    perform public.save_admin_news(
+      null, null, 'test-inactive-news-rpc', 'Editor inactivo', null, null, null, null
+    );
+  exception when insufficient_privilege then
+    blocked := true;
+  end;
+  if not blocked then raise exception 'An inactive editor can invoke the news save RPC.'; end if;
+  reset role;
 
-  insert into public.news_articles (slug, title, body, publication_status, published_at)
-  values ('test-borrador', 'Borrador de prueba', 'cuerpo', 'draft', null) returning id into draft_id;
+  update public.profiles set is_active = true where id = editor_id;
+  execute 'set local role authenticated';
+  blocked := false;
+  begin
+    insert into public.news_articles (slug, title)
+    values ('test-direct-news-dml', 'Bypass directo');
+  exception when insufficient_privilege then
+    blocked := true;
+  end;
+  if not blocked then raise exception 'An active editor can bypass News RPCs with direct DML.'; end if;
+  if has_table_privilege('authenticated', 'public.news_articles', 'INSERT, UPDATE, DELETE') then
+    raise exception 'Authenticated clients retain direct News DML privileges.';
+  end if;
+  if not has_table_privilege('anon', 'public.news_articles', 'SELECT')
+    or not has_table_privilege('authenticated', 'public.news_articles', 'SELECT')
+  then raise exception 'News read privileges were removed.'; end if;
+
+  select * into strict saved_article from public.save_admin_news(
+    null, null, 'test-borrador', 'Borrador de prueba', null, 'cuerpo', null, null
+  );
+  draft_id := saved_article.id;
+  if saved_article.author_id <> editor_id or saved_article.revision <> 1
+    or saved_article.publication_status <> 'draft'::public.publication_status
+  then
+    raise exception 'News creation did not derive author, revision, and draft lifecycle server-side.';
+  end if;
+
+  select * into strict saved_article from public.save_admin_news(
+    draft_id, 1, 'test-borrador', 'Borrador actualizado', null, 'cuerpo', null, null
+  );
+  if saved_article.revision <> 2 or saved_article.author_id <> editor_id
+    or saved_article.publication_status <> 'draft'::public.publication_status
+  then raise exception 'News content save changed authority or lifecycle.'; end if;
+
+  blocked := false;
+  begin
+    perform public.save_admin_news(
+      draft_id, 1, 'test-borrador', 'Escritura obsoleta', null, 'cuerpo', null, null
+    );
+  exception when serialization_failure then
+    blocked := true;
+  end;
+  if not blocked then raise exception 'A stale news revision was accepted.'; end if;
+
+  select * into strict saved_article from public.set_admin_news_status(
+    draft_id, 2, 'published', now() + interval '1 day'
+  );
+  select * into strict saved_article from public.set_admin_news_status(
+    draft_id, 3, 'draft', null
+  );
+  if saved_article.revision <> 4 or saved_article.published_at is not null
+    or saved_article.publication_status <> 'draft'::public.publication_status
+  then raise exception 'Explicit news lifecycle transitions did not persist exactly.'; end if;
+  reset role;
+
   insert into public.news_articles (slug, title, body, publication_status, published_at)
   values ('test-programada', 'Noticia programada', 'cuerpo', 'published', now() + interval '1 day') returning id into scheduled_id;
   insert into public.news_articles (slug, title, body, publication_status, published_at)
@@ -100,3 +192,4 @@ begin
   delete from private.admin_audit_log where id > audit_start_id;
 end;
 $$;
+rollback;
