@@ -69,7 +69,7 @@ Remove `src/services/admin/commandOutcome.js` and `scripts/admin-command-outcome
 ### Remaining implementation tasks
 
 - [x] 1.2 WU02/PR02 `src/admin/AdminSessionContext.jsx` Session-fence; T:auth-E2E;H:E;R:APP.
-- [ ] 1.3 WU03/PR03 `src/admin/AdminCommandContext.jsx` Feedback/dialog; T:command-E2E;H:E;R:APP.
+- [x] 1.3 WU03/PR03 `src/admin/AdminCommandContext.jsx` Feedback/dialog; T:command-E2E;H:E;R:APP.
 - [ ] 1.4 WU04/PR04 `src/admin/AdminShell.jsx` Focus/theme/responsive; T:shell-E2E;H:E;R:APP.
 - [ ] 2.1 WU05/PR05 `supabase/migrations/` News-RPC; T:S(editorial);H:AUTH-SQL;R:FWD.
 - [ ] 2.2 WU06/PR06 `src/admin/NewsEditorPage.jsx` News-editor; T:D(admin-editorial);H:E;R:APP.
@@ -147,3 +147,17 @@ Rollback only the WU02 changes in `src/admin/AdminSessionContext.jsx` and `tests
 ### Structured status and remaining tasks
 
 The user resolved the selected change as `harden-admin-integrity`; the authoritative action context is repo-local with the repository root as the allowed edit root. This remediation edited only `apply-progress.md`, as authorized. Unrelated source, test, tasks, `.gitignore`, `.pi/`, and `.codegraph/` state was preserved. Every exact unchecked `- [ ]` line in the cumulative **Remaining implementation tasks** list above remains pending; task 1.3 / WU03 is next.
+
+## WU03 / PR03 — Command feedback and confirmation
+
+**Status:** Complete after bounded reconciliation remediation
+**Boundary:** `tracker → PR01 → PR02 → PR03 📍 → PR04`; PR03 targets `feat/harden-admin-integrity-02-session-fence`.
+
+- [x] 1.3 WU03/PR03 `src/admin/AdminCommandContext.jsx` Feedback/dialog; T:command-E2E;H:E;R:APP. The persisted checkbox was re-read after verification.
+- `AdminCommandContext.jsx` provides scoped pending state, truthful feedback/readback actions, and an accessible named confirmation dialog with focus containment and return.
+- `AdminGuard.jsx` mounts the provider only after authorization; loading and denied routes remain outside it. `App.jsx` is restored exactly to branch HEAD.
+- `admin-command.spec.js` covers duplicate prevention, independent pending keys, dialog keyboard/focus behavior, cancellation, confirmation, rejected feedback, and unknown reconciliation that invokes only its supplied read, clears successful feedback, and neither offers nor repeats mutation.
+- Final unchanged-candidate verification: `npx playwright test tests/e2e/admin-command.spec.js` — **3 passed (14.7s)**; `npm run build` — **passed**, 1,511 modules transformed in 8.84s with only the stale Browserslist warning; `git diff --check` — **passed** with only unrelated line-ending warnings. Primary pi-lens LSP analysis of `AdminCommandContext.jsx`, `AdminGuard.jsx`, and `admin-command.spec.js` returned clean exit status with no diagnostics.
+- The cohesive boundary is exactly **400 changed lines (+396/-4)** including untracked files. `App.jsx` content matches branch HEAD, and the WU03-owned surfaces contain no opaque authority values. The same parent-owned remediation attempt authenticated as `proceed`; settlement remains parent-owned and no opaque value is persisted.
+- No design deviation or deployed-server claim. Rollback the context, guard mount, focused test, task checkbox, and this section only.
+- Consumed the explicit `harden-admin-integrity` OpenSpec status and repo-local edit roots; no action-context warnings. Task 1.4 and all later unchecked tasks remain pending.
