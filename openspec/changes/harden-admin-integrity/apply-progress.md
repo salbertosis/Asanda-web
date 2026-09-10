@@ -71,7 +71,7 @@ Remove `src/services/admin/commandOutcome.js` and `scripts/admin-command-outcome
 - [x] 1.2 WU02/PR02 `src/admin/AdminSessionContext.jsx` Session-fence; T:auth-E2E;H:E;R:APP.
 - [x] 1.3 WU03/PR03 `src/admin/AdminCommandContext.jsx` Feedback/dialog; T:command-E2E;H:E;R:APP.
 - [x] 1.4 WU04/PR04 `src/admin/AdminShell.jsx` Focus/theme/responsive; T:shell-E2E;H:E;R:APP.
-- [ ] 2.1 WU05/PR05 `supabase/migrations/` News-RPC; T:S(editorial);H:AUTH-SQL;R:FWD.
+- [x] 2.1 WU05/PR05 `supabase/migrations/` News-RPC; T:S(editorial);H:AUTH-SQL;R:FWD.
 - [ ] 2.2 WU06/PR06 `src/admin/NewsEditorPage.jsx` News-editor; T:D(admin-editorial);H:E;R:APP.
 - [ ] 2.3 WU07/PR07 `src/admin/AdminNewsPage.jsx` News-list; T:news-E2E;H:E;R:APP.
 - [ ] 2.4 WU08S/PR08S `supabase/migrations/` Featured-authority; T:S(editorial);H:AUTH-SQL;R:FWD.
@@ -219,4 +219,72 @@ The user resolved the selected change as `harden-admin-integrity`; the authorita
 
 ### Remaining implementation tasks
 
-Every exact unchecked `- [ ]` task line under sections 2–7 of `tasks.md` remains pending. WU05/PR05 is next and was not started.
+Task 2.1 is complete; every exact unchecked `- [ ]` task line from task 2.2 onward in `tasks.md` remains pending. WU06/PR06 is next and was not started.
+
+## WU05 / PR05 — Secure administrative News RPC
+
+**Status:** Complete after authorized forward-only correction
+**Boundary:** `tracker → PR01 → PR02 → PR03 → PR04 → PR05 📍 → PR06`; PR05 targets `feat/harden-admin-integrity-04-admin-shell`.
+
+### Completed task and persisted checkbox
+
+- [x] 2.1 WU05/PR05 `supabase/migrations/` News-RPC; T:S(editorial);H:AUTH-SQL;R:FWD.
+- The checkbox was marked only after the forward migration was confirmed remotely and the strengthened editorial contract passed.
+
+### Implementation and files
+
+- `supabase/migrations/20260901120000_add_admin_news_rpcs.sql`: adds revision-checked News save and lifecycle RPCs with server-derived authorship and fresh editor/administrator authorization.
+- `supabase/tests/admin-editorial-services.sql`: verifies grants, anonymous and inactive denial, server-derived authorship, lifecycle preservation, stale-write rejection, and exact revision transitions. Its editor fixture is synthetic and the contract rolls back all test data.
+- `openspec/changes/harden-admin-integrity/{tasks.md,apply-progress.md}`: records completion and cumulative evidence.
+- No WU06 work was started; unrelated `.gitignore`, `src/App.jsx`, `.pi/`, `.codegraph/`, and predecessor state were preserved.
+
+### TDD Cycle Evidence
+
+| Stage | Command | Result |
+| --- | --- | --- |
+| RED | `supabase.exe db query --linked --file supabase/tests/admin-editorial-services.sql` | Failed with `P0002 query returned no rows` because the authorized empty test database had no pre-existing active editor fixture. The migration was already confirmed applied, so it was not retried or edited. |
+| GREEN | Made the SQL contract self-contained with a synthetic editor and transaction rollback; reran the same linked query. | Passed with an empty result set and no SQL error. |
+| TRIANGULATE | The passing contract exercised authenticated success plus anonymous, inactive-editor, and stale-revision failures in one rollback-safe transaction. | All assertions completed successfully against the linked non-production database. |
+| REFACTOR | Retained the focused migration unchanged after application and limited remediation to fixture setup and rollback in the SQL contract. | The final linked contract remained green. |
+
+### Authorized migration and SQL evidence
+
+- Linked dry-run selected exactly `20260901120000_add_admin_news_rpcs.sql` and no other migration.
+- One linked push applied `20260901120000_add_admin_news_rpcs.sql` successfully. No retry, history edit, or second push occurred.
+- `supabase.exe migration list --linked` showed local and remote version `20260901120000` aligned.
+- `supabase.exe db query --linked --file supabase/tests/admin-editorial-services.sql` — **passed** after the bounded test-fixture remediation; this is authorized non-production SQL evidence, not production evidence.
+- Independent verification — **failed**: the pre-existing authenticated editor policy and table DML privileges still permit direct News writes, bypassing RPC authorship, validation, revision, and lifecycle enforcement. Because the migration is applied, remediation requires a new forward migration and a regression assertion.
+- `npm run build` — **passed**, Vite 5.4.21 transformed 1,513 modules and built in 11.43s; only the existing stale Browserslist warning appeared.
+- `git diff --check` — **passed** with only preserved line-ending warnings on unrelated working-tree files.
+- This passing run remediates the prior failed evidence revision. No credentials, project references, connection strings, or authority tokens are recorded.
+
+### Forward-correction TDD Cycle Evidence
+
+| Stage | Command | Result |
+| --- | --- | --- |
+| RED | `supabase.exe db query --linked --file supabase/tests/admin-editorial-services.sql` before the correction migration | Failed as expected with `An active editor can bypass News RPCs with direct DML.` |
+| GREEN | Applied the single forward migration, then reran the same contract. | The first post-migration run proved direct DML was denied and exposed privileged fixture setup still running as `authenticated`; resetting to the privileged test role fixed the harness, and the next run passed. |
+| TRIANGULATE | Final linked editorial contract | Passed direct-editor denial plus RPC success, anonymous denial, inactive-editor denial, stale revision rejection, lifecycle transitions, read visibility, and rollback cleanup. |
+| REFACTOR | Kept the correction to privilege revocation, explicit `service_role` DML preservation, and one test-role reset. | Both applied migrations remained unchanged after their respective applications. |
+
+### Forward migration and verification evidence
+
+- `20260901121000_restrict_admin_news_dml.sql` revokes direct authenticated News insert/update/delete while preserving reads, RPC execution, and explicit privileged server DML.
+- Linked dry-run selected only `20260901121000_restrict_admin_news_dml.sql`; one linked push applied it, and no retry or migration-history edit occurred.
+- `supabase.exe migration list --linked` showed both `20260901120000` and `20260901121000` aligned locally and remotely.
+- Final `supabase.exe db query --linked --file supabase/tests/admin-editorial-services.sql` — **passed** with rollback-safe fixtures and no SQL errors.
+- `npm run build` — **passed**, Vite 5.4.21 transformed 1,513 modules and built in 9.41s; only the existing stale Browserslist warning appeared.
+- `git diff --check` — **passed** with only preserved line-ending warnings on unrelated working-tree files.
+- This passing correction remediates the independent failed evidence revision without persisting credentials, project references, connection strings, or authority tokens.
+
+### Design, workload, rollback, and status
+
+- No design deviation: direct authenticated News DML is closed while the server-first RPC boundary and required reads remain available.
+- Feature Branch Chain remains resolved. PR05 contains both sequential migrations, the strengthened SQL contract, and matching OpenSpec evidence; PR06 and later remain excluded. Final scoped diff is 320 changed lines (+312/-8), within the 400-line budget.
+- Both migrations are confirmed applied and immutable. Any future database correction requires another separately reviewed forward migration.
+- Consumed named `gentle-ai.sdd-status@2`: apply ready, repo-local workspace root authorized, and no action-context warnings.
+- Parent-owned runtime authority was not acquired, reset, rescoped, or settled.
+
+### Remaining implementation tasks
+
+Every exact unchecked `- [ ]` task line from task 2.2 onward in `tasks.md` remains pending. WU06/PR06 is next and was not started.
