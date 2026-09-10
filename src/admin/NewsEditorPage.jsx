@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, Send } from 'lucide-react';
-import { createNews, getNewsById, publishNews, updateNews } from '../services/admin/news';
+import { useAdminCommand } from './AdminCommandContext';
+import { createNews, getNewsById, matchesNewsPostcondition, publishNews, updateNews } from '../services/admin/news';
 import { renderSafeBody, validateNewsInput } from '../services/admin/editorialLogic';
 import { getAdminMediaUrl, listPublicImageMedia } from '../services/admin/media';
 
@@ -22,14 +23,15 @@ const inputClass = 'mt-2 min-h-12 w-full rounded-md border border-asanda-line px
 const NewsEditorPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isPending, runCommand } = useAdminCommand();
   const [form, setForm] = useState({ title: '', slug: '', category: '', summary: '', body: '', heroAssetId: '' });
   const [images, setImages] = useState([]);
   const [imagesUnavailable, setImagesUnavailable] = useState(false);
   const [currentStatus, setCurrentStatus] = useState(null);
+  const [revision, setRevision] = useState(null);
+  const [uncertain, setUncertain] = useState(false);
   const [loading, setLoading] = useState(id ? true : false);
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const [saved, setSaved] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -54,6 +56,7 @@ const NewsEditorPage = () => {
       }
       setForm({ title: item.title, slug: item.slug, category: item.category ?? '', summary: item.summary ?? '', body: item.body ?? '', heroAssetId: item.heroAssetId ?? '' });
       setCurrentStatus(item.status);
+      setRevision(item.revision);
       setLoading(false);
     }).catch(() => {
       if (active) {
@@ -66,35 +69,48 @@ const NewsEditorPage = () => {
     };
   }, [id, navigate]);
 
+  const applyStored = (item) => {
+    setForm({ title: item.title, slug: item.slug, category: item.category ?? '', summary: item.summary ?? '', body: item.body ?? '', heroAssetId: item.heroAssetId ?? '' });
+    setCurrentStatus(item.status);
+    setRevision(item.revision);
+  };
   const setField = (field) => (event) => setForm((prev) => ({ ...prev, [field]: event.target.value }));
-
   const persist = async (publish) => {
     const validation = validateNewsInput(form);
-    if (!validation.ok) {
-      setError(errorMessages[validation.errors[0]] ?? 'Revisá los campos marcados.');
-      return;
-    }
-    setBusy(true);
+    if (!validation.ok) return setError(errorMessages[validation.errors[0]] ?? 'Revisá los campos marcados.');
+    const key = `news:${id ?? 'new'}:${publish ? 'publish' : 'save'}`;
+    if (uncertain) return setError('El resultado anterior es desconocido. Verificá el estado antes de repetir la acción.');
+    let articleId = id;
+    let uncertainAction = 'save';
+    const previousRevision = revision ?? 0;
     setError(null);
-    setSaved(null);
-    try {
-      let articleId = id;
-      if (!articleId) {
-        const created = await createNews(form);
-        articleId = created.id;
-        navigate(`/admin/noticias/${articleId}`, { replace: true });
-      } else {
-        await updateNews(articleId, form);
-      }
-      if (publish) await publishNews(articleId);
-      if (publish) setCurrentStatus('published');
-      else if (!editing) setCurrentStatus('draft');
-      setSaved(publish ? 'Noticia publicada.' : 'Cambios guardados.');
-    } catch {
-      setError('No fue posible guardar la noticia. Intentá nuevamente.');
-    } finally {
-      setBusy(false);
-    }
+    const result = await runCommand({
+      key,
+      confirmation: publish ? { title: 'Publicar noticia', description: 'La noticia quedará visible en el portal. ¿Querés publicarla?', confirmLabel: 'Publicar' } : undefined,
+      command: async () => {
+        const outcome = id ? await updateNews(id, revision, form) : await createNews(form);
+        if (outcome.outcome === 'confirmed') articleId = outcome.value.id;
+        if (outcome.outcome !== 'confirmed' || !publish) return outcome;
+        uncertainAction = 'publish';
+        return publishNews(articleId, outcome.value.revision);
+      },
+      messages: publish
+        ? { confirmed: 'La noticia se publicó.', rejected: 'La noticia no se publicó.', unknown: 'El estado de publicación es desconocido.' }
+        : { confirmed: 'La noticia se guardó.', rejected: 'La noticia no se guardó.', unknown: 'El estado del guardado es desconocido.' },
+      onConfirmed: (item) => { applyStored(item); if (!id) navigate(`/admin/noticias/${item.id}`, { replace: true }); },
+      readback: async () => applyStored(await getNewsById(articleId)),
+      reconcile: async () => {
+        if (!articleId) throw new Error('Sin identidad para reconciliar');
+        const item = await getNewsById(articleId);
+        const confirmed = uncertainAction === 'publish'
+          ? item?.status === 'published' && item.revision > previousRevision
+          : matchesNewsPostcondition(item, articleId, previousRevision, form);
+        if (!confirmed) throw new Error('Postcondición no confirmada');
+        applyStored(item);
+        setUncertain(false);
+      },
+    });
+    if (result?.outcome === 'unknown') setUncertain(true);
   };
 
   if (loading) {
@@ -104,6 +120,7 @@ const NewsEditorPage = () => {
   const editing = Boolean(id);
   const selectedImage = images.find((image) => image.id === form.heroAssetId);
   const selectedImageUrl = getAdminMediaUrl(selectedImage, { width: 800, height: 450, crop: 'fill' });
+  const pending = isPending(`news:${id ?? 'new'}:save`) || isPending(`news:${id ?? 'new'}:publish`);
 
   return (
     <section aria-labelledby="news-editor-title">
@@ -119,7 +136,6 @@ const NewsEditorPage = () => {
       </div>
 
       {error && <p role="alert" className="mt-6 rounded-md border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">{error}</p>}
-      {saved && <p role="status" className="mt-6 rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">{saved}</p>}
 
       <form className="mt-6 grid gap-6 lg:grid-cols-2" onSubmit={(event) => { event.preventDefault(); persist(false); }}>
         <div className="space-y-5 rounded-[14px] border border-asanda-line bg-white p-5 sm:p-6">
@@ -179,17 +195,18 @@ const NewsEditorPage = () => {
             <h3 className="font-display text-2xl font-bold text-asanda-ink">{form.title || 'Sin título'}</h3>
             {form.category && <p className="mt-1 text-xs font-bold uppercase tracking-wide text-asanda-deep">{form.category}</p>}
             {form.summary && <p className="mt-3 font-semibold text-slate-800">{form.summary}</p>}
+            {/* biome-ignore lint/security/noDangerouslySetInnerHtml: renderSafeBody escapes unsafe markup. */}
             <div className="mt-4" dangerouslySetInnerHTML={{ __html: renderSafeBody(form.body) }} />
           </div>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <button type="submit" disabled={busy} className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 bg-asanda-deep px-4 font-bold text-white transition-colors hover:bg-asanda-navy disabled:cursor-wait disabled:opacity-70">
+            <button type="submit" disabled={pending || uncertain} className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 bg-asanda-deep px-4 font-bold text-white transition-colors motion-reduce:transition-none hover:bg-asanda-navy disabled:cursor-wait disabled:opacity-70">
               <Save size={18} aria-hidden="true" />
-              {busy ? 'Guardando…' : 'Guardar'}
+              {isPending(`news:${id ?? 'new'}:save`) ? 'Guardando…' : 'Guardar'}
             </button>
             {currentStatus !== 'published' && (
-              <button type="button" disabled={busy} onClick={() => persist(true)} className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 bg-asanda-orange-strong px-4 font-bold text-white transition-colors hover:bg-[#a94320] disabled:cursor-wait disabled:opacity-70">
+              <button type="button" disabled={pending || uncertain} onClick={() => persist(true)} className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 bg-asanda-orange-strong px-4 font-bold text-white transition-colors motion-reduce:transition-none hover:bg-[#a94320] disabled:cursor-wait disabled:opacity-70">
                 <Send size={18} aria-hidden="true" />
-                {busy ? 'Publicando…' : 'Publicar'}
+                {isPending(`news:${id ?? 'new'}:publish`) ? 'Publicando…' : 'Publicar'}
               </button>
             )}
           </div>

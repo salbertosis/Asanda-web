@@ -288,3 +288,56 @@ Task 2.1 is complete; every exact unchecked `- [ ]` task line from task 2.2 onwa
 ### Remaining implementation tasks
 
 Every exact unchecked `- [ ]` task line from task 2.2 onward in `tasks.md` remains pending. WU06/PR06 is next and was not started.
+
+## WU06 / PR06 — Truthful News editor commands
+
+**Status:** Complete after one honest reduction
+**Boundary:** `tracker → PR01 → PR02 → PR03 → PR04 → PR05 → PR06 📍 → PR07`; PR06 targets the WU05 branch.
+
+### Completed task and persisted checkbox
+
+- [x] 2.2 WU06/PR06 `src/admin/NewsEditorPage.jsx` News-editor; T:D(admin-editorial);H:E;R:APP.
+- The checkbox was marked only after focused regression, build, whitespace, and primary source LSP checks passed.
+
+### Implementation and files
+
+- `src/services/admin/news.js`: uses WU05 save/lifecycle RPCs, carries revisions, derives no client author, maps stable stale/auth/validation/duplicate failures to rejection, and treats unverifiable results as unknown.
+- `src/admin/NewsEditorPage.jsx`: adopts `AdminCommandContext` keys, confirmation, shared feedback, duplicate/conflicting-action prevention, revision-preserving save/publish, and read-only unknown reconciliation without mutation retry.
+- `scripts/admin-editorial-regression.mjs`: adds focused RPC, outcome, reconciliation, and shared-adoption checks while retaining the existing editorial suite.
+- `openspec/changes/harden-admin-integrity/{tasks.md,apply-progress.md}`: persists completion and evidence.
+
+### TDD Cycle Evidence
+
+| Stage | Command | Result |
+| --- | --- | --- |
+| Safety net | `npm run test:admin-editorial` | Passed 15 existing deterministic checks before production edits. |
+| RED | `npm run test:admin-editorial` | Failed first on the legacy update signature/direct transport, then on missing exact postcondition reconciliation. |
+| GREEN | `npm run test:admin-editorial` | Passed after the RPC outcome adapter and editor adoption. |
+| TRIANGULATE | Added stale/auth/validation/duplicate/unknown and identity/revision/content variants; same command | Passed 18 checks. |
+| REFACTOR | Restored existing formatting/rendering and reduced adapters/tests once; same command | Passed 18 checks on the reduced candidate. |
+
+### Verification, workload, and rollback
+
+- Deterministic local regression: `npm run test:admin-editorial` — **18 passed**.
+- Baseline: `npm run build` — **passed**, 1,513 modules transformed; only the stale Browserslist warning appeared.
+- Whitespace: `git diff --check` — **passed** with preserved line-ending warnings only.
+- Primary source LSP: exact installed `pi-lens-analyze --lsp` commands for `NewsEditorPage.jsx` and `news.js` exited 0 with no diagnostics; the regression `.mjs` had no LSP project and reported one non-blocking await-parentheses advisory.
+- Runtime harness: no authenticated server or production evidence is claimed; WU05 already supplied the authorized News RPC SQL contract.
+- One permitted honest reduction removed formatter-only rewrites. Final scoped numstat is recorded in the return envelope and remains below 400 changed lines including these artifacts.
+- No design deviation. Roll back the editor/service/regression changes and task/progress entry only; no database, WU05, list-page, static-data, or SEO state is changed.
+- Consumed named `gentle-ai.sdd-status@2`: apply ready, repo-local authorized root, no action-context warnings. Parent-owned runtime authority was not acquired, reset, rescoped, or settled.
+
+### Remaining implementation tasks
+
+The cumulative exact unchecked list above remains authoritative from task 2.3 onward. The next line is:
+
+- [ ] 2.3 WU07/PR07 `src/admin/AdminNewsPage.jsx` News-list; T:news-E2E;H:E;R:APP.
+
+### Browser-mock correction evidence
+
+- **Status:** Passing after formatter-churn remediation; task 2.2 remains checked. The two source files were reconstructed from branch HEAD with only the confirmed identity/revision fixes, then source and browser test surfaces were made read-only.
+- GREEN focused mocked browser contract: exact lifecycle grep — **1 passed (18.3s)**. Whole `admin-editorial.spec.js` — **5 passed (46.8s)** with the exact News RPC mocks and adjacent existing-image RPC compatibility.
+- Deterministic regression: `npm run test:admin-editorial` — **18 passed**. Build — **passed**, 1,513 modules transformed in 10.01s with only the existing Browserslist warning. Primary package-local pi-lens LSP commands previously exited 0 with no diagnostics.
+- Final `git diff --check` — **passed** with preserved line-ending warnings only. Correction numstat: **+65/-28 (93 lines)**; complete PR06 numstat against its predecessor: **+227/-99 (326 lines)**, within 400 and correction runtime within 220.
+- No WU07 shared outcomes, reconciliation, or UI redesign was added. Rollback this correction in the editor, list compatibility calls, browser mocks, and this evidence subsection only.
+- Consumed named `gentle-ai.sdd-status@2`: apply ready, repo-local allowed root, no warnings. Parent-owned authority was not acquired, reset, rescoped, or settled.

@@ -1,8 +1,18 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { confirmedOutcome, rejectedOutcome, unknownOutcome } from '../src/services/admin/commandOutcome.js';
 import { assertSafeBody, escapeHtml, featuredWindow, renderSafeBody, scheduledStatus, validateImageFile, validateNewsInput } from '../src/services/admin/editorialLogic.js';
 
 let passed = 0;
 const check = (name, fn) => { fn(); passed += 1; console.log(`  ok - ${name}`); };
+const checkAsync = async (name, fn) => { await fn(); passed += 1; console.log(`  ok - ${name}`); };
+let response; let request;
+globalThis.__newsTest = { outcomes: { confirmedOutcome, rejectedOutcome, unknownOutcome }, editorial: { scheduledStatus, validateNewsInput }, supabase: { rpc(name, parameters) { request = { name, parameters }; return { single: async () => response }; } } };
+const source = readFileSync(new URL('../src/services/admin/news.js', import.meta.url), 'utf8')
+  .replace("import { supabase } from '../supabase';", 'const { supabase } = globalThis.__newsTest;')
+  .replace("import { scheduledStatus, validateNewsInput } from './editorialLogic';", 'const { scheduledStatus, validateNewsInput } = globalThis.__newsTest.editorial;')
+  .replace("import { confirmedOutcome, rejectedOutcome, unknownOutcome } from './commandOutcome.js';", 'const { confirmedOutcome, rejectedOutcome, unknownOutcome } = globalThis.__newsTest.outcomes;');
+const news = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 
 console.log('admin editorial core deterministic regression');
 const validNews = { title: 'Campeonato nacional', slug: 'campeonato-nacional', summary: 'Resumen', body: '**Texto** y *detalles* con [enlace](https://asanda.test)', category: 'competencia', publishedAt: '2026-08-01T12:00:00Z' };
@@ -107,6 +117,34 @@ check('scheduled status derives draft, scheduled, and published semantics', () =
   assert.equal(scheduledStatus({ publicationStatus: 'published', publishedAt: '2026-08-01T00:00:00Z' }, now), 'published');
   assert.equal(scheduledStatus({ publicationStatus: 'published', publishedAt: '2030-01-01T00:00:00Z' }, now), 'scheduled');
   assert.equal(scheduledStatus({ publicationStatus: 'archived' }, now), 'archived');
+});
+
+await checkAsync('News commands use revision RPCs and truthful outcomes', async () => {
+  response = { data: { id: 'n1', revision: 4, title: validNews.title, slug: validNews.slug, publication_status: 'draft' }, error: null };
+  assert.equal((await news.updateNews('n1', 3, validNews)).outcome, 'confirmed');
+  assert.equal(request.name, 'save_admin_news');
+  assert.equal(request.parameters.requested_expected_revision, 3);
+  assert.equal(Object.hasOwn(request.parameters, 'requested_author_id'), false);
+  response = { data: null, error: { code: '40001', message: 'NEWS_REVISION_CONFLICT' } };
+  assert.deepEqual(await news.updateNews('n1', 3, validNews), rejectedOutcome('NEWS_STALE'));
+  for (const [error, expected] of [
+    [{ code: '42501', message: 'NEWS_UNAUTHORIZED' }, rejectedOutcome('NEWS_UNAUTHORIZED')],
+    [{ code: '22023', message: 'NEWS_INVALID' }, rejectedOutcome('NEWS_INVALID')],
+    [{ code: '23505', message: 'duplicate key' }, rejectedOutcome('NEWS_DUPLICATE', 'slug')],
+  ]) { response = { data: null, error }; assert.deepEqual(await news.createNews(validNews), expected); }
+  response = { data: null, error: { code: '503', message: 'unavailable' } };
+  assert.deepEqual(await news.publishNews('n1', 3), unknownOutcome());
+});
+check('News reconciliation requires identity, newer revision, and exact content', () => {
+  const stored = { ...validNews, id: 'n1', revision: 4, heroAssetId: '' };
+  assert.equal(news.matchesNewsPostcondition(stored, 'n1', 3, validNews), true);
+  assert.equal(news.matchesNewsPostcondition({ ...stored, revision: 3 }, 'n1', 3, validNews), false);
+  assert.equal(news.matchesNewsPostcondition({ ...stored, title: 'Otro' }, 'n1', 3, validNews), false);
+});
+check('News editor uses shared confirmation and read reconciliation', () => {
+  const page = readFileSync(new URL('../src/admin/NewsEditorPage.jsx', import.meta.url), 'utf8');
+  assert.match(page, /useAdminCommand/); assert.match(page, /confirmation:/); assert.match(page, /reconcile:/);
+  assert.doesNotMatch(page, /setBusy|setSaved/);
 });
 
 console.log(`\n${passed} passed`);
