@@ -61,17 +61,18 @@ const signInEditor = async (page) => {
   await expect(page).toHaveURL(/\/admin\/noticias$/);
 };
 
-const newsColumns = 'id,slug,title,summary,body,category,hero_asset_id,publication_status,published_at,author_id,created_at,updated_at';
 const newsRow = (id, overrides = {}) => ({
   id, slug: 'noticia-e2e', title: 'Noticia E2E', summary: 'Resumen de prueba', body: '**Cuerpo** con *formato*.',
   category: 'Competencias', hero_asset_id: null, publication_status: 'draft', published_at: null,
-  author_id: userId, created_at: '2026-08-18T10:00:00Z', updated_at: '2026-08-18T10:00:00Z', ...overrides,
+  author_id: userId, revision: 1, created_at: '2026-08-18T10:00:00Z', updated_at: '2026-08-18T10:00:00Z', ...overrides,
 });
 
 test('manages a news article through create, publish, and archive', async ({ page }) => {
   await routeAdminAuth(page);
   let rows = [];
-  let nextId = 2;
+  const articleId = '50000000-0000-4000-8000-000000000002';
+  const savePayloads = [];
+  const statusPayloads = [];
   const heroAsset = {
     id: '40000000-0000-4000-8000-000000000002', provider: 'cloudinary', public_id: 'asanda/noticias/noticia-e2e',
     external_url: null, resource_type: 'image', format: 'jpg', width: 1200, height: 675, bytes: 2048,
@@ -94,16 +95,28 @@ test('manages a news article through create, publish, and archive', async ({ pag
       }
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(list) });
     }
-if (method === 'POST') {
-      const payload = JSON.parse(request.postData());
-      const row = newsRow(String(nextId++), { ...payload, published_at: null, updated_at: '2026-08-18T10:05:00Z' });
-      rows.push(row);
-      return route.fulfill({ status: wantsObject ? 200 : 201, contentType: 'application/json', body: JSON.stringify(wantsObject ? row : [row]) });
-    }
-    const payload = JSON.parse(request.postData());
-    const row = rows.find((item) => item.id === id);
-    Object.assign(row, payload, { updated_at: '2026-08-18T10:10:00Z' });
-    return route.fulfill({ status: wantsObject ? 200 : 201, contentType: 'application/json', body: JSON.stringify(wantsObject ? row : [row]) });
+    return route.abort();
+  });
+  await page.route('**/rest/v1/rpc/save_admin_news', async (route) => {
+    const payload = JSON.parse(route.request().postData());
+    savePayloads.push(payload);
+    const row = newsRow(articleId, {
+      slug: payload.requested_slug, title: payload.requested_title, summary: payload.requested_summary,
+      body: payload.requested_body, category: payload.requested_category, hero_asset_id: payload.requested_hero_asset_id,
+      updated_at: '2026-08-18T10:05:00Z',
+    });
+    rows = [row];
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(row) });
+  });
+  await page.route('**/rest/v1/rpc/set_admin_news_status', async (route) => {
+    const payload = JSON.parse(route.request().postData());
+    statusPayloads.push(payload);
+    const row = rows.find((item) => item.id === payload.requested_article_id);
+    Object.assign(row, {
+      publication_status: payload.requested_status, published_at: payload.requested_published_at,
+      revision: row.revision + 1, updated_at: '2026-08-18T10:10:00Z',
+    });
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(row) });
   });
   await signInEditor(page);
 
@@ -120,18 +133,30 @@ if (method === 'POST') {
   await page.getByLabel('Cuerpo (markdown seguro)').fill('**Cuerpo** con *formato*.');
   await expect(page.getByRole('heading', { name: 'Vista previa' }).locator('..').getByText('Cuerpo')).toBeVisible();
   await page.getByRole('button', { name: 'Guardar' }).click();
-  await expect(page.getByRole('status')).toContainText('Cambios guardados.');
-  await expect(page).toHaveURL(/\/admin\/noticias\/2$/);
-  expect(rows[0].hero_asset_id).toBe(heroAsset.id);
+  await expect(page.getByRole('status')).toContainText('La noticia se guardó.');
+  await expect(page).toHaveURL(new RegExp(`/admin/noticias/${articleId}$`));
+  expect(savePayloads).toEqual([{
+    requested_article_id: null, requested_expected_revision: null, requested_slug: 'noticia-e2e',
+    requested_title: 'Noticia E2E', requested_summary: 'Resumen de prueba',
+    requested_body: '**Cuerpo** con *formato*.', requested_category: 'Competencias', requested_hero_asset_id: heroAsset.id,
+  }]);
 
   await page.getByRole('button', { name: 'Publicar' }).click();
-  await expect(page.getByRole('status')).toContainText('Noticia publicada.');
+  await page.getByRole('dialog').getByRole('button', { name: 'Publicar' }).click();
+  await expect(page.getByRole('status')).toContainText('La noticia se publicó.');
+  expect(statusPayloads).toEqual([{
+    requested_article_id: articleId, requested_expected_revision: 1, requested_status: 'published',
+    requested_published_at: expect.any(String),
+  }]);
   await page.getByRole('link', { name: 'Volver a noticias' }).click();
   await expect(page.getByText('Publicada')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Editar Noticia E2E' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Archivar Noticia E2E' }).click();
   await expect(page.getByText('Archivada')).toBeVisible();
+  expect(statusPayloads[1]).toEqual({
+    requested_article_id: articleId, requested_expected_revision: 2, requested_status: 'archived', requested_published_at: null,
+  });
   await expect(page.getByRole('button', { name: 'Publicar Noticia E2E' })).toBeVisible();
 });
 
@@ -156,8 +181,11 @@ test('keeps the current news image when the media library is unavailable', async
         body: JSON.stringify(wantsObject ? row : [row]),
       });
     }
-    savedPayload = JSON.parse(request.postData());
-    Object.assign(row, savedPayload);
+    return route.abort();
+  });
+  await page.route('**/rest/v1/rpc/save_admin_news', async (route) => {
+    savedPayload = JSON.parse(route.request().postData());
+    Object.assign(row, { title: savedPayload.requested_title, hero_asset_id: savedPayload.requested_hero_asset_id, revision: 2 });
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(row) });
   });
 
@@ -167,8 +195,8 @@ test('keeps the current news image when the media library is unavailable', async
   await expect(page.getByLabel('Imagen principal')).toHaveValue(heroAssetId);
   await page.getByLabel('Título').fill('Noticia E2E actualizada');
   await page.getByRole('button', { name: 'Guardar' }).click();
-  await expect(page.getByText('Cambios guardados.', { exact: true })).toBeVisible();
-  expect(savedPayload.hero_asset_id).toBe(heroAssetId);
+  await expect(page.getByText('La noticia se guardó.', { exact: true })).toBeVisible();
+  expect(savedPayload.requested_hero_asset_id).toBe(heroAssetId);
 });
 
 test('manages featured windows through append, move, edit, and remove', async ({ page }) => {

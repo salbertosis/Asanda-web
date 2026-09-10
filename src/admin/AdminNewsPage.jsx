@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Archive, Pencil, Plus, RefreshCw, Send } from 'lucide-react';
 import { archiveNews, listAdminNews, publishNews } from '../services/admin/news';
@@ -33,12 +33,12 @@ const AdminNewsPage = () => {
     load();
   }, [load]);
 
-  const changeStatus = async (id, action) => {
+  const changeStatus = async (id, revision, action) => {
     setBusyId(id);
     setError(null);
     try {
-      if (action === 'publish') await publishNews(id);
-      else await archiveNews(id);
+      if (action === 'publish') await publishNews(id, revision);
+      else await archiveNews(id, revision);
       await load();
     } catch {
       setError('No fue posible actualizar la noticia. Intentá nuevamente.');
@@ -102,12 +102,12 @@ const AdminNewsPage = () => {
                       Editar
                     </Link>
                     {item.status !== 'archived' ? (
-                      <button type="button" disabled={busyId === item.id} onClick={() => changeStatus(item.id, 'archive')} className="inline-flex min-h-10 items-center gap-1.5 px-3 font-bold text-slate-600 hover:bg-slate-100 disabled:cursor-wait disabled:opacity-60" aria-label={`Archivar ${item.title}`}>
+                      <button type="button" disabled={busyId === item.id} onClick={() => changeStatus(item.id, item.revision, 'archive')} className="inline-flex min-h-10 items-center gap-1.5 px-3 font-bold text-slate-600 hover:bg-slate-100 disabled:cursor-wait disabled:opacity-60" aria-label={`Archivar ${item.title}`}>
                         <Archive size={16} aria-hidden="true" />
                         Archivar
                       </button>
                     ) : (
-                      <button type="button" disabled={busyId === item.id} onClick={() => changeStatus(item.id, 'publish')} className="inline-flex min-h-10 items-center gap-1.5 px-3 font-bold text-asanda-deep hover:bg-asanda-mist disabled:cursor-wait disabled:opacity-60" aria-label={`Publicar ${item.title}`}>
+                      <button type="button" disabled={busyId === item.id} onClick={() => changeStatus(item.id, item.revision, 'publish')} className="inline-flex min-h-10 items-center gap-1.5 px-3 font-bold text-asanda-deep hover:bg-asanda-mist disabled:cursor-wait disabled:opacity-60" aria-label={`Publicar ${item.title}`}>
                         <Send size={16} aria-hidden="true" />
                         Publicar
                       </button>

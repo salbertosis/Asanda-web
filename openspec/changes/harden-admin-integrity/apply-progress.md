@@ -332,3 +332,12 @@ Every exact unchecked `- [ ]` task line from task 2.2 onward in `tasks.md` remai
 The cumulative exact unchecked list above remains authoritative from task 2.3 onward. The next line is:
 
 - [ ] 2.3 WU07/PR07 `src/admin/AdminNewsPage.jsx` News-list; T:news-E2E;H:E;R:APP.
+
+### Browser-mock correction evidence
+
+- **Status:** Passing after formatter-churn remediation; task 2.2 remains checked. The two source files were reconstructed from branch HEAD with only the confirmed identity/revision fixes, then source and browser test surfaces were made read-only.
+- GREEN focused mocked browser contract: exact lifecycle grep — **1 passed (18.3s)**. Whole `admin-editorial.spec.js` — **5 passed (46.8s)** with the exact News RPC mocks and adjacent existing-image RPC compatibility.
+- Deterministic regression: `npm run test:admin-editorial` — **18 passed**. Build — **passed**, 1,513 modules transformed in 10.01s with only the existing Browserslist warning. Primary package-local pi-lens LSP commands previously exited 0 with no diagnostics.
+- Final `git diff --check` — **passed** with preserved line-ending warnings only. Correction numstat: **+65/-28 (93 lines)**; complete PR06 numstat against its predecessor: **+227/-99 (326 lines)**, within 400 and correction runtime within 220.
+- No WU07 shared outcomes, reconciliation, or UI redesign was added. Rollback this correction in the editor, list compatibility calls, browser mocks, and this evidence subsection only.
+- Consumed named `gentle-ai.sdd-status@2`: apply ready, repo-local allowed root, no warnings. Parent-owned authority was not acquired, reset, rescoped, or settled.

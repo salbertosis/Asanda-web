@@ -89,8 +89,8 @@ const NewsEditorPage = () => {
       confirmation: publish ? { title: 'Publicar noticia', description: 'La noticia quedará visible en el portal. ¿Querés publicarla?', confirmLabel: 'Publicar' } : undefined,
       command: async () => {
         const outcome = id ? await updateNews(id, revision, form) : await createNews(form);
+        if (outcome.outcome === 'confirmed') articleId = outcome.value.id;
         if (outcome.outcome !== 'confirmed' || !publish) return outcome;
-        articleId = outcome.value.id;
         uncertainAction = 'publish';
         return publishNews(articleId, outcome.value.revision);
       },
