@@ -80,6 +80,22 @@
       line-height: 1.2;
     }
 
+    .view-switcher {
+      display: none;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
     .viewer {
       display: grid;
       grid-template-columns: 250px minmax(0, 1fr);
@@ -107,15 +123,67 @@
     }
 
     @media (max-width: 760px) {
-      .site-header { padding-block: 0.65rem; }
+      html, body {
+        width: 100%;
+        height: 100vh;
+        height: 100dvh;
+        min-height: 100vh;
+        min-height: 100dvh;
+      }
+
+      body { overflow: hidden; }
+
+      .site-header {
+        flex: 0 0 auto;
+        padding-block: 0.65rem;
+      }
 
       .logo-frame { width: clamp(5.5rem, 25vw, 7.5rem); }
 
+      .view-switcher {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+        flex: 0 0 auto;
+        padding: 0.65rem 0.75rem 0;
+      }
+
+      .view-switcher button {
+        min-height: 2.75rem;
+        padding: 0.6rem 0.75rem;
+        border: 1px solid var(--brand);
+        border-radius: 0.65rem;
+        background: var(--surface);
+        color: var(--brand);
+        font: 750 0.95rem system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        cursor: pointer;
+      }
+
+      .view-switcher button[aria-pressed="true"] {
+        background: var(--brand);
+        color: #ffffff;
+      }
+
+      .view-switcher button:focus-visible {
+        outline: 3px solid #f59e0b;
+        outline-offset: 2px;
+      }
+
       .viewer {
-        grid-template-columns: 1fr;
-        grid-template-rows: minmax(22rem, 48vh) minmax(32rem, 70vh);
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr);
+        min-width: 0;
         min-height: 0;
         padding: 0.75rem;
+        flex: 1 1 auto;
+        overflow: hidden;
+      }
+
+      .panel { min-height: 0; }
+
+      body[data-mobile-view="events"] #results-panel,
+      body[data-mobile-view="results"] #events-panel {
+        display: none;
       }
     }
 
@@ -151,20 +219,76 @@
         </div>
       </header>
 
+  <nav class="view-switcher" aria-label="Vista del visor">
+    <button id="show-events" type="button" aria-pressed="true" aria-controls="events-panel">Eventos</button>
+    <button id="show-results" type="button" aria-pressed="false" aria-controls="results-panel">Resultados</button>
+  </nav>
+
   <main class="viewer" aria-label="Visor de resultados">
-    <section class="panel" aria-label="Navegación de eventos">
-      <iframe src="evtindex.htm" title="Lista y búsqueda de eventos"></iframe>
+    <section id="events-panel" class="panel" aria-label="Navegación de eventos">
+      <iframe id="events-frame" src="evtindex.htm" title="Lista y búsqueda de eventos"></iframe>
     </section>
-    <section class="panel" aria-label="Contenido de resultados">
-      <iframe id="results-frame" name="main" src="main.htm" title="Resultados del evento seleccionado"></iframe>
+    <section id="results-panel" class="panel" aria-label="Contenido de resultados">
+      <iframe id="results-frame" name="main" src="main.htm" title="Resultados del evento seleccionado" tabindex="-1"></iframe>
     </section>
   </main>
 
-  <script>
-    (() => {
-      const resultsFrame = document.getElementById('results-frame');
+  <p id="viewer-status" class="sr-only" aria-live="polite"></p>
 
-      const applyLegacyStyles = () => {
+  <script>
+        (() => {
+          const mobileQuery = window.matchMedia('(max-width: 760px)');
+          const eventsFrame = document.getElementById('events-frame');
+          const resultsFrame = document.getElementById('results-frame');
+          const eventsButton = document.getElementById('show-events');
+          const resultsButton = document.getElementById('show-results');
+          const viewerStatus = document.getElementById('viewer-status');
+          let focusResultsAfterLoad = false;
+
+          const setView = (view) => {
+            document.body.dataset.mobileView = view;
+            eventsButton.setAttribute('aria-pressed', String(view === 'events'));
+            resultsButton.setAttribute('aria-pressed', String(view === 'results'));
+          };
+
+          const focusEventSearch = () => {
+            try {
+              const search = eventsFrame.contentDocument?.getElementById('event-search');
+              if (search) search.focus();
+            } catch (error) {
+              // Same-origin access can be unavailable in some hosting contexts.
+            }
+          };
+
+          eventsButton.addEventListener('click', () => {
+            setView('events');
+            window.requestAnimationFrame(focusEventSearch);
+          });
+
+          resultsButton.addEventListener('click', () => {
+            setView('results');
+          });
+
+          window.addEventListener('message', (event) => {
+            const validOrigin = location.protocol === 'file:'
+              ? event.origin === 'null'
+              : (location.protocol === 'http:' || location.protocol === 'https:') && event.origin === location.origin;
+
+            if (
+              event.source !== eventsFrame.contentWindow
+              || !event.data
+              || event.data.type !== 'asanda:event-selected'
+              || !validOrigin
+            ) return;
+
+            if (mobileQuery.matches) {
+              focusResultsAfterLoad = true;
+              viewerStatus.textContent = '';
+              setView('results');
+            }
+          });
+
+          const applyLegacyStyles = () => {
         try {
           const doc = resultsFrame.contentDocument;
           if (!doc || !doc.head || !doc.body) return;
@@ -238,8 +362,19 @@
         }
       };
 
-      resultsFrame.addEventListener('load', applyLegacyStyles);
-    })();
+          resultsFrame.addEventListener('load', () => {
+            applyLegacyStyles();
+
+            if (!focusResultsAfterLoad) return;
+            focusResultsAfterLoad = false;
+            if (!mobileQuery.matches) return;
+
+            resultsFrame.focus();
+            viewerStatus.textContent = 'Mostrando resultados del evento seleccionado.';
+          });
+
+          setView('events');
+        })();
   </script>
 </body>
 </html>
