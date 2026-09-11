@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Eventos | II Campeonato Preinfantil YMCAA jul 2026</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --background: #ffffff;
+      --surface: #f1f5f9;
+      --border: #cbd5e1;
+      --text: #172033;
+      --muted: #526077;
+      --accent: #075985;
+      --accent-soft: #e0f2fe;
+      --focus: #d97706;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { min-width: 0; }
+
+    body {
+      margin: 0;
+      min-width: 0;
+      background: var(--background);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+
+    header {
+      padding: 1.25rem 1rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.15rem;
+      line-height: 1.25;
+    }
+
+    .meet-date, .disclaimer {
+      margin: 0.4rem 0 0;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .search {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      padding: 0.9rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: color-mix(in srgb, var(--background) 94%, transparent);
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.4rem;
+      font-size: 0.85rem;
+      font-weight: 750;
+    }
+
+    input[type="search"] {
+      width: 100%;
+      min-height: 2.75rem;
+      padding: 0.65rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 0.55rem;
+      background: var(--background);
+      color: var(--text);
+      font: inherit;
+    }
+
+    input[type="search"]:focus-visible,
+    a:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    .search-status {
+      min-height: 1.25rem;
+      margin: 0.35rem 0 0;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    nav { padding: 0.35rem 1rem 1.5rem; }
+
+    .latest {
+      display: block;
+      margin: 0.65rem 0 1rem;
+      padding: 0.75rem;
+      border: 2px solid transparent;
+      border-radius: 0.55rem;
+      background: var(--accent);
+      color: #ffffff;
+      font-weight: 750;
+      text-decoration: none;
+    }
+
+    .latest:hover,
+    .latest[aria-current="page"] {
+      border-color: currentColor;
+      filter: brightness(1.12);
+    }
+
+    section { margin-top: 1.25rem; }
+
+    h2 {
+      margin: 0 0 0.6rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 1rem;
+    }
+
+    h2 span {
+      display: block;
+      margin-top: 0.15rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    ul {
+      display: grid;
+      gap: 0.25rem;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .event-link {
+      display: block;
+      padding: 0.6rem 0.7rem;
+      border-left: 3px solid transparent;
+      border-radius: 0.4rem;
+      color: var(--text);
+      font-size: 0.88rem;
+      text-decoration: none;
+      overflow-wrap: anywhere;
+    }
+
+    .event-link:hover,
+    .event-link[aria-current="page"] {
+      border-left-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .event-link[aria-current="page"] { font-weight: 750; }
+
+    [hidden] { display: none !important; }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .event-link, .latest { transition: background-color 150ms ease, color 150ms ease; }
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --background: #111827;
+        --surface: #0b1220;
+        --border: #334155;
+        --text: #e5edf7;
+        --muted: #a8b4c6;
+        --accent: #38bdf8;
+        --accent-soft: #172b3d;
+        --focus: #fbbf24;
+      }
+
+      .latest { background: #0c4a6e; color: #ffffff; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>II Campeonato Preinfantil YMCAA jul 2026</h1>
+    <p class="meet-date"><time datetime="2026-09-12">12 de septiembre de 2026</time></p>
+    <p class="disclaimer">Todos los tiempos son extraoficiales.</p>
+  </header>
+
+  <div class="search">
+    <label for="event-search">Buscar evento</label>
+    <input id="event-search" type="search" placeholder="Número, categoría o prueba" autocomplete="off">
+    <p id="search-status" class="search-status" aria-live="polite">42 eventos disponibles</p>
+  </div>
+
+  <nav aria-label="Eventos del campeonato">
+    <a class="latest" href="260912lastevt.htm" target="main">Último evento completado</a>
+
+    <section class="event-session" aria-labelledby="session-1-title">
+      <h2 id="session-1-title">Sesión 1 · 9:30 a. m.<span>sábado 12/9/2026</span></h2>
+      <ul>
+        <li><a class="event-link" href="260912F001.htm" target="main">#1 Girls 5&amp;U 25 Tablita PreInfantil</a></li>
+        <li><a class="event-link" href="260912F002.htm" target="main">#2 Boys 5&amp;U 25 Tablita PreInfantil</a></li>
+        <li><a class="event-link" href="260912F003.htm" target="main">#3 Girls 6-7 25 Libre PreInfantil</a></li>
+        <li><a class="event-link" href="260912F004.htm" target="main">#4 Boys 6-7 25 Libre PreInfantil</a></li>
+        <li><a class="event-link" href="260912F005.htm" target="main">#5 Girls 8 50 Libre PreInfantil</a></li>
+        <li><a class="event-link" href="260912F006.htm" target="main">#6 Boys 8 50 Libre PreInfantil</a></li>
+        <li><a class="event-link" href="260912F007.htm" target="main">#7 Girls 9 50 Libre PreInfantil</a></li>
+        <li><a class="event-link" href="260912F008.htm" target="main">#8 Boys 9 50 Libre PreInfantil</a></li>
+        <li><a class="event-link" href="260912F009.htm" target="main">#9 Girls 5&amp;U 25 Libre PreInfantil</a></li>
+        <li><a class="event-link" href="260912F010.htm" target="main">#10 Boys 5&amp;U 25 Libre PreInfantil</a></li>
+        <li><a class="event-link" href="260912F011.htm" target="main">#11 Girls 6-7 25 Pecho PreInfantil</a></li>
+        <li><a class="event-link" href="260912F012.htm" target="main">#12 Boys 6-7 25 Pecho PreInfantil</a></li>
+        <li><a class="event-link" href="260912F013.htm" target="main">#13 Girls 8 25 Pecho PreInfantil</a></li>
+        <li><a class="event-link" href="260912F014.htm" target="main">#14 Boys 8 25 Pecho PreInfantil</a></li>
+        <li><a class="event-link" href="260912F015.htm" target="main">#15 Girls 9 50 Pecho PreInfantil</a></li>
+        <li><a class="event-link" href="260912F016.htm" target="main">#16 Boys 9 50 Pecho PreInfantil</a></li>
+        <li><a class="event-link" href="260912F017.htm" target="main">#17 Girls 9 100 Combinado PreInfantil</a></li>
+        <li><a class="event-link" href="260912F018.htm" target="main">#18 Boys 9 100 Combinado PreInfantil</a></li>
+        <li><a class="event-link" href="260912F019.htm" target="main">#19 Girls 6-7 100 4x25 Libre Relay PreInfantil</a></li>
+        <li><a class="event-link" href="260912F020.htm" target="main">#20 Boys 6-7 100 4x25 Libre Relay PreInfantil</a></li>
+        <li><a class="event-link" href="260912F021.htm" target="main">#21 Girls 8 100 4x25 m Libre Relay PreInfantil</a></li>
+        <li><a class="event-link" href="260912F022.htm" target="main">#22 Boys 8 100 4x25 m Libre Relay PreInfantil</a></li>
+        <li><a class="event-link" href="260912F023.htm" target="main">#23 Girls 9 200 4x50 m Libre Relay PreInfantil</a></li>
+        <li><a class="event-link" href="260912F024.htm" target="main">#24 Boys 9 200 4x50 m Libre Relay PreInfantil</a></li>
+      </ul>
+    </section>
+
+    <section class="event-session" aria-labelledby="session-2-title">
+      <h2 id="session-2-title">Sesión 2 · 2:00 p. m.<span>sábado 12/9/2026</span></h2>
+      <ul>
+        <li><a class="event-link" href="260912F025.htm" target="main">#25 Girls 6-7 25 Espalda PreInfantil</a></li>
+        <li><a class="event-link" href="260912F026.htm" target="main">#26 Boys 6-7 25 Espalda PreInfantil</a></li>
+        <li><a class="event-link" href="260912F027.htm" target="main">#27 Girls 8 50 Espalda PreInfantil</a></li>
+        <li><a class="event-link" href="260912F028.htm" target="main">#28 Boys 8 50 Espalda PreInfantil</a></li>
+        <li><a class="event-link" href="260912F029.htm" target="main">#29 Girls 9 50 Espalda PreInfantil</a></li>
+        <li><a class="event-link" href="260912F030.htm" target="main">#30 Boys 9 50 Espalda PreInfantil</a></li>
+        <li><a class="event-link" href="260912F031.htm" target="main">#31 Girls 6-7 25 Mariposa PreInfantil</a></li>
+        <li><a class="event-link" href="260912F032.htm" target="main">#32 Boys 6-7 25 Mariposa PreInfantil</a></li>
+        <li><a class="event-link" href="260912F033.htm" target="main">#33 Girls 8 25 Mariposa PreInfantil</a></li>
+        <li><a class="event-link" href="260912F034.htm" target="main">#34 Boys 8 25 Mariposa PreInfantil</a></li>
+        <li><a class="event-link" href="260912F035.htm" target="main">#35 Girls 9 50 Mariposa PreInfantil</a></li>
+        <li><a class="event-link" href="260912F036.htm" target="main">#36 Boys 9 50 Mariposa PreInfantil</a></li>
+        <li><a class="event-link" href="260912F037.htm" target="main">#37 Girls 6-7 100 4x25 Combinado Relay PreInfantil</a></li>
+        <li><a class="event-link" href="260912F038.htm" target="main">#38 Boys 6-7 100 4x25 Combinado Relay PreInfantil</a></li>
+        <li><a class="event-link" href="260912F039.htm" target="main">#39 Girls 8 100 4x25 Combinado Relay PreInfantil</a></li>
+        <li><a class="event-link" href="260912F040.htm" target="main">#40 Boys 8 100 4x25 Combinado Relay PreInfantil</a></li>
+        <li><a class="event-link" href="260912F041.htm" target="main">#41 Girls 9 200 4x50 Combinado Relay PreInfantil</a></li>
+        <li><a class="event-link" href="260912F042.htm" target="main">#42 Boys 9 200 4x50 Estilo Relay PreInfantil</a></li>
+      </ul>
+    </section>
+  </nav>
+
+  <script>
+    (() => {
+      const search = document.getElementById('event-search');
+      const status = document.getElementById('search-status');
+      const links = [...document.querySelectorAll('.event-link')];
+      const sessions = [...document.querySelectorAll('.event-session')];
+      const resultLinks = [...document.querySelectorAll('a[target="main"]')];
+
+      const normalize = (value) => value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLocaleLowerCase('es');
+
+      search.addEventListener('input', () => {
+        const query = normalize(search.value.trim());
+        let visibleCount = 0;
+
+        links.forEach((link) => {
+          const matches = normalize(link.textContent).includes(query);
+          link.closest('li').hidden = !matches;
+          if (matches) visibleCount += 1;
+        });
+
+        sessions.forEach((session) => {
+          session.hidden = !session.querySelector('li:not([hidden])');
+        });
+
+        status.textContent = query
+          ? `${visibleCount} ${visibleCount === 1 ? 'evento encontrado' : 'eventos encontrados'}`
+          : '42 eventos disponibles';
+      });
+
+      resultLinks.forEach((link) => {
+        link.addEventListener('click', () => {
+          resultLinks.forEach((item) => item.removeAttribute('aria-current'));
+          link.setAttribute('aria-current', 'page');
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

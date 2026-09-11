@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta http-equiv="refresh" content="60; url=260912lastevt.htm">
+  <title>Resultados pendientes | II Campeonato Preinfantil YMCAA jul 2026</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --background: #ffffff;
+      --surface: #f1f5f9;
+      --border: #cbd5e1;
+      --text: #172033;
+      --muted: #526077;
+      --accent: #0f766e;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { min-height: 100%; }
+
+    body {
+      display: grid;
+      margin: 0;
+      padding: clamp(1rem, 5vw, 3rem);
+      place-items: center;
+      background: var(--background);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+
+    main {
+      width: min(100%, 42rem);
+      padding: clamp(1.5rem, 5vw, 3rem);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      background: var(--surface);
+      text-align: center;
+    }
+
+    .status-icon {
+      display: grid;
+      width: 3.5rem;
+      height: 3.5rem;
+      margin: 0 auto 1.25rem;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #ffffff;
+      font-size: 1.5rem;
+      font-weight: 800;
+    }
+
+    h1 {
+      margin: 0 0 0.75rem;
+      font-size: clamp(1.5rem, 4vw, 2.15rem);
+      line-height: 1.2;
+    }
+
+    p { margin: 0.5rem auto; }
+
+    .message {
+      max-width: 34rem;
+      color: var(--muted);
+    }
+
+    button {
+      min-height: 2.75rem;
+      margin-top: 1.25rem;
+      padding: 0.65rem 1rem;
+      border: 1px solid var(--accent);
+      border-radius: 0.55rem;
+      background: var(--accent);
+      color: #ffffff;
+      font: 700 0.95rem system-ui, sans-serif;
+      cursor: pointer;
+    }
+
+    button:focus-visible {
+      outline: 3px solid #f59e0b;
+      outline-offset: 2px;
+    }
+
+    .refresh-note {
+      margin-top: 1rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --background: #111827;
+        --surface: #0b1220;
+        --border: #334155;
+        --text: #e5edf7;
+        --muted: #a8b4c6;
+        --accent: #0f766e;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="status-icon" aria-hidden="true">⋯</div>
+    <h1>Todavía no hay eventos completados</h1>
+    <p class="message">La competencia aún no ha comenzado o no se ha publicado ningún resultado oficial.</p>
+    <button type="button" onclick="location.reload()">Actualizar estado</button>
+    <p class="refresh-note">Esta pantalla se actualiza automáticamente cada 60 segundos.</p>
+  </main>
+</body>
+</html>
