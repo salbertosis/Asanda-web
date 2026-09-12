@@ -1,6 +1,14 @@
 const RECORD_WIDTH = 192;
 const LINE_WIDTH = RECORD_WIDTH + 1;
 const SUPPORTED_VERSIONS = new Set(['HY3-8.0']);
+const LEGACY_WIDTH = 130;
+const LEGACY_LINE_WIDTH = 132;
+const LEGACY_VERSIONS = new Set(['MM5 6.0Ea']);
+const LEGACY_TYPES = new Set(['A1', 'B1', 'B2', 'C1', 'C2', 'C3', 'D1', 'E1', 'E2', 'F1', 'F2', 'F3', 'H1']);
+const LEGACY_STROKES = Object.freeze({ A: 'freestyle', B: 'backstroke', C: 'breaststroke', D: 'butterfly', E: 'medley' });
+const LEGACY_SEX = Object.freeze({ M: 'male', F: 'female' });
+const LEGACY_EVENT_SEX = Object.freeze({ ...LEGACY_SEX, X: 'mixed' });
+const LEGACY_ROUNDS = Object.freeze({ P: 'prelim', F: 'final', S: 'swimoff' });
 const RECORD_TYPES = new Set(['A', 'B', 'C', 'D', 'E', 'F', 'H']);
 const FIELDS = Object.freeze({
   A: [['version', 1, 8], ['meet', 9, 40], ['date', 49, 10], ['venue', 59, 32], ['pool', 91, 8]],
@@ -104,6 +112,254 @@ async function checksum(bytes) {
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
+const legacyField = (line, start, width) =>
+  text(line.slice(start - 1, start - 1 + width));
+const legacyAlias = (kind, value) => `MM5-${kind}-${required(value)}`;
+function legacyTime(value, requiredTime = false) {
+  const normalized = text(value).replace(",", ".");
+  if (!normalized || normalized === "0.00") {
+    if (requiredTime) throw new Error("invalid-time");
+    return null;
+  }
+  if (!/^\d+(?:\.\d{1,2})$/.test(normalized)) throw new Error("invalid-time");
+  const seconds = Number(normalized);
+  if (!Number.isFinite(seconds) || seconds <= 0)
+    throw new Error("invalid-time");
+  return { timeText: normalized, timeSeconds: Number(seconds.toFixed(2)) };
+}
+function legacyStatus(code) {
+  const status = { '': 'official', Q: 'disqualified', F: 'disqualified', D: 'did_not_finish', R: 'did_not_start', S: 'did_not_start' }[text(code)];
+  if (!status) throw new Error("invalid-value");
+  return status;
+}
+function legacyPlace(value) {
+  const place = required(value);
+  if (!/^\d{1,4}$/.test(place)) throw new Error("invalid-value");
+  return Number(place) || null;
+}
+function legacyResultFields(line) {
+  const round = LEGACY_ROUNDS[required(legacyField(line, 3, 1))];
+  if (!round) throw new Error("invalid-value");
+  const status = legacyStatus(legacyField(line, 13, 1));
+  const time = legacyTime(legacyField(line, 4, 8), status === "official");
+  if (status !== "official" && time) throw new Error("invalid-time");
+  return { round, status, time, place: legacyPlace(legacyField(line, 30, 4)) };
+}
+function addLegacyEvent(events, eventIndex, fields, round, relay) {
+  const distance = required(fields.distance);
+  const stroke = LEGACY_STROKES[required(fields.stroke)];
+  const sex = LEGACY_EVENT_SEX[required(fields.gender)];
+  if (!/^\d{1,6}$/.test(distance) || Number(distance) < 1 || !stroke || !sex || !round) throw new Error('invalid-value');
+  const number = required(fields.eventNumber);
+  if (!/^[A-Z0-9]{1,4}$/i.test(number)) throw new Error('invalid-value');
+  const sourceAlias = legacyAlias(relay ? 'RELAY-EVENT' : 'EVENT', `${number}-${sex}-${distance}-${stroke}-${round}`);
+  if (!eventIndex.has(sourceAlias)) {
+    const event = { sourceAlias, displayName: `Evento ${number}`, distanceMetres: Number(distance), stroke, sex, round };
+    eventIndex.set(sourceAlias, event);
+    events.push(event);
+  }
+  return sourceAlias;
+}
+async function parseLegacyHy3(bytes) {
+  if (!bytes.byteLength || bytes.byteLength % LEGACY_LINE_WIDTH !== 0)
+    throw new Error("malformed-record");
+  const decode = decoder();
+  const records = [];
+  for (let offset = 0; offset < bytes.byteLength; offset += LEGACY_LINE_WIDTH) {
+    const payload = bytes.subarray(offset, offset + LEGACY_WIDTH);
+    if (bytes[offset + LEGACY_WIDTH] !== 0x0d || bytes[offset + LEGACY_WIDTH + 1] !== 0x0a || payload.some((byte) => byte < 0x20)) throw new Error('malformed-record');
+    const line = decode.decode(payload);
+    const type = line.slice(0, 2);
+    if (!LEGACY_TYPES.has(type)) throw new Error("unsupported-record");
+    records.push({ type, line });
+  }
+  if (records[0]?.type !== 'A1' || records[1]?.type !== 'B1' || records[2]?.type !== 'B2' || records.filter(({ type }) => ['A1', 'B1', 'B2'].includes(type)).length !== 3) throw new Error('malformed-record');
+  const version = required(legacyField(records[0].line, 45, 10));
+  if (
+    legacyField(records[0].line, 30, 15) !== "Hy-Tek, Ltd" ||
+    !LEGACY_VERSIONS.has(version)
+  )
+    throw new Error("unsupported-version");
+  const meetName = required(legacyField(records[1].line, 3, 45));
+  const venueName = required(legacyField(records[1].line, 48, 45));
+  for (const start of [93, 101])
+    if (!/^\d{8}$/.test(legacyField(records[1].line, start, 8)))
+      throw new Error("invalid-value");
+  const poolCode = required(legacyField(records[2].line, 99, 1));
+  if (!["L", "S", "Y"].includes(poolCode)) throw new Error("invalid-value");
+  const teams = []; const athletes = []; const events = []; const entries = []; const results = []; const relays = [];
+  const teamIndex = new Set(); const athleteIndex = new Set(); const eventIndex = new Map(); const entryIndex = new Set(); const relayIndex = new Set();
+  let currentTeam = null; let pendingEntry = null; let pendingRelay = null; let previous = 'B2'; let lastStatus = null;
+  for (const { type, line } of records.slice(3)) {
+    if (type === "C1") {
+      const code = required(legacyField(line, 3, 5));
+      if (!/^[A-Z0-9-]{1,5}$/i.test(code)) throw new Error("invalid-value");
+      currentTeam = legacyAlias("TEAM", code);
+      if (teamIndex.has(currentTeam)) throw new Error("duplicate-record");
+      teamIndex.add(currentTeam);
+      teams.push({
+        sourceAlias: currentTeam,
+        displayName: safeDisplay(required(legacyField(line, 8, 30))),
+        countryCode: "",
+      });
+    } else if (type === "C2") {
+      if (previous !== "C1") throw new Error("malformed-record");
+    } else if (type === "C3") {
+      if (previous !== "C2") throw new Error("malformed-record");
+    } else if (type === "D1") {
+      if (!currentTeam) throw new Error("missing-reference");
+      const meetId = required(legacyField(line, 4, 5));
+      if (
+        !/^\d{1,5}$/.test(meetId) ||
+        !LEGACY_SEX[required(legacyField(line, 3, 1))]
+      )
+        throw new Error("invalid-value");
+      const sourceAlias = legacyAlias("ATHLETE", meetId);
+      if (athleteIndex.has(sourceAlias)) throw new Error("duplicate-record");
+      athleteIndex.add(sourceAlias);
+      athletes.push({
+        sourceAlias,
+        displayName: safeDisplay(
+          `${required(legacyField(line, 29, 20))} ${required(legacyField(line, 9, 20))}`,
+        ),
+      });
+    } else if (type === "E1") {
+      if (pendingEntry || pendingRelay) throw new Error("malformed-record");
+      const athleteAlias = legacyAlias("ATHLETE", legacyField(line, 4, 5));
+      if (!athleteIndex.has(athleteAlias)) throw new Error("missing-reference");
+      pendingEntry = {
+        athleteAlias,
+        gender: legacyField(line, 14, 1),
+        distance: legacyField(line, 16, 6),
+        stroke: legacyField(line, 22, 1),
+        eventNumber: legacyField(line, 39, 4),
+        seed: legacyTime(legacyField(line, 52, 8)),
+      };
+    } else if (type === "E2") {
+      if (previous !== "E1" || !pendingEntry)
+        throw new Error("malformed-record");
+      const resultFields = legacyResultFields(line);
+      const eventAlias = addLegacyEvent(
+        events,
+        eventIndex,
+        pendingEntry,
+        resultFields.round,
+        false,
+      );
+      const sourceAlias = legacyAlias(
+        "ENTRY",
+        `${pendingEntry.athleteAlias.slice(4)}-${eventAlias.slice(4)}`,
+      );
+      if (entryIndex.has(sourceAlias)) throw new Error("duplicate-record");
+      entryIndex.add(sourceAlias);
+      entries.push({
+        sourceAlias,
+        athleteAlias: pendingEntry.athleteAlias,
+        eventAlias,
+        seedTimeText: pendingEntry.seed?.timeText || null,
+        seedTimeSeconds: pendingEntry.seed?.timeSeconds ?? null,
+      });
+      results.push({
+        sourceAlias: legacyAlias(
+          "RESULT",
+          `${sourceAlias.slice(4)}-${resultFields.round}`,
+        ),
+        entryAlias: sourceAlias,
+        athleteAlias: pendingEntry.athleteAlias,
+        eventAlias,
+        timeText: resultFields.time?.timeText || null,
+        timeSeconds: resultFields.time?.timeSeconds ?? null,
+        status: resultFields.status,
+        place: resultFields.place,
+        note: "",
+      });
+      pendingEntry = null;
+      lastStatus = resultFields.status;
+    } else if (type === "F1") {
+      if (pendingEntry || pendingRelay) throw new Error("malformed-record");
+      const teamAlias = legacyAlias("TEAM", legacyField(line, 3, 5));
+      if (!teamIndex.has(teamAlias)) throw new Error("missing-reference");
+      pendingRelay = {
+        teamAlias,
+        relayTeam: required(legacyField(line, 8, 1)),
+        gender: legacyField(line, 14, 1),
+        distance: legacyField(line, 16, 6),
+        stroke: legacyField(line, 22, 1),
+        eventNumber: legacyField(line, 39, 4),
+      };
+    } else if (type === "F2") {
+      if (previous !== "F1" || !pendingRelay)
+        throw new Error("malformed-record");
+      const resultFields = legacyResultFields(line);
+      pendingRelay.eventAlias = addLegacyEvent(
+        events,
+        eventIndex,
+        pendingRelay,
+        resultFields.round,
+        true,
+      );
+      Object.assign(pendingRelay, resultFields);
+      lastStatus = pendingRelay.status;
+    } else if (type === "F3") {
+      if (!["F2", "H1"].includes(previous) || !pendingRelay?.eventAlias)
+        throw new Error("malformed-record");
+      let legs = 0;
+      for (let index = 0; index < 8; index += 1) {
+        const id = legacyField(line, 4 + index * 13, 5);
+        if (!id) break;
+        if (!athleteIndex.has(legacyAlias("ATHLETE", id)))
+          throw new Error("missing-reference");
+        legs += 1;
+      }
+      if (legs < 2) throw new Error("invalid-value");
+      const sourceAlias = legacyAlias(
+        "RELAY",
+        `${pendingRelay.teamAlias.slice(4)}-${pendingRelay.eventAlias.slice(4)}-${pendingRelay.relayTeam}`,
+      );
+      if (relayIndex.has(sourceAlias)) throw new Error("duplicate-record");
+      relayIndex.add(sourceAlias);
+      relays.push({
+        sourceAlias,
+        teamAlias: pendingRelay.teamAlias,
+        eventAlias: pendingRelay.eventAlias,
+        legs,
+        timeText: pendingRelay.time?.timeText || null,
+        timeSeconds: pendingRelay.time?.timeSeconds ?? null,
+        status: pendingRelay.status,
+        note: "",
+      });
+      pendingRelay = null;
+    } else if (type === "H1") {
+      if (!["E2", "F2"].includes(previous) || lastStatus !== "disqualified")
+        throw new Error("malformed-record");
+    }
+    previous = type;
+  }
+  if (pendingEntry || pendingRelay) throw new Error("malformed-record");
+  const recordCounts = records.reduce(
+    (counts, { type }) => ({ ...counts, [type]: (counts[type] || 0) + 1 }),
+    {},
+  );
+  return {
+    ok: true,
+    checksum: await checksum(bytes),
+    preview: {
+      version,
+      recordCounts,
+      meetName: safeDisplay(meetName),
+      venueName: safeDisplay(venueName),
+      pool: { L: "LCM", S: "SCM", Y: "SCY" }[poolCode],
+      teams,
+      athletes,
+      events,
+      entries,
+      results,
+      relays,
+      diagnostics: [],
+    },
+  };
+}
+
 function csvLine(line) {
   const cells = []; let cell = ''; let quoted = false;
   for (let index = 0; index < line.length; index += 1) {
@@ -140,6 +396,7 @@ export function parseCsvFallback(value) {
 export async function parseHy3(value) {
   try {
     const bytes = bytesOf(value);
+    if (bytes[0] === 0x41 && bytes[1] === 0x31) return await parseLegacyHy3(bytes);
     if (bytes.byteLength === 0 || bytes.byteLength % LINE_WIDTH !== 0) throw new Error('malformed-record');
     const records = [];
     for (let offset = 0; offset < bytes.byteLength; offset += LINE_WIDTH) {

@@ -8,8 +8,10 @@ export const FIXTURE_NAMES = Object.freeze([
   'synthetic-windows-1252.hy3',
   'synthetic-unsupported-version.hy3',
   'synthetic-malformed-record.hy3',
+  'synthetic-legacy-mm5.hy3',
 ]);
 export const RECORD_WIDTH = 192;
+export const LEGACY_RECORD_WIDTH = 130;
 export const SUPPORTED_RECORD_TYPES = Object.freeze(['A', 'B', 'C', 'D', 'E', 'F', 'H']);
 export const FIELD_LAYOUTS = Object.freeze({
   A: [['version', 1, 8], ['meet', 9, 40], ['date', 49, 10], ['venue', 59, 32], ['pool', 91, 8]],
@@ -19,6 +21,15 @@ export const FIELD_LAYOUTS = Object.freeze({
   E: [['alias', 1, 16], ['athlete', 17, 16], ['event', 33, 16], ['seed', 49, 8]],
   F: [['alias', 1, 16], ['entry', 17, 16], ['time', 33, 8], ['status', 41, 16], ['place', 57, 4], ['note', 61, 100]],
   H: [['alias', 1, 16], ['team', 17, 16], ['event', 33, 16], ['legs', 49, 2], ['time', 51, 8], ['status', 59, 16], ['note', 75, 100]],
+});
+const LEGACY_FIELD_LAYOUTS = Object.freeze({
+  A1: [['description', 4, 25], ['software', 29, 15], ['version', 44, 10], ['created', 58, 17], ['private', 75, 53]],
+  B1: [['meet', 2, 45], ['venue', 47, 45], ['startDate', 92, 8], ['endDate', 100, 8]],
+  B2: [['note', 2, 45], ['meetType', 96, 2], ['course', 98, 1]],
+  C1: [['teamCode', 2, 5], ['name', 7, 30], ['shortName', 37, 16], ['region', 53, 2], ['private', 55, 60]],
+  D1: [['sex', 2, 1], ['meetId', 3, 5], ['lastName', 8, 20], ['firstName', 28, 20], ['identity', 69, 14], ['birthDate', 88, 8], ['age', 96, 3]],
+  E1: [['athlete', 3, 5], ['gender', 13, 1], ['genderAge', 14, 1], ['distance', 15, 6], ['stroke', 21, 1], ['ageMin', 22, 3], ['ageMax', 25, 3], ['eventNumber', 38, 4], ['convertedSeed', 42, 8], ['course', 50, 1], ['seed', 51, 8], ['seedCourse', 59, 1]],
+  E2: [['round', 2, 1], ['time', 3, 8], ['course', 11, 1], ['status', 12, 1], ['heat', 20, 3], ['lane', 23, 3], ['heatPlace', 26, 3], ['place', 29, 4]],
 });
 const CP1252_SPECIALS = new Map([
   ['€', 0x80], ['‚', 0x82], ['ƒ', 0x83], ['„', 0x84], ['…', 0x85], ['†', 0x86], ['‡', 0x87],
@@ -69,7 +80,7 @@ export function parseManifest(text, filename = 'inline.hy3') {
       records.push({ type: 'RAW', raw: Buffer.from(fields.hex, 'hex'), fields, line });
       continue;
     }
-    if (!/^[A-Z]$/.test(type)) throw new Error(`${filename}:${index + 1}: invalid record type`);
+    if (!/^[A-Z](?:\d)?$/.test(type)) throw new Error(`${filename}:${index + 1}: invalid record type`);
     records.push({ type, fields: parseFields(parts), line });
   }
   return records;
@@ -81,9 +92,10 @@ function writeField(bytes, offset, width, value = '') {
 }
 export function encodeRecord(record) {
   if (record.raw) return Buffer.from(record.raw);
-  const bytes = Buffer.alloc(RECORD_WIDTH, 0x20);
-  bytes[0] = record.type.charCodeAt(0);
-  for (const [name, offset, width] of FIELD_LAYOUTS[record.type] || []) {
+  const legacy = record.type.length === 2;
+  const bytes = Buffer.alloc(legacy ? LEGACY_RECORD_WIDTH : RECORD_WIDTH, 0x20);
+  bytes.write(record.type, 0, 'ascii');
+  for (const [name, offset, width] of (legacy ? LEGACY_FIELD_LAYOUTS : FIELD_LAYOUTS)[record.type] || []) {
     writeField(bytes, offset, width, record.fields[name]);
   }
   return bytes;
@@ -92,7 +104,8 @@ export async function loadFixture(filename) {
   const path = `${FIXTURE_DIR}/${filename}`;
   const manifest = await readFile(path, 'utf8');
   const records = parseManifest(manifest, filename);
-  const bytes = Buffer.concat(records.flatMap((record) => [encodeRecord(record), Buffer.from('\n')]));
+  const legacy = records.some(({ type }) => type.length === 2);
+  const bytes = Buffer.concat(records.flatMap((record) => [encodeRecord(record), Buffer.from(legacy ? '\r\n' : '\n')]));
   return { filename, manifest, records, bytes };
 }
 export function recordCounts(records) {

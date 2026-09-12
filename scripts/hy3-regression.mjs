@@ -11,6 +11,7 @@ const supported = fixtures['synthetic-supported.hy3'];
 const cp1252 = fixtures['synthetic-windows-1252.hy3'];
 const unsupported = fixtures['synthetic-unsupported-version.hy3'];
 const malformed = fixtures['synthetic-malformed-record.hy3'];
+const legacy = fixtures['synthetic-legacy-mm5.hy3'];
 let fixturePassed = 0;
 const fixtureFailures = [];
 function fixtureCheck(name, fn) {
@@ -45,6 +46,13 @@ fixtureCheck('valid fixture records are fixed-width and LF terminated', () => {
       offset += RECORD_WIDTH + 1;
     }
     assert.equal(offset, fixture.bytes.length);
+  }
+});
+fixtureCheck('legacy fixture uses exact 130-byte payloads and CRLF', () => {
+  assert.deepEqual(recordCounts(legacy.records), { A1: 1, B1: 1, B2: 1, C1: 1, D1: 1, E1: 1, E2: 1 });
+  for (let offset = 0; offset < legacy.bytes.length; offset += 132) {
+    assert.equal(legacy.bytes[offset + 130], 0x0d);
+    assert.equal(legacy.bytes[offset + 131], 0x0a);
   }
 });
 fixtureCheck('Windows-1252 edge bytes survive fixture encoding', () => {
@@ -100,7 +108,62 @@ try {
   parserBoundaryError = error;
 }
 const parseHy3 = parserModule?.parseHy3;
+const legacyRecord = (type) => {
+  const record = Buffer.concat([Buffer.alloc(130, 0x20), Buffer.from('\r\n')]);
+  record.write(type, 0, 2, 'ascii');
+  return record;
+};
+const legacyRelayRecords = (dq = false) => {
+  const f1 = Buffer.from(legacy.bytes.subarray(5 * 132, 6 * 132));
+  f1.write('F1TST01A', 0, 8, 'ascii');
+  const f2 = Buffer.from(legacy.bytes.subarray(6 * 132));
+  f2.write('F2', 0, 2, 'ascii');
+  if (dq) { f2.fill(0x20, 3, 11); f2.write('Q', 12, 1, 'ascii'); }
+  const f3 = legacyRecord('F3');
+  f3.write(' 00001        00001', 2, 19, 'ascii');
+  return { f1, f2, f3 };
+};
 const parserCases = [
+  ['accepts strict legacy MM5 data as a sanitized linked preview', async () => {
+    const result = await parseHy3(legacy.bytes); const serialized = JSON.stringify(result);
+    assert.equal(result.ok, true); assert.equal(result.preview.version, 'MM5 6.0Ea');
+    assert.deepEqual(result.preview.recordCounts, { A1: 1, B1: 1, B2: 1, C1: 1, D1: 1, E1: 1, E2: 1 });
+    assert.equal(result.preview.entries.length, 1); assert.equal(result.preview.results[0].timeSeconds, 61.23); assert.equal(result.preview.results[0].place, 1);
+    assert.equal(result.preview.entries[0].athleteAlias, result.preview.results[0].athleteAlias);
+    assert.equal(result.preview.entries[0].eventAlias, result.preview.results[0].eventAlias);
+    assert.doesNotMatch(serialized, /PRIVATE_|birthDate|address|phone|email|identity|raw/i);
+  }],
+  ['preserves legacy comma-decimal, zero-time, H1, and relay linkage semantics', async () => {
+    const zeroSeed = Buffer.from(legacy.bytes); zeroSeed.write('0,00    ', 5 * 132 + 51, 8, 'ascii');
+    assert.equal((await parseHy3(zeroSeed)).preview.entries[0].seedTimeSeconds, null);
+    const h1 = Buffer.from(legacy.bytes); h1.fill(0x20, 6 * 132 + 3, 6 * 132 + 11); h1.write('Q', 6 * 132 + 12, 1, 'ascii');
+    assert.equal((await parseHy3(Buffer.concat([h1, legacyRecord('H1')]))).ok, true);
+    const { f1, f2, f3 } = legacyRelayRecords();
+    const relay = await parseHy3(Buffer.concat([legacy.bytes.subarray(0, 5 * 132), f1, f2, f3]));
+    assert.equal(relay.ok, true); assert.equal(relay.preview.relays[0].legs, 2);
+  }],
+  ['accepts F2→H1→F3 only for the immediately associated disqualified relay', async () => {
+    const { f1, f2, f3 } = legacyRelayRecords(true); const prefix = legacy.bytes.subarray(0, 5 * 132); const h1 = legacyRecord('H1');
+    const accepted = await parseHy3(Buffer.concat([prefix, f1, f2, h1, f3]));
+    assert.equal(accepted.ok, true); assert.equal(accepted.preview.relays[0].status, 'disqualified');
+    for (const records of [[prefix, h1], [prefix, f1, f2, h1, h1, f3], [prefix, f1, f2, f3, h1]]) {
+      const rejected = await parseHy3(Buffer.concat(records)); assert.equal(rejected.ok, false); assert.equal(rejected.code, 'malformed-record');
+    }
+  }],
+  ['rejects a second E1 while the first entry awaits E2', async () => {
+    const offset = 5 * 132; const result = await parseHy3(Buffer.concat([legacy.bytes.subarray(0, offset + 132), legacy.bytes.subarray(offset)]));
+    assert.equal(result.ok, false); assert.equal(result.code, 'malformed-record');
+  }],
+  ['rejects a second F1 while the first relay group is incomplete', async () => {
+    const { f1, f2 } = legacyRelayRecords(); const result = await parseHy3(Buffer.concat([legacy.bytes.subarray(0, 5 * 132), f1, f1, f2]));
+    assert.equal(result.ok, false); assert.equal(result.code, 'malformed-record');
+  }],
+  ['distinguishes unsupported legacy versions and malformed geometry', async () => {
+    const version = Buffer.from(legacy.bytes); version.write('MM5 9.9Z  ', 44, 10, 'ascii');
+    assert.equal((await parseHy3(version)).code, 'unsupported-version');
+    const geometry = Buffer.from(legacy.bytes); geometry[130] = 0x0a;
+    assert.equal((await parseHy3(geometry)).code, 'malformed-record');
+  }],
   ['accepts A/B/C/D/E/F/H and reports record counts', async () => {
     const result = await parseHy3(supported.bytes);
     assert.equal(result.ok, true);

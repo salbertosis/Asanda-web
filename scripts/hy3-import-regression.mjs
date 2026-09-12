@@ -5,6 +5,7 @@ import { reconcileHy3Preview } from '../src/services/admin/hy3Reconciliation.js'
 import { processHy3Import } from '../src/workers/hy3Import.worker.js';
 
 const fixture = await loadFixture('synthetic-supported.hy3');
+const legacyFixture = await loadFixture('synthetic-legacy-mm5.hy3');
 const references = {
   events: [
     { id: 'event-50', competitive_sex: 'mixed', round: 'final', event_definition: { name: 'SYNTHETIC 50 FREE', distance_metres: 50, stroke: 'freestyle' } },
@@ -24,8 +25,14 @@ const repeat = await parseHy3(fixture.bytes);
 check('checksum is deterministic and private fields stay local', () => { assert.equal(parsed.checksum, repeat.checksum); assert.doesNotMatch(JSON.stringify(parsed), /PRIVATE_TEST|birth|address|phone|email|raw/i); });
 const workerResult = await processHy3Import({ type: 'parse', bytes: fixture.bytes });
 check('worker returns the same sanitized parser boundary', () => { assert.equal(workerResult.ok, true); assert.deepEqual(workerResult.preview.recordCounts, parsed.preview.recordCounts); });
+const legacyWorkerResult = await processHy3Import({ type: 'parse', bytes: legacyFixture.bytes });
+check('worker accepts the sanitized legacy MM5 adapter', () => {
+  assert.equal(legacyWorkerResult.ok, true);
+  assert.deepEqual(legacyWorkerResult.preview.recordCounts, { A1: 1, B1: 1, B2: 1, C1: 1, D1: 1, E1: 1, E2: 1 });
+  assert.doesNotMatch(JSON.stringify(legacyWorkerResult), /PRIVATE_|birthDate|address|phone|email|identity/i);
+});
 const reconciled = reconcileHy3Preview(parsed.preview, references);
 check('mixed and relay-only previews retain relays and block persistence', () => { const relayOnly = reconcileHy3Preview({ ...parsed.preview, athletes: [], entries: [], results: [] }, references); for (const result of [reconciled, relayOnly]) { assert.equal(result.ok, false); assert.equal(result.relays.length, 1); assert.ok(result.errors.some(({ code }) => code === 'relay-persistence-unsupported')); } });
 check('unresolved mappings fail closed before review', () => { const blocked = reconcileHy3Preview(parsed.preview, { ...references, mappings: [] }); assert.equal(blocked.ok, false); assert.ok(blocked.errors.some(({ code }) => code === 'mapping-unresolved')); });
 check('CSV fallback accepts only public result columns', () => { const csv = parseCsvFallback('athlete_alias,event_alias,time,status,place,note\nATH-TST-001,EVT-TST-050,62.34,official,1,CSV_SYNTHETIC'); assert.equal(csv.ok, true); assert.equal(csv.preview.results[0].timeSeconds, 62.34); assert.equal(parseCsvFallback('athlete_alias,email,event_alias,time,status').ok, false); });
-console.log(`\nHY3 import flow checks: ${passed}/5 passed`);
+console.log(`\nHY3 import flow checks: ${passed}/6 passed`);

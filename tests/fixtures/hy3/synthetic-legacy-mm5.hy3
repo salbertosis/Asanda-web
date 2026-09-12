@@ -1,0 +1,8 @@
+# ASANDA SYNTHETIC HY3 MANIFEST - LEGACY MM5 130-BYTE CRLF
+A1|description=SYNTHETIC LEGACY EXPORT|software=Hy-Tek, Ltd|version=MM5 6.0Ea|created=01012099 01:00 PM|private=PRIVATE_LICENSEE_001
+B1|meet=SYNTHETIC LEGACY MEET|venue=SYNTHETIC LEGACY POOL|startDate=01012099|endDate=01022099
+B2|note=PRIVATE_MEET_NOTE_001|meetType=06|course=L
+C1|teamCode=TST01|name=SYNTHETIC LEGACY TEAM|shortName=SYN LEGACY|region=ZZ|private=PRIVATE_ADDRESS_001 +00-000-0000 private@example.invalid
+D1|sex=F|meetId=00001|lastName=SYNTHETIC|firstName=ATHLETE|identity=PRIVATE_ID_001|birthDate=01012088|age=011
+E1|athlete=00001|gender=F|genderAge=G|distance=000050|stroke=A|ageMin=011|ageMax=012|eventNumber=0001|convertedSeed=62,34|course=L|seed=62,34|seedCourse=L
+E2|round=F|time=61,23|course=L|status=|heat=001|lane=004|heatPlace=001|place=0001
