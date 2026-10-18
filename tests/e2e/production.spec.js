@@ -15,7 +15,16 @@ test('declares ordered security, filesystem, and SPA fallback routes', async () 
     },
     continue: true,
   });
-  expect(routes[2]).toEqual({ handle: 'filesystem' });
+  expect(routes[2]).toEqual({
+    src: '/Pre_Ymca/(.*)',
+    headers: {
+      'Content-Security-Policy': "frame-ancestors 'self';",
+      'X-Frame-Options': 'SAMEORIGIN',
+    },
+    continue: true,
+  });
+  expect(routes[3]).toEqual({ src: '/Pre_Ymca/?', dest: '/Pre_Ymca/index.htm' });
+  expect(routes[4]).toEqual({ handle: 'filesystem' });
   expect(routes).toContainEqual({ src: '/(.*\\..*)', status: 404 });
   expect(routes.at(-1)).toEqual({ src: '/(.*)', dest: '/index.html' });
 });

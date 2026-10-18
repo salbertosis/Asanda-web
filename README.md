@@ -14,6 +14,12 @@ Portal web profesional para visualizar resultados, noticias y estadísticas de n
 - **Diseño Moderno**: Estilo limpio y profesional con tema azul
 - **Iconos**: Integración con Lucide-react para iconos de cronómetro y medallas
 
+## Reconciliación de resultados HY3
+
+En el panel administrativo, **Resultados → Generar vista previa saneada** muestra el nombre del atleta o club leído del archivo junto a su código de origen. Usá **Buscar identidad del archivo** para filtrar por nombre o código y **Solo pendientes** para revisar las asociaciones faltantes. Cada fila permite buscar el registro ASANDA por nombre antes de seleccionarlo.
+
+Buscar y filtrar no guarda asociaciones ni asigna coincidencias automáticamente. Confirmá la identidad antes de seleccionar: una asociación del atleta se aplica a sus distintas pruebas. Si el archivo no trae un nombre reconocible, no adivines por el código. La importación sigue bloqueada mientras existan errores de reconciliación.
+
 ## Logo ASANDA
 
 El logo `asanda.png` ya está configurado en la carpeta `public/` y se muestra automáticamente en:

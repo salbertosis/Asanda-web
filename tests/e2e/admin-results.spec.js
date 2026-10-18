@@ -97,11 +97,33 @@ test('permite corregir manualmente mapeos y conserva resultados sin tiempo ni me
   await page.getByRole('link', { name: 'Resultados' }).click(); await page.getByLabel('Competencia').selectOption(competition.id); await page.getByLabel('Archivo HY3 o CSV (fallback)').setInputFiles({ name: fixture.filename, mimeType: 'application/octet-stream', buffer: fixture.bytes }); await page.getByRole('button', { name: 'Generar vista previa saneada' }).click();
   await expect(page.getByRole('heading', { name: 'Vista previa saneada' })).toBeVisible(); await expect(page.getByRole('alert')).toContainText('bloqueada');
 
+  const identities = page.getByRole('region', { name: 'Reconciliación de identidades' });
+  await expect(identities.getByText('SYNTHETIC ATHLETE ALPHA', { exact: true })).toBeVisible();
+  await expect(identities.getByText('SYNTHETIC CLUB NORTH', { exact: true })).toBeVisible();
+  await expect(identities.getByText('ATH-TST-001', { exact: true })).toBeVisible();
+  await identities.getByLabel('Buscar identidad del archivo').fill('athlete alpha');
+  await expect(identities.getByLabel('Resolver ATH-TST-001', { exact: true })).toBeVisible();
+  await expect(identities.getByLabel('Resolver ATH-TST-002', { exact: true })).toHaveCount(0);
+  await identities.getByLabel('Buscar identidad del archivo').fill('TEAM-TST-01');
+  await expect(identities.getByLabel('Resolver TEAM-TST-01', { exact: true })).toBeVisible();
+  await identities.getByLabel('Buscar identidad del archivo').fill('sin coincidencias');
+  await expect(identities.getByText('No hay identidades que coincidan con los filtros.')).toBeVisible();
+  await identities.getByLabel('Buscar identidad del archivo').fill('');
+  expect(mappings).toHaveLength(0);
+  await identities.getByLabel('Solo pendientes').check();
+  await identities.getByLabel('Buscar registro ASANDA para ATH-TST-001', { exact: true }).fill('E2E uno');
+  await expect(identities.getByLabel('Resolver ATH-TST-001', { exact: true }).getByRole('option', { name: 'Atleta E2E dos' })).toHaveCount(0);
+
   for (const [alias, targetId] of [['TEAM-TST-01', 'org-1'], ['ATH-TST-001', 'athlete-1'], ['ATH-TST-002', 'athlete-2']]) {
     await page.getByLabel(`Resolver ${alias}`).selectOption(targetId);
     await expect(page.getByText('Identidad guardada. La vista previa fue recalculada.')).toBeVisible();
   }
 
+  await expect(identities.getByText('0 pendientes de 3 identidades.')).toBeVisible();
+  await expect(identities.getByLabel('Resolver ATH-TST-001', { exact: true })).toHaveCount(0);
+  await identities.getByLabel('Solo pendientes').uncheck();
+  await expect(identities.getByLabel('Resolver ATH-TST-001', { exact: true })).toHaveValue('athlete-1');
+  expect(mappings).toHaveLength(3);
   await expect(page.getByRole('alert')).toContainText('La persistencia de relevos aún no está disponible');
   await expect(page.getByText('Relevos', { exact: true }).locator('..')).toContainText('1');
   await expect(page.getByRole('button', { name: /importar/i })).toHaveCount(0);
