@@ -59,13 +59,40 @@ export async function requestVideoUploadSignature(file) {
 
 export async function uploadVideoToCloudinary(file, upload, { signal, fetchImpl = fetch } = {}) {
   if (!validateVideoFile(file).ok) throw new Error('VIDEO_FILE_INVALID');
-  const expected = ['uploadUrl', 'apiKey', 'timestamp', 'folder', 'type', 'uploadPreset', 'signature'];
-  if (!upload || expected.some((key) => upload[key] === undefined) || upload.type !== 'authenticated' || upload.folder !== 'asanda/videos') throw new Error('VIDEO_SIGNATURE_INVALID');
+  const baseKeys = ['uploadUrl', 'apiKey', 'timestamp', 'type', 'uploadPreset', 'signature'];
+  const legacyKeys = new Set([...baseKeys, 'cloudName', 'folderMode', 'folder']);
+  const dynamicKeys = new Set([...baseKeys, 'cloudName', 'folderMode', 'assetFolder', 'useAssetFolderAsPublicIdPrefix']);
+  let uploadUrl;
+  try { uploadUrl = new URL(upload?.uploadUrl); } catch { uploadUrl = null; }
+  const safeOrigin = uploadUrl?.protocol === 'https:'
+    && uploadUrl.hostname === 'api.cloudinary.com'
+    && /^\/v1_1\/[A-Za-z0-9_-]+\/video\/upload$/.test(uploadUrl.pathname)
+    && !uploadUrl.search
+    && !uploadUrl.hash;
+  const baseValid = upload && baseKeys.every((key) => upload[key] !== undefined)
+    && upload.type === 'authenticated'
+    && safeOrigin
+    && (!upload.cloudName || uploadUrl.pathname === `/v1_1/${upload.cloudName}/video/upload`);
+  const dynamic = upload?.folderMode === 'dynamic';
+  const modeValid = dynamic
+    ? Object.keys(upload).every((key) => dynamicKeys.has(key))
+      && upload.assetFolder === 'asanda/videos'
+      && upload.useAssetFolderAsPublicIdPrefix === true
+    : (upload?.folderMode === undefined || upload.folderMode === 'legacy')
+      && Object.keys(upload ?? {}).every((key) => legacyKeys.has(key))
+      && upload?.folder === 'asanda/videos';
+  if (!baseValid || !modeValid) throw new Error('VIDEO_SIGNATURE_INVALID');
+
   const body = new FormData();
   body.append('file', file);
   body.append('api_key', String(upload.apiKey));
   body.append('timestamp', String(upload.timestamp));
-  body.append('folder', upload.folder);
+  if (dynamic) {
+    body.append('asset_folder', upload.assetFolder);
+    body.append('use_asset_folder_as_public_id_prefix', 'true');
+  } else {
+    body.append('folder', upload.folder);
+  }
   body.append('type', upload.type);
   body.append('upload_preset', upload.uploadPreset);
   body.append('signature', upload.signature);

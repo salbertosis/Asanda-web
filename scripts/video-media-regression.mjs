@@ -27,6 +27,9 @@ const video = (overrides = {}) => ({
 const preset = (overrides = {}) => ({ name: 'asanda_video_authenticated', unsigned: false, settings: {
   type: 'authenticated', folder: VIDEO_FOLDER, allowed_formats: 'mp4', ...overrides,
 } });
+const dynamicPreset = (overrides = {}) => ({ name: 'asanda_video_authenticated', unsigned: false, settings: {
+  type: 'authenticated', asset_folder: VIDEO_FOLDER, use_asset_folder_as_public_id_prefix: true, allowed_formats: 'mp4', ...overrides,
+} });
 
 let passed = 0;
 const check = async (name, fn) => { await fn(); passed += 1; console.log(`  ok - ${name}`); };
@@ -41,12 +44,19 @@ await check('authenticated original URL uses primary-documented SHA-1 binary bas
   assert.equal(await createDeliverySignature('asanda/videos/owned-one', 'mp4', 'secret', sha1Base64Url), 'cfavqf7H');
   assert.equal(await buildAuthenticatedVideoUrl('demo-cloud', 'asanda/videos/owned-one', 'secret', sha1Base64Url), 'https://res.cloudinary.com/demo-cloud/video/authenticated/s--cfavqf7H--/asanda/videos/owned-one.mp4');
 });
-await check('upload preset accepts the documented MP4 string shape without inventing a size setting', () => {
-  assert.equal(validateUploadPreset(preset()).ok, true);
-  assert.equal(validateUploadPreset(preset({ allowed_formats: ['mp4'] })).ok, true);
-  for (const candidate of [preset({ folder: 'asanda/other' }), preset({ type: 'upload' }), preset({ allowed_formats: 'mp4,mov' }), preset({ allowed_formats: ['mp4', 'mov'] }), preset({ allowed_formats: ' mp4 ' }), preset({ allowed_formats: '' }), preset({ allowed_formats: 42 }), { ...preset(), unsigned: true }]) {
-    assert.equal(validateUploadPreset(candidate).ok, false);
-  }
+await check('upload preset returns exact legacy or dynamic signed parameters', () => {
+  assert.deepEqual(validateUploadPreset(preset()), { ok: true, folderMode: 'legacy', uploadParameters: { folder: VIDEO_FOLDER } });
+  assert.deepEqual(validateUploadPreset(preset({ allowed_formats: ['mp4'] })), { ok: true, folderMode: 'legacy', uploadParameters: { folder: VIDEO_FOLDER } });
+  assert.deepEqual(validateUploadPreset(dynamicPreset()), { ok: true, folderMode: 'dynamic', uploadParameters: { asset_folder: VIDEO_FOLDER, use_asset_folder_as_public_id_prefix: true } });
+});
+await check('upload preset rejects unsafe folder, prefix, type and format conflicts', () => {
+  for (const candidate of [
+    preset({ folder: 'asanda/other' }), preset({ type: 'upload' }), preset({ allowed_formats: 'mp4,mov' }),
+    preset({ allowed_formats: ['mp4', 'mov'] }), preset({ allowed_formats: ' mp4 ' }), preset({ allowed_formats: '' }), preset({ allowed_formats: 42 }),
+    dynamicPreset({ asset_folder: 'asanda/other' }), dynamicPreset({ use_asset_folder_as_public_id_prefix: false }),
+    dynamicPreset({ folder: VIDEO_FOLDER }), dynamicPreset({ public_id_prefix: VIDEO_FOLDER }), dynamicPreset({ allowed_formats: 'mov' }),
+    { ...preset(), unsigned: true }, { ...dynamicPreset(), unsigned: true },
+  ]) assert.equal(validateUploadPreset(candidate).ok, false);
 });
 await check('provider metadata validates exact private MP4 identity, size and dimensions', () => {
   assert.equal(validateProviderAsset(asset()).ok, true);
@@ -102,7 +112,7 @@ await check('anonymous, invalid and inactive editors cannot use protected video 
     assert.equal(inactive.state.writes, 0);
   }
 });
-await check('sign-upload response is fixed to video/authenticated preset/folder and omits secrets', async () => {
+await check('sign-upload preserves the fixed legacy folder response and omits secrets', async () => {
   const { handler } = makeHarness();
   const response = await readResponse(await handler(jsonRequest({ action: 'sign-upload', fileName: 'clip.mp4', mimeType: 'video/mp4', size: 42 }, 'good')));
   assert.equal(response.status, 200);
@@ -113,11 +123,25 @@ await check('sign-upload response is fixed to video/authenticated preset/folder 
   });
   assert.ok(!JSON.stringify(response.body).includes('server-secret'));
 });
+await check('sign-upload emits only matching dynamic-folder fields and signs them exactly', async () => {
+  const { handler } = makeHarness({ readUploadPreset: async () => dynamicPreset() });
+  const response = await readResponse(await handler(jsonRequest({ action: 'sign-upload', fileName: 'clip.mp4', mimeType: 'video/mp4', size: 42 }, 'good')));
+  assert.equal(response.status, 200);
+  assert.deepEqual(response.body.upload, {
+    uploadUrl: 'https://api.cloudinary.com/v1_1/demo-cloud/video/upload', cloudName: 'demo-cloud', apiKey: 'public-key',
+    folderMode: 'dynamic', assetFolder: VIDEO_FOLDER, useAssetFolderAsPublicIdPrefix: true,
+    type: 'authenticated', uploadPreset: 'asanda_video_authenticated', timestamp: 1788264000,
+    signature: sha1Hex('asset_folder=asanda/videos&timestamp=1788264000&type=authenticated&upload_preset=asanda_video_authenticated&use_asset_folder_as_public_id_prefix=trueserver-secret'),
+  });
+  assert.equal(Object.hasOwn(response.body.upload, 'folder'), false);
+});
 await check('misconfigured or missing provider preset fails closed', async () => {
   for (const override of [
     { readUploadPreset: async () => preset({ folder: 'asanda/other' }) },
     { readUploadPreset: async () => preset({ type: 'upload' }) },
     { readUploadPreset: async () => preset({ allowed_formats: 'mp4,mov' }) },
+    { readUploadPreset: async () => dynamicPreset({ use_asset_folder_as_public_id_prefix: false }) },
+    { readUploadPreset: async () => dynamicPreset({ folder: VIDEO_FOLDER }) },
     { readUploadPreset: async () => null },
   ]) {
     const { handler } = makeHarness(override);

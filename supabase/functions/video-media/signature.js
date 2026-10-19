@@ -31,11 +31,26 @@ export function validateUploadPreset(value) {
   const formats = settings?.allowed_formats;
   const mp4Only = formats === VIDEO_FORMAT
     || (Array.isArray(formats) && formats.length === 1 && formats[0] === VIDEO_FORMAT);
-  const valid = value?.unsigned === false
-    && settings?.type === 'authenticated'
-    && settings?.folder === VIDEO_FOLDER
-    && mp4Only;
-  return valid ? { ok: true } : { ok: false, error: 'preset-invalid' };
+  if (value?.unsigned !== false || settings?.type !== 'authenticated' || !mp4Only) {
+    return { ok: false, error: 'preset-invalid' };
+  }
+
+  const has = (key) => Object.hasOwn(settings, key);
+  const hasDynamicSetting = has('asset_folder') || has('use_asset_folder_as_public_id_prefix') || has('public_id_prefix');
+  if (settings.folder === VIDEO_FOLDER && !hasDynamicSetting) {
+    return { ok: true, folderMode: 'legacy', uploadParameters: { folder: VIDEO_FOLDER } };
+  }
+  if (!has('folder')
+    && settings.asset_folder === VIDEO_FOLDER
+    && settings.use_asset_folder_as_public_id_prefix === true
+    && !has('public_id_prefix')) {
+    return {
+      ok: true,
+      folderMode: 'dynamic',
+      uploadParameters: { asset_folder: VIDEO_FOLDER, use_asset_folder_as_public_id_prefix: true },
+    };
+  }
+  return { ok: false, error: 'preset-invalid' };
 }
 
 export function validateProviderAsset(value, expectedPublicId = value?.public_id) {

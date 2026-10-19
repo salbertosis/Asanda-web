@@ -86,20 +86,24 @@ export function createVideoMediaHandler(deps) {
       }
       let preset;
       try { preset = await deps.readUploadPreset(deps.uploadPreset); } catch { preset = null; }
-      if (!validateUploadPreset(preset).ok) return response(503, { error: 'La carga privada de videos no está configurada de forma segura.' });
+      const presetValidation = validateUploadPreset(preset);
+      if (!presetValidation.ok) return response(503, { error: 'La carga privada de videos no está configurada de forma segura.' });
       const timestamp = Math.floor(deps.now().getTime() / 1000);
-      const signed = { folder: VIDEO_FOLDER, timestamp, type: 'authenticated', upload_preset: deps.uploadPreset };
+      const signed = { ...presetValidation.uploadParameters, timestamp, type: 'authenticated', upload_preset: deps.uploadPreset };
       const signature = await createUploadSignature(signed, deps.apiSecret, deps.sha1Hex);
-      return response(200, { upload: {
+      const base = {
         uploadUrl: `https://api.cloudinary.com/v1_1/${encodeURIComponent(deps.cloudName)}/video/upload`,
         cloudName: deps.cloudName,
         apiKey: deps.apiKey,
-        folder: VIDEO_FOLDER,
         type: 'authenticated',
         uploadPreset: deps.uploadPreset,
         timestamp,
         signature,
-      } });
+      };
+      const upload = presetValidation.folderMode === 'dynamic'
+        ? { ...base, folderMode: 'dynamic', assetFolder: VIDEO_FOLDER, useAssetFolderAsPublicIdPrefix: true }
+        : { ...base, folder: VIDEO_FOLDER };
+      return response(200, { upload });
     }
 
     if (body.action === 'register') {

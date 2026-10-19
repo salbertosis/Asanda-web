@@ -58,6 +58,25 @@ await check('direct upload uses fixed signed fields, supports cancellation and r
   assert.deepEqual([...request.options.body.keys()].sort(), ['api_key', 'file', 'folder', 'signature', 'timestamp', 'type', 'upload_preset']);
   assert.deepEqual(result, { publicId: 'asanda/videos/owned-one' });
 });
+await check('dynamic direct upload validates mode and appends only matching signed fields', async () => {
+  let request;
+  const fetchImpl = async (url, options) => { request = { url, options }; return new Response(JSON.stringify({ public_id: 'asanda/videos/opaque_id' }), { status: 200, headers: { 'Content-Type': 'application/json' } }); };
+  const upload = {
+    uploadUrl: 'https://api.cloudinary.com/v1_1/demo/video/upload', cloudName: 'demo', apiKey: 'key', timestamp: 1,
+    folderMode: 'dynamic', assetFolder: 'asanda/videos', useAssetFolderAsPublicIdPrefix: true,
+    type: 'authenticated', uploadPreset: 'preset', signature: 'signature',
+  };
+  assert.deepEqual(await admin.uploadVideoToCloudinary({ name: 'race.mp4', type: 'video/mp4', size: 42 }, upload, { fetchImpl }), { publicId: 'asanda/videos/opaque_id' });
+  assert.deepEqual([...request.options.body.keys()].sort(), ['api_key', 'asset_folder', 'file', 'signature', 'timestamp', 'type', 'upload_preset', 'use_asset_folder_as_public_id_prefix']);
+  assert.equal(request.options.body.has('folder'), false);
+  for (const invalid of [
+    { ...upload, folder: 'asanda/videos' },
+    { ...upload, useAssetFolderAsPublicIdPrefix: false },
+    { ...upload, assetFolder: 'other/videos' },
+    { ...upload, uploadUrl: 'https://evil.test/video/upload' },
+    { ...upload, arbitraryParameter: 'unsafe' },
+  ]) await assert.rejects(() => admin.uploadVideoToCloudinary({ name: 'race.mp4', type: 'video/mp4', size: 42 }, invalid, { fetchImpl }), /VIDEO_SIGNATURE_INVALID/);
+});
 await check('failed provider upload and cancellation map to stable Spanish feedback', async () => {
   const upload = { uploadUrl: 'https://api.cloudinary.com/v1_1/demo/video/upload', apiKey: 'key', timestamp: 1, folder: 'asanda/videos', type: 'authenticated', uploadPreset: 'preset', signature: 'signature' };
   await assert.rejects(() => admin.uploadVideoToCloudinary({ name: 'race.mp4', type: 'video/mp4', size: 42 }, upload, { fetchImpl: async () => new Response('{}', { status: 400 }) }), (error) => error.code === 'provider-upload-failed');
