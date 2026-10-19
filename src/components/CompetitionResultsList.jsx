@@ -1,104 +1,117 @@
-import React from 'react';
-import { ArrowRight, MapPin } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 
-const CompetitionResultsList = ({ competencias, mes, año }) => {
-  const competenciasFiltradas = competencias.filter(comp => {
-    if (mes !== 'Todos' && comp.mes !== mes) return false;
-    if (comp.año !== año) return false;
-    return true;
-  });
+const sexLabels = { female: 'Femenino', male: 'Masculino', mixed: 'Mixto', open: 'Abierto' };
+const roundLabels = { final: 'Final', finals: 'Final', semifinal: 'Semifinal', semifinals: 'Semifinal', heat: 'Clasificación', heats: 'Clasificación', preliminary: 'Preliminar' };
+const statusLabels = { disqualified: 'DQ', did_not_start: 'DNS', did_not_finish: 'DNF', no_time: 'Sin tiempo' };
+const dateFormatter = new Intl.DateTimeFormat('es-VE', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 
-  const getMesNombre = (mesNum) => {
-    const meses = [
-      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-    ];
-    return meses[mesNum - 1] || mesNum;
-  };
+const formatDay = (value) => dateFormatter.format(new Date(`${value}T00:00:00Z`));
+const formatDateRange = ({ startsOn, endsOn }) => endsOn && endsOn !== startsOn
+  ? `${formatDay(startsOn)} – ${formatDay(endsOn)}`
+  : formatDay(startsOn);
+const displaySex = (value) => sexLabels[value?.toLowerCase()] || value || 'Sexo no indicado';
+const displayRound = (value) => roundLabels[value?.toLowerCase()] || value || 'Fase no indicada';
+const formatTime = (milliseconds) => {
+  const totalHundredths = Math.floor(milliseconds / 10);
+  const minutes = Math.floor(totalHundredths / 6000);
+  const seconds = Math.floor((totalHundredths % 6000) / 100);
+  const hundredths = totalHundredths % 100;
+  return `${minutes ? `${minutes}:` : ''}${minutes ? String(seconds).padStart(2, '0') : seconds}.${String(hundredths).padStart(2, '0')}`;
+};
 
-  const mesDisplay = mes === 'Todos' ? getMesNombre(new Date().getMonth() + 1) : mes;
+const DisclosureButton = ({ expanded, controls, onClick, children, className = '' }) => (
+  <button
+    type="button"
+    aria-expanded={expanded}
+    aria-controls={controls}
+    onClick={onClick}
+    className={`flex w-full items-center justify-between gap-4 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-asanda-orange-strong focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950 ${className}`}
+  >
+    {children}
+    <ChevronDown aria-hidden="true" className={`h-5 w-5 shrink-0 motion-safe:transition-transform ${expanded ? 'rotate-180' : ''}`} />
+  </button>
+);
 
+const ResultsTable = ({ event, phase }) => (
+  <div className="max-w-full overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
+    <table className="min-w-[680px] w-full border-collapse text-sm" aria-label={`${event.name}, ${displayRound(phase.round)}`}>
+      <thead className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+        <tr>
+          {['Posición', 'Carril', 'Nombre', 'Club', 'Marca / estado'].map((heading) => <th key={heading} scope="col" className="px-4 py-3 text-left font-bold">{heading}</th>)}
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-slate-200 bg-white text-slate-800 dark:divide-slate-700 dark:bg-slate-900 dark:text-slate-100">
+        {phase.results.map((result) => (
+          <tr key={result.id}>
+            <td className="px-4 py-3 font-bold">{result.place ?? '—'}</td>
+            <td className="px-4 py-3">{result.lane ?? '—'}</td>
+            <th scope="row" className="px-4 py-3 text-left font-semibold">{result.athlete.name}</th>
+            <td className="px-4 py-3">{result.club.name || 'Sin club indicado'}</td>
+            <td className="px-4 py-3 font-mono font-bold text-asanda-blue dark:text-cyan-300">
+              {result.status === 'official' ? formatTime(result.timeMs) : statusLabels[result.status]}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+);
+
+const EventGroup = ({ event, competitionIndex, eventIndex }) => {
+  const [expanded, setExpanded] = useState(false);
+  const [openPhase, setOpenPhase] = useState(null);
+  const panelId = `result-event-${competitionIndex}-${eventIndex}`;
+  const category = event.categoryName || 'Sin categoría indicada';
   return (
-    <div className="bg-white py-8">
-      <div className="container mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-          Resultados de la competición
-        </h2>
-        <p className="text-xl text-gray-600 mb-8">
-          <span className="text-gray-900">{mesDisplay}</span> de {año}
-        </p>
-
-        <div className="space-y-4">
-          {competenciasFiltradas.length > 0 ? (
-            competenciasFiltradas.map((competencia) => (
-              <div
-                key={competencia.id}
-                className="flex items-center gap-6 p-6 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
-              >
-                {/* Fecha */}
-                <div className="flex-shrink-0 w-32">
-                  <div className="text-gray-900 font-semibold text-lg">
-                    {competencia.fechaInicio} - {competencia.fechaFin} de {competencia.mes.toLowerCase()}
-                  </div>
-                </div>
-
-                {/* Logo */}
-                <div className="flex-shrink-0">
-                  <div className="w-24 h-24 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-lg flex items-center justify-center">
-                    {competencia.logo ? (
-                      <img
-                        src={competencia.logo}
-                        alt={competencia.nombre}
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                    ) : (
-                      <span className="text-white text-2xl font-bold">
-                        {competencia.nombre.substring(0, 2).toUpperCase()}
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-2 text-center">
-                    <div className="text-xs font-bold text-gray-900">WORLD AQUATICS</div>
-                    <div className="text-xs text-blue-600 font-semibold">SWIMMING WORLD CUP</div>
-                    <div className="text-xs text-gray-600">{competencia.ubicacion.split(',')[2]?.trim().toUpperCase()} {año}</div>
-                  </div>
-                </div>
-
-                {/* Detalles */}
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-bold text-gray-900 mb-1">
-                    {competencia.nombre}
-                  </h3>
-                  <div className="flex items-center gap-2 text-gray-600 mb-2">
-                    <span className="text-sm">Parada {competencia.id}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-700">
-                    <span className="text-2xl">{competencia.bandera}</span>
-                    <MapPin size={16} className="text-gray-500" />
-                    <span className="text-sm">{competencia.ubicacion}</span>
-                  </div>
-                </div>
-
-                {/* Botón Ver Resultados */}
-                <div className="flex-shrink-0">
-                  <button className="flex items-center gap-2 text-gray-500 hover:text-blue-600 transition-colors font-medium">
-                    <span>VER RESULTADOS</span>
-                    <ArrowRight size={18} />
-                  </button>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="text-center py-12 text-gray-500">
-              <p className="text-lg">No hay resultados disponibles para este período.</p>
-            </div>
-          )}
+    <li className="rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+      <DisclosureButton expanded={expanded} controls={panelId} onClick={() => setExpanded((value) => !value)} className="p-4">
+        <span>
+          <span className="block font-bold text-slate-900 dark:text-white">{event.name}</span>
+          <span className="mt-1 block text-sm text-slate-600 dark:text-slate-300">{category} · {displaySex(event.competitiveSex)}</span>
+        </span>
+      </DisclosureButton>
+      {expanded && (
+        <div id={panelId} className="space-y-3 border-t border-slate-200 p-4 dark:border-slate-700">
+          {event.phases.map((phase, phaseIndex) => {
+            const phasePanelId = `${panelId}-phase-${phaseIndex}`;
+            const isOpen = openPhase === phase.id;
+            return (
+              <section key={phase.id} className="rounded-lg bg-slate-50 p-3 dark:bg-slate-950">
+                <DisclosureButton expanded={isOpen} controls={phasePanelId} onClick={() => setOpenPhase(isOpen ? null : phase.id)} className="px-2 py-2 font-bold text-slate-800 dark:text-slate-100">
+                  <span>{displayRound(phase.round)}</span>
+                </DisclosureButton>
+                {isOpen && <div id={phasePanelId} className="pt-3"><ResultsTable event={event} phase={phase} /></div>}
+              </section>
+            );
+          })}
         </div>
-      </div>
+      )}
+    </li>
+  );
+};
+
+const CompetitionResultsList = ({ competitions }) => {
+  const [openCompetition, setOpenCompetition] = useState(null);
+  return (
+    <div className="space-y-4">
+      {competitions.map((competition, competitionIndex) => {
+        const panelId = `result-competition-${competitionIndex}`;
+        const expanded = openCompetition === competition.id;
+        return (
+          <article key={competition.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <DisclosureButton expanded={expanded} controls={panelId} onClick={() => setOpenCompetition(expanded ? null : competition.id)} className="p-5 sm:p-6">
+              <span>
+                <span className="block text-lg font-extrabold text-slate-950 dark:text-white">{competition.name}</span>
+                <span className="mt-1 block text-sm text-slate-600 dark:text-slate-300">{formatDateRange(competition)}</span>
+              </span>
+            </DisclosureButton>
+            {expanded && <ul id={panelId} className="space-y-3 border-t border-slate-200 bg-slate-50 p-4 sm:p-6 dark:border-slate-700 dark:bg-slate-950">{competition.events.map((event, eventIndex) => <EventGroup key={event.id} event={event} competitionIndex={competitionIndex} eventIndex={eventIndex} />)}</ul>}
+          </article>
+        );
+      })}
     </div>
   );
 };
 
 export default CompetitionResultsList;
-
-

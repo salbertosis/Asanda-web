@@ -20,6 +20,12 @@ En el panel administrativo, **Resultados → Generar vista previa saneada** mues
 
 Buscar y filtrar no guarda asociaciones ni asigna coincidencias automáticamente. Confirmá la identidad antes de seleccionar: una asociación del atleta se aplica a sus distintas pruebas. Si el archivo no trae un nombre reconocible, no adivines por el código. La importación sigue bloqueada mientras existan errores de reconciliación.
 
+## Resultados públicos
+
+La ruta **Resultados** consulta las competencias publicadas y muestra únicamente resultados finales autorizados. El recorrido público es competencia → prueba → fase → tabla clasificada. Los filtros de año y mes se construyen con las fechas realmente disponibles.
+
+La carga del archivo HY3 continúa exclusivamente en el panel administrativo. Si la consulta pública todavía no está desplegada o falla, la página informa el error y permite reintentar; no sustituye los datos almacenados por resultados de demostración.
+
 ## Logo ASANDA
 
 El logo `asanda.png` ya está configurado en la carpeta `public/` y se muestra automáticamente en:
