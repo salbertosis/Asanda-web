@@ -6,7 +6,7 @@ test('declares ordered security, filesystem, and SPA fallback routes', async () 
   const routes = config.routes;
 
   expect(config).not.toHaveProperty('headers');
-  expect(routes[0]).toEqual({ src: '/(.*)', headers: { 'Content-Security-Policy-Report-Only': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' https: data:; connect-src 'self' https://fuxlohqricsfsxkjztne.supabase.co wss://fuxlohqricsfsxkjztne.supabase.co; base-uri 'self'; form-action 'self'; frame-ancestors 'none'", 'Permissions-Policy': 'camera=(), geolocation=(), microphone=()', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY' }, continue: true });
+  expect(routes[0]).toEqual({ src: '/(.*)', headers: { 'Content-Security-Policy-Report-Only': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' https: data:; media-src 'self' https://res.cloudinary.com; connect-src 'self' https://fuxlohqricsfsxkjztne.supabase.co wss://fuxlohqricsfsxkjztne.supabase.co; base-uri 'self'; form-action 'self'; frame-ancestors 'none'", 'Permissions-Policy': 'camera=(), geolocation=(), microphone=()', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY' }, continue: true });
   expect(routes[1]).toEqual({
     src: '/20260813/(.*)',
     headers: {

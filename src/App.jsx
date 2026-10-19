@@ -37,6 +37,7 @@ const AdminShell = lazy(() => import('./admin/AdminShell.jsx'));
 const AdminNewsPage = lazy(() => import('./admin/AdminNewsPage.jsx'));
 const NewsEditorPage = lazy(() => import('./admin/NewsEditorPage.jsx'));
 const AdminMediaPage = lazy(() => import('./admin/AdminMediaPage.jsx'));
+const AdminVideosPage = lazy(() => import('./admin/AdminVideosPage.jsx'));
 const AdminFeaturedPage = lazy(() => import('./admin/AdminFeaturedPage.jsx'));
 const AdminAthletesPage = lazy(() => import('./admin/AdminAthletesPage.jsx'));
 const AdminAthleteWizard = lazy(() => import('./admin/AdminAthleteWizard.jsx'));
@@ -187,6 +188,7 @@ function AdminApplication() {
             <Route path="noticias/nueva" element={<NewsEditorPage />} />
             <Route path="noticias/:id" element={<NewsEditorPage />} />
             <Route path="media" element={<AdminMediaPage />} />
+            <Route path="videos" element={<AdminVideosPage />} />
             <Route path="destacados" element={<AdminFeaturedPage />} />
             <Route path="atletas" element={<AdminAthletesPage />} />
             <Route path="atletas/nuevo" element={<AdminAthleteRoute />} />

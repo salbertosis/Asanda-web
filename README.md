@@ -30,6 +30,12 @@ La ruta **Resultados** combina las competencias existentes basadas en perfiles c
 
 Los participantes HY3 pueden aparecer por su nombre deportivo y club aunque no tengan perfil ASANDA; los relevos usan el nombre del equipo y nunca fabrican enlaces de perfil. La carga del archivo continúa exclusivamente en el panel administrativo. Si alguna consulta pública falla, la página informa el error y permite reintentar; no sustituye datos almacenados por resultados de demostración.
 
+## Biblioteca de videos propios
+
+La ruta pública `/videos` y la sección de inicio muestran únicamente filas publicadas. La reproducción usa controles HTML nativos y solicita una URL firmada sólo cuando la persona elige un video. El panel `/admin/videos` admite MP4 positivos de hasta **100000000 bytes (100 MB)**, los registra como borradores privados y exige confirmación humana de derechos y difusión antes de cargar y antes de publicar.
+
+El servidor de `video-media` requiere `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` y `CLOUDINARY_VIDEO_UPLOAD_PRESET`. El preset debe admitir MP4 autenticados en `asanda/videos`; los presets de Cloudinary no ofrecen un límite por preset, por lo que el cliente valida antes de cargar y el servidor vuelve a verificar los bytes reales al registrar/publicar. No se promete TTL para las URLs firmadas: archivar quita el video del catálogo, pero no revoca enlaces ya emitidos. El plan, la cuota, el preset y la reproducción de la cuenta real deben verificarse manualmente antes del despliegue.
+
 ## Logo ASANDA
 
 El logo `asanda.png` ya está configurado en la carpeta `public/` y se muestra automáticamente en:
