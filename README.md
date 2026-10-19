@@ -14,17 +14,21 @@ Portal web profesional para visualizar resultados, noticias y estadísticas de n
 - **Diseño Moderno**: Estilo limpio y profesional con tema azul
 - **Iconos**: Integración con Lucide-react para iconos de cronómetro y medallas
 
-## Reconciliación de resultados HY3
+## Importación completa de resultados HY3
 
-En el panel administrativo, **Resultados → Generar vista previa saneada** muestra el nombre del atleta o club leído del archivo junto a su código de origen. Usá **Buscar identidad del archivo** para filtrar por nombre o código y **Solo pendientes** para revisar las asociaciones faltantes. Cada fila permite buscar el registro ASANDA por nombre antes de seleccionarlo.
+En el panel administrativo, **Resultados** permite elegir un HY3 y revisar localmente el nombre, las fechas, la sede, la piscina, las pruebas y todos los resultados finales, incluidos los relevos. No hace falta crear antes una competencia ni asociar participantes con perfiles ASANDA.
 
-Buscar y filtrar no guarda asociaciones ni asigna coincidencias automáticamente. Confirmá la identidad antes de seleccionar: una asociación del atleta se aplica a sus distintas pruebas. Si el archivo no trae un nombre reconocible, no adivines por el código. La importación sigue bloqueada mientras existan errores de reconciliación.
+1. Elegí el archivo HY3.
+2. Revisá la vista deportiva. Si los datos básicos están incompletos, corregí sólo nombre, fechas, sede o longitud de piscina; la validación se ejecuta nuevamente.
+3. Confirmá con **Importar y publicar**.
+
+La confirmación crea y publica una instantánea atómica e inmutable. Los archivos con resultados provisionales, piscina en yardas, checksum no disponible, referencias inválidas o identidad de competencia duplicada quedan bloqueados con una explicación. El navegador no sube el archivo original y el payload no contiene documentos de identidad, fechas de nacimiento, contactos ni notas privadas. Esta operación tampoco crea atletas, perfiles, clubes, organizaciones o consentimientos.
 
 ## Resultados públicos
 
-La ruta **Resultados** consulta las competencias publicadas y muestra únicamente resultados finales autorizados. El recorrido público es competencia → prueba → fase → tabla clasificada. Los filtros de año y mes se construyen con las fechas realmente disponibles.
+La ruta **Resultados** combina las competencias existentes basadas en perfiles con las instantáneas HY3 publicadas y muestra únicamente resultados finales autorizados. El recorrido público es competencia → prueba → fase → tabla clasificada. Los filtros de año y mes se construyen con las fechas realmente disponibles. El detalle de una instantánea se solicita sólo cuando se abre su competencia, con estados explícitos de carga, error, reintento y ausencia de resultados.
 
-La carga del archivo HY3 continúa exclusivamente en el panel administrativo. Si la consulta pública todavía no está desplegada o falla, la página informa el error y permite reintentar; no sustituye los datos almacenados por resultados de demostración.
+Los participantes HY3 pueden aparecer por su nombre deportivo y club aunque no tengan perfil ASANDA; los relevos usan el nombre del equipo y nunca fabrican enlaces de perfil. La carga del archivo continúa exclusivamente en el panel administrativo. Si alguna consulta pública falla, la página informa el error y permite reintentar; no sustituye datos almacenados por resultados de demostración.
 
 ## Logo ASANDA
 

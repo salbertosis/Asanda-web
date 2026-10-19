@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 const sexLabels = { female: 'Femenino', male: 'Masculino', mixed: 'Mixto', open: 'Abierto' };
-const roundLabels = { final: 'Final', finals: 'Final', semifinal: 'Semifinal', semifinals: 'Semifinal', heat: 'Clasificación', heats: 'Clasificación', preliminary: 'Preliminar' };
+const roundLabels = { final: 'Final', finals: 'Final', timed_final: 'Final por tiempo', semifinal: 'Semifinal', semifinals: 'Semifinal', heat: 'Clasificación', heats: 'Clasificación', prelim: 'Preliminar', preliminary: 'Preliminar', swim_off: 'Desempate' };
 const statusLabels = { disqualified: 'DQ', did_not_start: 'DNS', did_not_finish: 'DNF', no_time: 'Sin tiempo' };
 const dateFormatter = new Intl.DateTimeFormat('es-VE', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 
@@ -46,7 +46,7 @@ const ResultsTable = ({ event, phase }) => (
           <tr key={result.id}>
             <td className="px-4 py-3 font-bold">{result.place ?? '—'}</td>
             <td className="px-4 py-3">{result.lane ?? '—'}</td>
-            <th scope="row" className="px-4 py-3 text-left font-semibold">{result.athlete.name}</th>
+            <th scope="row" className="px-4 py-3 text-left font-semibold">{result.athlete.name}{result.relayMembers?.length ? <span className="mt-1 block text-xs font-normal text-slate-500 dark:text-slate-400">{result.relayMembers.join(' · ')}</span> : null}</th>
             <td className="px-4 py-3">{result.club.name || 'Sin club indicado'}</td>
             <td className="px-4 py-3 font-mono font-bold text-asanda-blue dark:text-cyan-300">
               {result.status === 'official' ? formatTime(result.timeMs) : statusLabels[result.status]}
@@ -91,7 +91,9 @@ const EventGroup = ({ event, competitionIndex, eventIndex }) => {
   );
 };
 
-const CompetitionResultsList = ({ competitions }) => {
+export const CompetitionEvents = ({ competition, competitionIndex }) => <ul className="space-y-3 border-t border-slate-200 bg-slate-50 p-4 sm:p-6 dark:border-slate-700 dark:bg-slate-950">{competition.events.map((event, eventIndex) => <EventGroup key={event.id} event={event} competitionIndex={competitionIndex} eventIndex={eventIndex} />)}</ul>;
+
+const CompetitionResultsList = ({ competitions, renderSnapshot }) => {
   const [openCompetition, setOpenCompetition] = useState(null);
   return (
     <div className="space-y-4">
@@ -106,7 +108,7 @@ const CompetitionResultsList = ({ competitions }) => {
                 <span className="mt-1 block text-sm text-slate-600 dark:text-slate-300">{formatDateRange(competition)}</span>
               </span>
             </DisclosureButton>
-            {expanded && <ul id={panelId} className="space-y-3 border-t border-slate-200 bg-slate-50 p-4 sm:p-6 dark:border-slate-700 dark:bg-slate-950">{competition.events.map((event, eventIndex) => <EventGroup key={event.id} event={event} competitionIndex={competitionIndex} eventIndex={eventIndex} />)}</ul>}
+            {expanded && <div id={panelId}>{competition.source === 'snapshot' ? renderSnapshot?.(competition, competitionIndex) : <CompetitionEvents competition={competition} competitionIndex={competitionIndex} />}</div>}
           </article>
         );
       })}

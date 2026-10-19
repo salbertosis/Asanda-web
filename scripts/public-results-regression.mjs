@@ -67,4 +67,41 @@ await service.getPublishedResults('competition-legacy');
 assert.equal(rpcCall.name, 'get_published_result_rows');
 assert.deepEqual(rpcCall.params, { requested_competition_id: 'competition-legacy' });
 
+const importedCompetition = service.normalizeImportedCompetition({
+  import_id: 'import-1', competition_name: 'Copa HY3', starts_on: '2099-02-01', ends_on: '2099-02-02',
+  pool_length_metres: 50, venue: 'Piscina central', event_count: 2, result_count: 3,
+});
+assert.deepEqual(importedCompetition, {
+  id: 'snapshot:import-1', importId: 'import-1', name: 'Copa HY3', startsOn: '2099-02-01', endsOn: '2099-02-02',
+  poolLengthMetres: 50, venue: 'Piscina central', eventCount: 2, resultCount: 3, source: 'snapshot', events: [],
+});
+const importedRows = [
+  {
+    import_id: 'import-1', competition_name: 'Copa HY3', starts_on: '2099-02-01', ends_on: '2099-02-02',
+    event_alias: '50-free-final', event_label: '50 m libre', distance_metres: 50, stroke: 'freestyle', competitive_sex: 'female', round: 'final', category: 'Juvenil',
+    result_alias: 'one', result_type: 'individual', participant_name: 'Nadadora sin perfil', team_name: null, club_name: 'Club Uno', relay_members: [], place: 1, time_ms: 30120, lane: 4, status: 'official',
+  },
+  {
+    import_id: 'import-1', competition_name: 'Copa HY3', starts_on: '2099-02-01', ends_on: '2099-02-02',
+    event_alias: 'relay-final', event_label: '4 x 50 m libre', distance_metres: 200, stroke: 'freestyle', competitive_sex: 'female', round: 'final', category: 'Juvenil',
+    result_alias: 'relay', result_type: 'relay', participant_name: null, team_name: 'Relevo Club Uno', club_name: 'Club Uno', relay_members: [], place: null, time_ms: 125670, lane: null, status: 'official',
+  },
+].map(service.normalizeImportedCompetitionResult).filter(Boolean);
+assert.equal(importedRows.length, 2);
+assert.equal(importedRows[0].athlete.id, null, 'snapshot rows never fabricate profile ids');
+assert.equal(importedRows[1].athlete.name, 'Relevo Club Uno');
+assert.equal(importedRows[1].resultType, 'relay');
+const importedGrouped = service.groupPublicCompetitionResults(importedRows);
+assert.equal(importedGrouped[0].events.length, 2, 'individual and relay metadata stay in separate safe groups');
+assert.match(importedGrouped[0].id, /^snapshot:/);
+
+await service.getPublicImportedCompetitions(controller.signal);
+assert.equal(rpcCall.name, 'get_public_imported_competitions');
+assert.deepEqual(rpcCall.params, {});
+assert.equal(rpcCall.signal, controller.signal);
+await service.getPublicImportedCompetitionResults('import-1', controller.signal);
+assert.equal(rpcCall.name, 'get_public_imported_competition_results');
+assert.deepEqual(rpcCall.params, { requested_import_id: 'import-1' });
+assert.equal(rpcCall.signal, controller.signal);
+
 console.log('public results regression passed');

@@ -194,3 +194,67 @@ export const getPublicCompetitionResults = async (competitionId = null, signal) 
   if (error) throw error;
   return (Array.isArray(data) ? data : []).map(normalizePublicCompetitionResult).filter(Boolean);
 };
+
+export const normalizeImportedCompetition = (row = {}) => {
+  const importId = text(row.import_id); const name = text(row.competition_name); const startsOn = validDay(row.starts_on); const endsOn = validDay(row.ends_on);
+  const poolLengthMetres = integer(row.pool_length_metres, 1); const eventCount = integer(Number(row.event_count), 0); const resultCount = integer(Number(row.result_count), 0);
+  if (!importId || !name || !startsOn || !endsOn || endsOn < startsOn || ![25, 50].includes(poolLengthMetres) || eventCount == null || resultCount == null) return null;
+  return {
+    id: `snapshot:${importId}`, importId, name, startsOn, endsOn, poolLengthMetres, venue: text(row.venue),
+    eventCount, resultCount, source: 'snapshot', events: [],
+  };
+};
+
+export const normalizeImportedCompetitionResult = (row = {}) => {
+  const importId = text(row.import_id); const resultAlias = text(row.result_alias); const eventAlias = text(row.event_alias);
+  const name = text(row.competition_name); const startsOn = validDay(row.starts_on); const endsOn = validDay(row.ends_on);
+  const eventName = text(row.event_label); const resultType = text(row.result_type); const status = text(row.status);
+  const participantName = text(row.participant_name); const teamName = text(row.team_name);
+  if (!importId || !resultAlias || !eventAlias || !name || !startsOn || !endsOn || endsOn < startsOn || !eventName
+    || !['individual', 'relay'].includes(resultType) || !PUBLIC_RESULT_STATUSES.has(status)
+    || (resultType === 'individual' ? !participantName || teamName : !teamName || participantName)) return null;
+  const timeMs = integer(row.time_ms); const place = integer(row.place, 1); const lane = integer(row.lane, 1);
+  if (status === 'official' && timeMs == null) return null;
+  if (status !== 'official' && place != null) return null;
+  if (['did_not_start', 'did_not_finish', 'no_time'].includes(status) && timeMs != null) return null;
+  const displayName = resultType === 'relay' ? teamName : participantName;
+  const identity = `${eventAlias}:${resultType}`;
+  return {
+    id: `snapshot:${importId}:result:${resultAlias}`,
+    resultType,
+    relayMembers: Array.isArray(row.relay_members) ? row.relay_members.filter((member) => text(member)).map((member) => member.trim()) : [],
+    status, timeMs, place, lane,
+    competition: { id: `snapshot:${importId}`, name, startsOn, endsOn },
+    event: {
+      id: `snapshot:${importId}:phase:${identity}:${text(row.round) || 'unknown'}`,
+      definitionId: `snapshot:${importId}:event:${identity}`,
+      code: eventAlias,
+      name: eventName,
+      categoryId: null,
+      categoryName: text(row.category),
+      competitiveSex: text(row.competitive_sex),
+      round: text(row.round),
+      sequenceNumber: null,
+      scheduledAt: null,
+    },
+    athlete: { id: null, name: displayName, photoUrl: null, photoAlt: null, fallback: initials(displayName) },
+    club: { id: null, name: text(row.club_name), logoUrl: null, logoAlt: null, fallback: text(row.club_name) ? initials(row.club_name, 'ASANDA') : null },
+  };
+};
+
+export const getPublicImportedCompetitions = async (signal) => {
+  let query = supabase.rpc('get_public_imported_competitions', {});
+  if (signal) query = query.abortSignal(signal);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (Array.isArray(data) ? data : []).map(normalizeImportedCompetition).filter(Boolean);
+};
+
+export const getPublicImportedCompetitionResults = async (importId, signal) => {
+  if (typeof importId !== 'string' || !importId.trim()) throw new Error('IMPORT_REQUIRED');
+  let query = supabase.rpc('get_public_imported_competition_results', { requested_import_id: importId.trim() });
+  if (signal) query = query.abortSignal(signal);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (Array.isArray(data) ? data : []).map(normalizeImportedCompetitionResult).filter(Boolean);
+};

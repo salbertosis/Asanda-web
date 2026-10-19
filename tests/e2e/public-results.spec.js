@@ -25,7 +25,10 @@ const rows = [
   }),
 ];
 
-const routeResults = (page, handler) => page.route('**/rest/v1/rpc/get_public_competition_result_rows', handler);
+const routeResults = async (page, handler) => {
+  await page.route('**/rest/v1/rpc/get_public_competition_result_rows', handler);
+  await page.route('**/rest/v1/rpc/get_public_imported_competitions', (route) => route.fulfill(json([])));
+};
 
 test('loads stored results and navigates competition, event and phase without exposing rejected rows', async ({ page }) => {
   let request;
@@ -76,6 +79,44 @@ test('shows loading, safe RPC error and retry instead of demo data', async ({ pa
   const alert = page.getByRole('alert'); await expect(alert).toContainText('No pudimos cargar los resultados públicos.'); await expect(alert).not.toContainText('private detail');
   await alert.getByRole('button', { name: 'Reintentar' }).click();
   await expect(page.getByRole('button', { name: /Estadal ASANDA/ })).toBeVisible(); expect(calls).toBeGreaterThanOrEqual(2);
+});
+
+test('loads imported snapshot detail only on expansion and keeps grouping safe', async ({ page }) => {
+  const directory = [{ import_id: 'snapshot-1', competition_name: 'Copa HY3 pública', starts_on: '2098-06-10', ends_on: '2098-06-11', pool_length_metres: 25, venue: 'Piscina HY3', event_count: 2, result_count: 2 }];
+  const detail = [
+    { import_id: 'snapshot-1', competition_name: 'Copa HY3 pública', starts_on: '2098-06-10', ends_on: '2098-06-11', pool_length_metres: 25, venue: 'Piscina HY3', event_alias: 'same', event_label: '50 m libre', distance_metres: 50, stroke: 'freestyle', competitive_sex: 'female', round: 'heat', category: 'Juvenil', result_alias: 'one', result_type: 'individual', participant_name: 'Atleta sin perfil', team_name: null, club_name: 'Club HY3', relay_members: [], place: 1, time_ms: 30000, lane: 3, status: 'official' },
+    { import_id: 'snapshot-1', competition_name: 'Copa HY3 pública', starts_on: '2098-06-10', ends_on: '2098-06-11', pool_length_metres: 25, venue: 'Piscina HY3', event_alias: 'same', event_label: '4 x 50 m libre', distance_metres: 200, stroke: 'freestyle', competitive_sex: 'female', round: 'final', category: 'Juvenil', result_alias: 'relay', result_type: 'relay', participant_name: null, team_name: 'Relevo HY3', club_name: 'Club HY3', relay_members: [], place: null, time_ms: 125670, lane: null, status: 'official' },
+  ];
+  let detailCalls = 0; let release; const gate = new Promise((resolve) => { release = resolve; });
+  await page.route('**/rest/v1/rpc/get_public_competition_result_rows', (route) => route.fulfill(json(rows)));
+  await page.route('**/rest/v1/rpc/get_public_imported_competitions', (route) => route.fulfill(json(directory)));
+  await page.route('**/rest/v1/rpc/get_public_imported_competition_results', async (route) => { detailCalls += 1; await gate; return route.fulfill(json(detail)); });
+  await page.goto('/resultados');
+  await expect(page.getByRole('button', { name: /Copa HY3 pública/ })).toBeVisible(); expect(detailCalls).toBe(0);
+  await page.getByRole('button', { name: /Copa HY3 pública/ }).click();
+  await expect(page.getByRole('status')).toContainText('Cargando detalle'); expect(detailCalls).toBe(1); release();
+  await expect(page.getByRole('button', { name: '50 m libre Juvenil · Femenino', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '4 x 50 m libre Juvenil · Femenino', exact: true })).toBeVisible();
+});
+
+test('shows imported detail error and retries without stale closed detail', async ({ page }) => {
+  const directory = [{ import_id: 'snapshot-2', competition_name: 'Copa con reintento', starts_on: '2098-07-10', ends_on: '2098-07-10', pool_length_metres: 50, venue: 'Piscina', event_count: 1, result_count: 1 }];
+  let calls = 0;
+  await page.route('**/rest/v1/rpc/get_public_competition_result_rows', (route) => route.fulfill(json([])));
+  await page.route('**/rest/v1/rpc/get_public_imported_competitions', (route) => route.fulfill(json(directory)));
+  await page.route('**/rest/v1/rpc/get_public_imported_competition_results', (route) => { calls += 1; return route.fulfill(calls === 1 ? json({ message: 'private detail' }, 500) : json([])); });
+  await page.goto('/resultados'); const competition = page.getByRole('button', { name: /Copa con reintento/ }); await competition.click();
+  const alert = page.getByRole('alert'); await expect(alert).toContainText('No pudimos cargar el detalle'); await expect(alert).not.toContainText('private detail');
+  await alert.getByRole('button', { name: 'Reintentar' }).click(); await expect(page.getByRole('status')).toContainText('No hay resultados finales'); expect(calls).toBe(2);
+  await competition.click(); await expect(page.getByText('No hay resultados finales')).toHaveCount(0);
+});
+
+test('reports imported directory failure instead of silently rendering legacy-only data', async ({ page }) => {
+  await page.route('**/rest/v1/rpc/get_public_competition_result_rows', (route) => route.fulfill(json(rows)));
+  await page.route('**/rest/v1/rpc/get_public_imported_competitions', (route) => route.fulfill(json({ message: 'RPC unavailable' }, 404)));
+  await page.goto('/resultados');
+  await expect(page.getByRole('alert')).toContainText('No pudimos cargar los resultados públicos.');
+  await expect(page.getByRole('button', { name: /Estadal ASANDA/ })).toHaveCount(0);
 });
 
 test('keeps keyboard disclosure semantics, dark mode and mobile table containment', async ({ page }) => {

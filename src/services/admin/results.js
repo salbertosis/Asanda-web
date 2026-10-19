@@ -1,6 +1,7 @@
 import { supabase } from '../supabase.js';
 import { parseCsvFallback, parseHy3 } from './hy3Parser.js';
 import { mappingPayload, reconcileHy3Preview } from './hy3Reconciliation.js';
+import { buildHy3SnapshotDto } from './hy3Snapshot.js';
 
 const id = (value, code) => { if (typeof value !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(value.trim())) throw new Error(code); return value.trim(); };
 const rows = (value) => Array.isArray(value) ? value : [];
@@ -70,6 +71,29 @@ export const previewResultFile = async (competitionId, file, options = {}) => {
   return { ...reconcileResultPreview(parsed, references, options), references };
 };
 
+export const importHy3CompetitionSnapshot = async (parsed, preview = parsed?.preview) => {
+  if (!parsed?.ok || !parsed.preview) throw new Error(parsed?.code || 'invalid-input');
+  const sourceChecksum = typeof parsed.checksum === 'string' && /^[a-f0-9]{64}$/i.test(parsed.checksum)
+    ? parsed.checksum.toLowerCase()
+    : null;
+  if (!sourceChecksum) throw new Error('CHECKSUM_UNAVAILABLE');
+  const built = buildHy3SnapshotDto(preview);
+  if (!built.ok) throw new Error(built.code);
+  const { data, error } = await supabase.rpc('import_competition_result_snapshot', {
+    requested_payload: built.payload,
+    requested_source_checksum: sourceChecksum,
+  });
+  if (error) throw error;
+  const saved = Array.isArray(data) ? data[0] : data;
+  if (!saved?.import_id || !saved.competition_name || !Number.isInteger(saved.event_count) || !Number.isInteger(saved.result_count)) throw new Error('IMPORT_RESPONSE_INVALID');
+  return {
+    importId: saved.import_id,
+    competitionName: saved.competition_name,
+    eventCount: saved.event_count,
+    resultCount: saved.result_count,
+  };
+};
+
 export const commitResultImport = async ({ competitionId, expectedRevision, sanitizedRows, checksum, mappings = [], correctionReason = null, correctionEvidence = null, sourceType = 'hy3' }) => {
   if (!id(competitionId, 'COMPETITION_REQUIRED') || !Number.isInteger(expectedRevision) || expectedRevision < 1) throw new Error('REVISION_REQUIRED');
   if (!Array.isArray(sanitizedRows) || sanitizedRows.length === 0) throw new Error('RESULT_ROWS_REQUIRED');
@@ -97,15 +121,22 @@ export const commitResultImport = async ({ competitionId, expectedRevision, sani
 export const formatResultImportError = (error) => {
   const message = String(error?.ok === false ? error.code : error?.message || error?.code || error || '').toLowerCase();
   if (message.includes('unsupported-version')) return 'El archivo HY3 usa una versión no compatible. No se habilitó la importación.';
-  if (message.includes('malformed') || message.includes('invalid-record')) return 'El archivo no respeta el formato HY3 fijo. No se habilitó la importación.';
+  if (message.includes('malformed') || message.includes('invalid-record') || message.includes('invalid-input')) return 'El archivo no respeta el formato HY3 fijo. No se habilitó la importación.';
+  if (message.includes('provisional')) return 'El archivo contiene resultados provisionales. Finalizalos antes de importar y publicar.';
+  if (message.includes('unsupported-course')) return 'Las piscinas en yardas o con longitud desconocida no son compatibles con esta publicación.';
+  if (message.includes('snapshot-metadata-incomplete')) return 'Completá los datos básicos de competencia, fechas, sede y piscina antes de publicar.';
+  if (message.includes('snapshot-')) return 'La vista previa contiene datos deportivos inválidos o referencias incompletas.';
+  if (message.includes('23505') || message.includes('duplicate') || message.includes('already imported') || message.includes('unique constraint')) return 'Esta competencia o este archivo ya fue importada y publicada.';
+  if (message.includes('42501') || message.includes('permission') || message.includes('content editor') || message.includes('unauthorized')) return 'No tenés autorización activa de editor para importar y publicar resultados.';
+  if (message.includes('pgrst202') || message.includes('function missing') || message.includes('rpc unavailable')) return 'La función de importación todavía no está disponible. Intentá nuevamente más tarde.';
   if (message.includes('mapping')) return 'Resolvé todas las identidades de equipos y atletas antes de continuar.';
   if (message.includes('revision') || message.includes('changed')) return 'La competencia cambió mientras revisabas el archivo. Generá una vista previa nueva.';
-  if (message.includes('checksum') || message.includes('already imported')) return 'Este archivo ya fue importado para la competencia seleccionada.';
+  if (message.includes('checksum_unavailable')) return 'No se pudo generar el checksum local. No es seguro publicar este archivo.';
+  if (message.includes('checksum')) return 'Este archivo ya fue importado para la competencia seleccionada.';
   if (message.includes('correction') || message.includes('evidence')) return 'Las correcciones requieren un motivo y una evidencia de auditoría.';
   if (message.includes('atomic') || message.includes('result rows') || message.includes('failed event')) return 'No se importó ningún resultado: la validación transaccional rechazó la operación completa.';
-  if (message.includes('checksum_unavailable')) return 'No se pudo generar el checksum local para revisar este resultado.';
   if (message.includes('competition')) return 'Seleccioná una competencia válida con un programa cargado.';
   if (message.includes('worker')) return 'No se pudo procesar el archivo localmente. Intentá nuevamente.';
-  if (message.includes('file')) return 'Seleccioná un archivo HY3 o CSV válido.';
-  return 'No se pudo generar la vista previa saneada. Revisá el archivo e intentá nuevamente.';
+  if (message.includes('file')) return 'Seleccioná un archivo HY3 válido.';
+  return 'No se pudo importar ni publicar. Revisá el archivo e intentá nuevamente.';
 };
