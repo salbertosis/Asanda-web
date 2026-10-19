@@ -129,6 +129,9 @@ const parserCases = [
     assert.equal(result.ok, true); assert.equal(result.preview.version, 'MM5 6.0Ea');
     assert.deepEqual(result.preview.recordCounts, { A1: 1, B1: 1, B2: 1, C1: 1, D1: 1, E1: 1, E2: 1 });
     assert.equal(result.preview.entries.length, 1); assert.equal(result.preview.results[0].timeSeconds, 61.23); assert.equal(result.preview.results[0].place, 1);
+    assert.equal(result.preview.competitionStartsOn, '2099-01-01'); assert.equal(result.preview.competitionEndsOn, '2099-01-02');
+    assert.equal(result.preview.results[0].lane, 4); assert.equal(result.preview.athletes[0].teamAlias, result.preview.teams[0].sourceAlias);
+    assert.match(result.preview.events[0].displayName, /50.*freestyle.*female.*final/i);
     assert.equal(result.preview.entries[0].athleteAlias, result.preview.results[0].athleteAlias);
     assert.equal(result.preview.entries[0].eventAlias, result.preview.results[0].eventAlias);
     assert.doesNotMatch(serialized, /PRIVATE_|birthDate|address|phone|email|identity|raw/i);
@@ -209,7 +212,8 @@ const parserCases = [
     const result = await parseHy3(supported.bytes);
     assert.equal(result.ok, true);
     const serialized = JSON.stringify(result);
-    for (const sentinel of ['PRIVATE_TEST_ID_001', '2088-11-23', 'SYNTHETIC_ADDRESS_001', '+00-000-0000', 'private-athlete-001@example.invalid', '2099-07-15']) assert.doesNotMatch(serialized, new RegExp(sentinel.replace(/[.+?^${}()|[\]\\]/g, '\\$&')));
+    for (const sentinel of ['PRIVATE_TEST_ID_001', '2088-11-23', 'SYNTHETIC_ADDRESS_001', '+00-000-0000', 'private-athlete-001@example.invalid']) assert.doesNotMatch(serialized, new RegExp(sentinel.replace(/[.+?^${}()|[\]\\]/g, '\\$&')));
+    assert.equal(result.preview.competitionStartsOn, '2099-07-15'); assert.equal(result.preview.competitionEndsOn, '2099-07-15');
     assert.doesNotMatch(serialized, /(?:identity|nationalId|birthDate|address|phone|email|guardian|raw|sourceBytes|private)/i);
   }],
 ];

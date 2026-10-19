@@ -1,0 +1,12 @@
+# ASANDA SYNTHETIC HY3 MANIFEST - COMPLETE SNAPSHOT MM5
+A1|description=SYNTHETIC SNAPSHOT EXPORT|software=Hy-Tek, Ltd|version=MM5 6.0Ea|created=02292096 01:00 PM|private=PRIVATE_LICENSEE_SNAPSHOT
+B1|meet=SYNTHETIC CHAMPIONSHIP|venue=SYNTHETIC AQUATIC CENTRE|startDate=02282096|endDate=02292096
+B2|note=PRIVATE_MEET_NOTE_SNAPSHOT|meetType=06|course=L
+C1|teamCode=TST02|name=SYNTHETIC SNAPSHOT CLUB|shortName=SYN SNAP|region=ZZ|private=PRIVATE_ADDRESS_SNAPSHOT +00-000-9999 hidden@example.invalid
+D1|sex=F|meetId=00011|lastName=SWIMMER|firstName=ALPHA|identity=PRIVATE_ID_011|birthDate=01012080|age=016
+D1|sex=F|meetId=00012|lastName=SWIMMER|firstName=BETA|identity=PRIVATE_ID_012|birthDate=01022080|age=016
+E1|athlete=00011|gender=F|genderAge=G|distance=000050|stroke=A|ageMin=015|ageMax=016|eventNumber=0011|convertedSeed=30,00|course=L|seed=30,00|seedCourse=L
+E2|round=F|time=29,45|course=L|status=|heat=001|lane=004|heatPlace=001|place=0001
+F1|teamCode=TST02|relayTeam=A|gender=F|distance=000200|stroke=E|ageMin=015|ageMax=016|eventNumber=0012
+F2|round=F|time=125,67|course=L|status=|heat=001|lane=006|heatPlace=001|place=0001
+F3|member1=00011|member2=00012|member3=00011|member4=00012

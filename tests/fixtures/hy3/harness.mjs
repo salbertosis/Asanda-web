@@ -9,6 +9,7 @@ export const FIXTURE_NAMES = Object.freeze([
   'synthetic-unsupported-version.hy3',
   'synthetic-malformed-record.hy3',
   'synthetic-legacy-mm5.hy3',
+  'synthetic-snapshot-mm5.hy3',
 ]);
 export const RECORD_WIDTH = 192;
 export const LEGACY_RECORD_WIDTH = 130;
@@ -30,6 +31,9 @@ const LEGACY_FIELD_LAYOUTS = Object.freeze({
   D1: [['sex', 2, 1], ['meetId', 3, 5], ['lastName', 8, 20], ['firstName', 28, 20], ['identity', 69, 14], ['birthDate', 88, 8], ['age', 96, 3]],
   E1: [['athlete', 3, 5], ['gender', 13, 1], ['genderAge', 14, 1], ['distance', 15, 6], ['stroke', 21, 1], ['ageMin', 22, 3], ['ageMax', 25, 3], ['eventNumber', 38, 4], ['convertedSeed', 42, 8], ['course', 50, 1], ['seed', 51, 8], ['seedCourse', 59, 1]],
   E2: [['round', 2, 1], ['time', 3, 8], ['course', 11, 1], ['status', 12, 1], ['heat', 20, 3], ['lane', 23, 3], ['heatPlace', 26, 3], ['place', 29, 4]],
+  F1: [['teamCode', 2, 5], ['relayTeam', 7, 1], ['gender', 13, 1], ['distance', 15, 6], ['stroke', 21, 1], ['ageMin', 22, 3], ['ageMax', 25, 3], ['eventNumber', 38, 4]],
+  F2: [['round', 2, 1], ['time', 3, 8], ['course', 11, 1], ['status', 12, 1], ['heat', 20, 3], ['lane', 23, 3], ['heatPlace', 26, 3], ['place', 29, 4]],
+  F3: [['member1', 3, 5], ['member2', 16, 5], ['member3', 29, 5], ['member4', 42, 5]],
 });
 const CP1252_SPECIALS = new Map([
   ['€', 0x80], ['‚', 0x82], ['ƒ', 0x83], ['„', 0x84], ['…', 0x85], ['†', 0x86], ['‡', 0x87],

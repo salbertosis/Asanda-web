@@ -28,16 +28,18 @@ Fixture values use `SYNTHETIC`, `TST`, `PRIVATE_TEST`, `ZZ`, `+00`,
 `example.invalid`, and far-future sentinel years. Private fields are included
 only as synthetic canaries so tests can prove they do not cross the parser
 boundary. The sanitized preview MUST contain sports fields, source aliases,
-bounded display names, statuses, notes, and normalized times only. It MUST NOT
-contain the private canaries, exact dates, contacts, identity numbers, or raw
-bytes.
+bounded display names, competition dates, club relationships, statuses, notes,
+and normalized times only. It MUST NOT contain private canaries, athlete birth
+dates, contacts, identity numbers, or raw bytes. Modern `A.date` is a
+single-day meet date; legacy `B1` carries start and end dates.
 The RED parser API expected by `scripts/hy3-regression.mjs` is:
 ```js
 parseHy3(buffer) => {
   ok: true,
   preview: {
-    version, recordCounts, meetName, teams, athletes, events,
-    entries, results, relays, diagnostics
+    version, recordCounts, meetName, venueName,
+    competitionStartsOn, competitionEndsOn, pool,
+    teams, athletes, events, entries, results, relays, diagnostics
   }
 }
 ```
@@ -55,3 +57,18 @@ bytes and private `C`-record fields remain local. Team, athlete, and event
 aliases must reconcile to the selected competition before the preview can be
 approved. CSV remains an explicit alias-and-result fallback, not a replacement
 for the HY3 contract.
+
+## Complete snapshot DTO
+
+`synthetic-snapshot-mm5.hy3` establishes the legacy `B1` date order, `C1` to
+`D1` club context, public `E1` age category, and verified individual `E2`
+place/lane offsets. Relay member IDs are linkage canaries only; the snapshot
+DTO emits an empty `relayMembers` array because the source does not provide
+public member display names at that boundary. Relay place and lane remain
+null because their offsets are not part of the verified public `E2` contract.
+
+`buildHy3SnapshotDto(preview)` returns `{ ok: true, payload }`, where payload
+contains only the SQL-approved `competition`, `events`, and `results` keys.
+It rejects incomplete dates, unsupported yard courses, provisional results,
+and unresolved references with stable blocking codes. CSV remains unchanged
+and is not accepted as a self-contained competition snapshot.
