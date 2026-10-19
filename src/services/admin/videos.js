@@ -108,6 +108,15 @@ export async function uploadVideoToCloudinary(file, upload, { signal, fetchImpl 
   return { publicId: data.public_id };
 }
 
+const REGISTRATION_ERRORS = new Map([
+  [401, new Set(['No autorizado.'])],
+  [403, new Set(['No tenés permiso para gestionar videos.'])],
+  [409, new Set(['El video o el slug ya está registrado.'])],
+  [422, new Set(['Los datos del borrador no son válidos.', 'El archivo privado no cumple el contrato MP4 de ASANDA.'])],
+  [500, new Set(['Error interno al gestionar el video.'])],
+  [502, new Set(['El archivo quedó privado en Cloudinary, pero no se pudo registrar el borrador.'])],
+]);
+
 export async function registerVideoDraft({ publicId, title, slug, description = '' }) {
   const input = videoInput({ title, slug, description });
   if (!PUBLIC_ID_PATTERN.test(publicId ?? '')) throw new Error('VIDEO_INPUT_INVALID');
@@ -119,7 +128,16 @@ export async function registerVideoDraft({ publicId, title, slug, description = 
     const error = new Error('El archivo puede permanecer privado en Cloudinary porque no se pudo registrar el borrador.');
     error.code = 'video-registration-failed';
     error.privateAssetMayRemain = true;
+    error.publicId = publicId;
     error.cause = cause;
+    try {
+      const context = cause?.context;
+      const body = await context.clone().json();
+      if (REGISTRATION_ERRORS.get(context.status)?.has(body?.error)) {
+        error.registrationStatus = context.status;
+        error.registrationDetail = body.error;
+      }
+    } catch { /* Unreadable or unknown responses keep the safe generic message. */ }
     throw error;
   }
 }
@@ -186,7 +204,12 @@ export function formatVideoError(error) {
   const code = String(error?.code ?? '').toLowerCase();
   const message = String(error?.message ?? error ?? '').toLowerCase();
   if (error?.name === 'AbortError') return 'La carga del video fue cancelada.';
-  if (code === 'video-registration-failed') return 'El MP4 puede permanecer privado en Cloudinary: no se pudo registrar el borrador.';
+  if (code === 'video-registration-failed') {
+    const warning = 'El MP4 puede permanecer privado en Cloudinary: no se pudo registrar el borrador.';
+    return REGISTRATION_ERRORS.get(error.registrationStatus)?.has(error.registrationDetail)
+      ? `${warning} ${error.registrationStatus}: ${error.registrationDetail}`
+      : warning;
+  }
   if (code.includes('provider-upload') || message.includes('provider_upload')) return 'No se pudo subir el MP4. Revisá la conexión e intentá nuevamente.';
   if (code === '23505' || /duplicate|unique/.test(message)) return 'Ese video o slug ya está registrado.';
   if (message.includes('file_invalid') || message.includes('input_invalid')) return `Seleccioná un MP4 válido de hasta ${VIDEO_MAX_BYTES} bytes (100 MB) y revisá título y slug.`;

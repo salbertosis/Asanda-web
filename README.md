@@ -36,6 +36,16 @@ La ruta pública `/videos` y la sección de inicio muestran únicamente filas pu
 
 El servidor de `video-media` requiere `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` y `CLOUDINARY_VIDEO_UPLOAD_PRESET`. El preset firmado debe admitir únicamente MP4 autenticados en `asanda/videos`. Se acepta el modo dinámico recomendado (`asset_folder=asanda/videos` y `use_asset_folder_as_public_id_prefix=true`) o el modo heredado compatible (`folder=asanda/videos`), pero nunca una mezcla de ambos. Los presets de Cloudinary no ofrecen un límite por preset, por lo que el cliente valida antes de cargar y el servidor vuelve a verificar los bytes reales al registrar/publicar. No se promete TTL para las URLs firmadas: archivar quita el video del catálogo, pero no revoca enlaces ya emitidos. La presencia de las variables no prueba permisos, cuota, lectura del preset ni reproducción; una persona autorizada debe confirmar la integración real.
 
+### Recuperar un borrador sin repetir la carga
+
+Si falla el registro después de subir el MP4, el panel conserva el Public ID mientras la página siga abierta y muestra el estado HTTP y el mensaje conocido del servidor, cuando están disponibles. No muestra respuestas desconocidas ni datos de autorización.
+
+1. Completá título, slug y confirmación de derechos.
+2. Revisá **Public ID del video ya subido**. Si recargaste la página, pegá el ID completo de Cloudinary (`asanda/videos/...`), no una URL ni el nombre del archivo.
+3. Elegí **Registrar archivo existente**. No vuelve a subir el MP4 ni lo publica; el servidor mantiene la autenticación, las comprobaciones del recurso y el límite de 100 MB.
+
+Un rechazo sigue siendo un rechazo: esta recuperación no convierte recursos públicos o de otra carpeta en recursos admitidos. No cambies la privacidad ni subas otra copia para resolverlo. Un error sin respuesta legible conserva el aviso genérico; no prueba la causa original del 422.
+
 ## Logo ASANDA
 
 El logo `asanda.png` ya está configurado en la carpeta `public/` y se muestra automáticamente en:

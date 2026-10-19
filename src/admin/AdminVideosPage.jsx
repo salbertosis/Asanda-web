@@ -4,7 +4,7 @@ import VideoPlayer from '../components/VideoPlayer';
 import { getAdminMediaUrl, listPublicImageMedia } from '../services/admin/media';
 import {
   archiveAdminVideo, formatVideoError, listAdminVideos, publishAdminVideo, requestVideoPreview,
-  updateAdminVideo, uploadAndRegisterVideoDraft, validateVideoFile, VIDEO_MAX_BYTES,
+  registerVideoDraft, updateAdminVideo, uploadAndRegisterVideoDraft, validateVideoFile, VIDEO_MAX_BYTES,
 } from '../services/admin/videos';
 
 const fileError = `Seleccioná un MP4 válido de hasta ${VIDEO_MAX_BYTES} bytes (100 MB).`;
@@ -19,6 +19,7 @@ export default function AdminVideosPage() {
   const [notice, setNotice] = useState(null);
   const [file, setFile] = useState(null);
   const [fileMessage, setFileMessage] = useState(null);
+  const [existingPublicId, setExistingPublicId] = useState('');
   const [create, setCreate] = useState({ title: '', slug: '', description: '', rights: false });
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState(null);
@@ -49,6 +50,23 @@ export default function AdminVideosPage() {
     setFileMessage(next && !validateVideoFile(next).ok ? fileError : null);
   };
   const updateCreate = (key, value) => setCreate((current) => ({ ...current, [key]: value }));
+  const completeDraft = async (draft) => {
+    setNotice({ type: 'success', text: 'Borrador privado guardado. Revisalo antes de publicarlo.' });
+    setCreate({ title: '', slug: '', description: '', rights: false }); setFile(null); setFileMessage(null); setExistingPublicId('');
+    await load();
+    const loaded = (await listAdminVideos()).find((item) => item.id === draft.id);
+    if (loaded) { setSelected(loaded); setEdit(editorValues(loaded)); }
+  };
+  const registerExisting = async () => {
+    setNotice(null);
+    if (!create.rights) { setNotice({ type: 'error', text: 'Confirmá que los derechos y la difusión fueron aprobados antes de registrar el video.' }); return; }
+    setBusy(true);
+    try {
+      const draft = await registerVideoDraft({ publicId: existingPublicId.trim(), title: create.title, slug: create.slug, description: create.description });
+      await completeDraft(draft);
+    } catch (error) { setNotice({ type: 'error', text: formatVideoError(error) }); }
+    finally { setBusy(false); }
+  };
   const submitUpload = async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -58,12 +76,11 @@ export default function AdminVideosPage() {
     const controller = new AbortController(); uploadController.current = controller; setBusy(true);
     try {
       const draft = await uploadAndRegisterVideoDraft({ file, title: create.title, slug: create.slug, description: create.description, signal: controller.signal });
-      setNotice({ type: 'success', text: 'Borrador privado guardado. Revisalo antes de publicarlo.' });
-      setCreate({ title: '', slug: '', description: '', rights: false }); setFile(null); setFileMessage(null); form.reset();
-      await load();
-      const loaded = (await listAdminVideos()).find((item) => item.id === draft.id);
-      if (loaded) { setSelected(loaded); setEdit(editorValues(loaded)); }
-    } catch (error) { setNotice({ type: 'error', text: formatVideoError(error) }); }
+      await completeDraft(draft); form.reset();
+    } catch (error) {
+      if (error?.publicId) setExistingPublicId(error.publicId);
+      setNotice({ type: 'error', text: formatVideoError(error) });
+    }
     finally { setBusy(false); uploadController.current = null; }
   };
   const cancelUpload = () => uploadController.current?.abort();
@@ -113,7 +130,14 @@ export default function AdminVideosPage() {
       </div>
       {fileMessage && <p role="alert" className="mt-3 text-sm font-bold text-red-700">{fileMessage}</p>}
       <label className="mt-5 flex items-start gap-3 text-sm leading-6"><input type="checkbox" checked={create.rights} onChange={(event) => updateCreate('rights', event.target.checked)} className="mt-1 h-5 w-5" /><span>Confirmo que los derechos y la difusión fueron aprobados por una persona responsable. El material con personas identificables, especialmente menores, requiere aprobación humana; este control no crea ni sustituye una constancia legal.</span></label>
-      <div className="mt-5 flex flex-wrap gap-3"><button type="submit" disabled={busy} className="inline-flex min-h-12 items-center gap-2 bg-asanda-orange-strong px-5 font-bold text-white disabled:opacity-60"><Upload size={18} />Subir como borrador privado</button>{busy && <button type="button" onClick={cancelUpload} className="min-h-12 border border-asanda-line px-5 font-bold">Cancelar carga</button>}</div>
+      <div className="mt-5 flex flex-wrap gap-3"><button type="submit" disabled={busy || Boolean(existingPublicId.trim())} className="inline-flex min-h-12 items-center gap-2 bg-asanda-orange-strong px-5 font-bold text-white disabled:opacity-60"><Upload size={18} />Subir como borrador privado</button>{busy && <button type="button" onClick={cancelUpload} className="min-h-12 border border-asanda-line px-5 font-bold">Cancelar carga</button>}</div>
+      <div className="mt-6 border-t border-asanda-line pt-5">
+        <h3 className="font-display text-xl font-bold">Recuperar un archivo ya subido</h3>
+        <p id="existing-video-help" className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">Usá el Public ID completo de Cloudinary (asanda/videos/...), no una URL ni el nombre del archivo. Registrar conserva las validaciones del servidor: no vuelve a subir el MP4 ni lo publica. Completá el título, slug y confirmación de derechos de arriba.</p>
+        <label className="mt-3 block text-sm font-bold">Public ID del video ya subido<input value={existingPublicId} onChange={(event) => setExistingPublicId(event.target.value)} aria-describedby="existing-video-help" className="mt-2 block min-h-12 w-full rounded-lg border border-asanda-line px-3 font-normal dark:bg-slate-900" /></label>
+        <button type="button" disabled={busy || !existingPublicId.trim()} onClick={registerExisting} className="mt-3 min-h-12 border border-asanda-line px-5 font-bold disabled:opacity-60">Registrar archivo existente</button>
+        <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">El ID de una carga fallida se conserva mientras esta página siga abierta. Mientras haya un Public ID, la carga de otro MP4 queda deshabilitada para evitar duplicados; borrá el campo solo si querés iniciar otra carga.</p>
+      </div>
     </form>
 
     {!videos && !loadError && <p role="status" className="mt-6">Cargando videos…</p>}

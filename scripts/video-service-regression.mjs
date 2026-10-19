@@ -93,6 +93,40 @@ await check('draft registration invokes server and reports a private orphan when
   });
   assert.deepEqual(calls[0], ['invoke', 'video-media', { body: { action: 'register', publicId: 'asanda/videos/owned-one', title: 'Video prueba', slug: 'video-prueba', description: '' } }]);
 });
+await check('registration exposes only safe server errors and retains the existing public ID', async () => {
+  const publicId = 'asanda/videos/owned-one';
+  const input = { publicId, title: 'Video prueba', slug: 'video-prueba' };
+  const context = new Response(JSON.stringify({ error: 'El archivo privado no cumple el contrato MP4 de ASANDA.' }), { status: 422 });
+  nextResult = { data: null, error: { name: 'FunctionsHttpError', context } };
+  await assert.rejects(() => admin.registerVideoDraft(input), (error) => {
+    assert.equal(error.publicId, publicId);
+    assert.equal(error.registrationStatus, 422);
+    assert.match(admin.formatVideoError(error), /422.*El archivo privado no cumple el contrato MP4 de ASANDA\./);
+    return true;
+  });
+  assert.equal(context.bodyUsed, false);
+  for (const context of [
+    new Response(JSON.stringify({ error: 'private-token-value' }), { status: 422 }),
+    new Response('private-token-value', { status: 502 }),
+  ]) {
+    nextResult = { data: null, error: { context, message: 'private-token-value' } };
+    await assert.rejects(() => admin.registerVideoDraft(input), (error) => {
+      assert.equal(error.publicId, publicId);
+      assert.doesNotMatch(admin.formatVideoError(error), /private-token-value/);
+      assert.match(admin.formatVideoError(error), /privado en Cloudinary/);
+      return true;
+    });
+  }
+});
+await check('register-only recovery creates a draft with no signing, upload, or publication', async () => {
+  const input = { publicId: 'asanda/videos/owned-one', title: 'Video prueba', slug: 'video-prueba' };
+  nextResult = { data: { video: { id: 'video-1', publicationStatus: 'draft' } }, error: null };
+  assert.equal((await admin.registerVideoDraft(input)).publicationStatus, 'draft');
+  assert.deepEqual(calls, [['invoke', 'video-media', { body: { action: 'register', ...input, description: '' } }]]);
+  calls.length = 0;
+  await assert.rejects(() => admin.registerVideoDraft({ ...input, publicId: 'WhatsApp_Video' }), /VIDEO_INPUT_INVALID/);
+  assert.deepEqual(calls, []);
+});
 await check('admin updates whitelist editable metadata and publication lifecycle keys', async () => {
   nextResult = { data: row(), error: null };
   await assert.rejects(() => admin.updateAdminVideo('video-1', { title: 'Título válido', slug: 'titulo-valido', provider: 'youtube' }), /VIDEO_INPUT_INVALID/);

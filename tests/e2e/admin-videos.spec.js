@@ -123,3 +123,59 @@ test('reports cancellation and a private orphan when registration fails', async 
   await fill(); await page.getByRole('button', { name: 'Subir como borrador privado' }).click();
   await expect(page.getByRole('alert')).toContainText('puede permanecer privado en Cloudinary');
 });
+
+test('recovers registration of an existing private asset without uploading or publishing', async ({ page }) => {
+  const state = { rows: [] }; await routeBase(page, state);
+  const actions = []; let uploads = 0;
+  await page.route('**/api.cloudinary.com/**', (route) => { uploads += 1; return route.abort(); });
+  await page.route('**/functions/v1/video-media', (route) => {
+    const body = route.request().postDataJSON(); actions.push(body);
+    expect(body.action).toBe('register');
+    state.rows = [dbRow()];
+    return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ video: { id: videoId, publicationStatus: 'draft' } }) });
+  });
+  await signIn(page);
+  await expect(page.getByLabel('Public ID del video ya subido')).toBeVisible();
+  await page.getByLabel('Título').fill('Final estadal'); await page.getByLabel('Slug').fill('final-estadal');
+  await page.getByLabel('Public ID del video ya subido').fill('asanda/videos/final-estadal');
+  await page.getByRole('button', { name: 'Registrar archivo existente' }).click();
+  await expect(page.getByRole('alert')).toContainText('Confirmá que los derechos');
+  expect(actions).toEqual([]); expect(uploads).toBe(0); expect(state.rows).toEqual([]);
+  await page.getByLabel(/derechos y la difusión/).check();
+  await page.getByRole('button', { name: 'Registrar archivo existente' }).click();
+  await expect(page.getByRole('status')).toContainText('Borrador privado guardado');
+  expect(actions).toEqual([{ action: 'register', publicId: 'asanda/videos/final-estadal', title: 'Final estadal', slug: 'final-estadal', description: '' }]);
+  expect(uploads).toBe(0); expect(state.rows[0].publication_status).toBe('draft');
+  expect(state.rows[0].published_at).toBeNull();
+});
+
+test('retains the uploaded public ID and retries only registration after an exact server error', async ({ page }) => {
+  const state = { rows: [] }; await routeBase(page, state);
+  const actions = []; let uploads = 0; let registrations = 0;
+  await page.route('**/api.cloudinary.com/**', (route) => {
+    uploads += 1;
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ public_id: 'asanda/videos/final-estadal' }) });
+  });
+  await page.route('**/functions/v1/video-media', (route) => {
+    const body = route.request().postDataJSON(); actions.push(body.action);
+    if (body.action === 'sign-upload') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ upload: { uploadUrl: 'https://api.cloudinary.com/v1_1/demo/video/upload', apiKey: 'key', timestamp: 1, folder: 'asanda/videos', type: 'authenticated', uploadPreset: 'preset', signature: 'signature' } }) });
+    expect(body.action).toBe('register'); registrations += 1;
+    if (registrations === 1) return route.fulfill({ status: 422, contentType: 'application/json', body: JSON.stringify({ error: 'El archivo privado no cumple el contrato MP4 de ASANDA.' }) });
+    state.rows = [dbRow()];
+    return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ video: { id: videoId, publicationStatus: 'draft' } }) });
+  });
+  await signIn(page);
+  await page.setInputFiles('input[type=file]', { name: 'final.mp4', mimeType: 'video/mp4', buffer: Buffer.from('synthetic-mp4') });
+  await page.getByLabel('Título').fill('Final estadal'); await page.getByLabel('Slug').fill('final-estadal');
+  await page.getByLabel(/derechos y la difusión/).check();
+  await page.getByRole('button', { name: 'Subir como borrador privado' }).click();
+  await expect(page.getByRole('alert')).toContainText('422: El archivo privado no cumple el contrato MP4 de ASANDA.');
+  await expect(page.getByLabel('Public ID del video ya subido')).toHaveValue('asanda/videos/final-estadal');
+  await expect(page.getByRole('button', { name: 'Subir como borrador privado' })).toBeDisabled();
+  expect(state.rows).toEqual([]); expect(uploads).toBe(1); expect(registrations).toBe(1);
+  await page.getByRole('button', { name: 'Registrar archivo existente' }).click();
+  await expect(page.getByRole('status')).toContainText('Borrador privado guardado');
+  expect(actions).toEqual(['sign-upload', 'register', 'register']);
+  expect(uploads).toBe(1); expect(state.rows[0].publication_status).toBe('draft');
+  expect(state.rows[0].published_at).toBeNull();
+});
