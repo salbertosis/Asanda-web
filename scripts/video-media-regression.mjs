@@ -164,6 +164,38 @@ await check('register re-reads provider metadata and rejects mismatch, oversized
     assert.equal(harness.state.writes, 0);
   }
 });
+await check('register reports only safe provider-read or metadata reason codes without writes', async () => {
+  const input = { action: 'register', publicId: 'asanda/videos/owned-one', title: 'Video válido', slug: 'video-valido', description: '' };
+  const cases = [
+    [asset({ public_id: 'asanda/videos/other' }), 'id-invalid'],
+    [asset({ resource_type: 'image' }), 'resource-type-invalid'],
+    [asset({ type: 'upload' }), 'delivery-type-invalid'],
+    [asset({ format: 'mov' }), 'format-invalid'],
+    [asset({ bytes: VIDEO_MAX_BYTES + 1 }), 'bytes-invalid'],
+    [asset({ duration: undefined }), 'duration-invalid'],
+    [asset({ width: 0 }), 'dimensions-invalid'],
+    [null, 'provider-unavailable'],
+  ];
+  for (const [value, reason] of cases) {
+    const harness = makeHarness({ readProviderAsset: async () => { harness.state.metadataReads += 1; return value; } });
+    const response = await readResponse(await harness.handler(jsonRequest(input, 'good')));
+    assert.equal(response.status, 422);
+    assert.deepEqual(response.body, { error: 'El archivo privado no cumple el contrato MP4 de ASANDA.', reason });
+    assert.equal(harness.state.metadataReads, 1); assert.equal(harness.state.writes, 0); assert.equal(harness.state.videoReads, 0);
+  }
+  for (const [providerStatus, reason] of [[401, 'provider-access-denied'], [403, 'provider-access-denied'], [404, 'provider-not-found'], [429, 'provider-rate-limited'], [500, 'provider-unavailable'], [undefined, 'provider-unavailable']]) {
+    const harness = makeHarness({ readProviderAsset: async () => { harness.state.metadataReads += 1; throw Object.assign(new Error('private-token-and-provider-body'), { providerStatus }); } });
+    const response = await readResponse(await harness.handler(jsonRequest(input, 'good')));
+    assert.equal(response.status, 422);
+    assert.deepEqual(response.body, { error: 'El archivo privado no cumple el contrato MP4 de ASANDA.', reason });
+    assert.doesNotMatch(JSON.stringify(response.body), /private-token|providerStatus|server-secret/);
+    assert.equal(harness.state.writes, 0); assert.equal(harness.state.metadataReads, 1);
+  }
+  const anonymous = makeHarness();
+  const denied = await readResponse(await anonymous.handler(jsonRequest(input)));
+  assert.equal(denied.status, 401); assert.deepEqual(denied.body, { error: 'No autorizado.' });
+  assert.equal(anonymous.state.metadataReads, 0); assert.equal(anonymous.state.writes, 0);
+});
 await check('register inserts only a Cloudinary draft from verified metadata', async () => {
   let inserted;
   const { handler } = makeHarness({ insertDraft: async (payload) => { inserted = payload; return video({ ...payload, id: 'created-1' }); } });

@@ -110,9 +110,19 @@ export function createVideoMediaHandler(deps) {
       const input = validateDraftInput(body);
       if (!input) return response(422, { error: 'Los datos del borrador no son válidos.' });
       let providerAsset;
-      try { providerAsset = await deps.readProviderAsset(input.publicId); } catch { providerAsset = null; }
-      if (!validateProviderAsset(providerAsset, input.publicId).ok) {
-        return response(422, { error: 'El archivo privado no cumple el contrato MP4 de ASANDA.' });
+      let readReason = 'provider-unavailable';
+      try { providerAsset = await deps.readProviderAsset(input.publicId); } catch (error) {
+        const status = error?.providerStatus;
+        if (status === 401 || status === 403) readReason = 'provider-access-denied';
+        else if (status === 404) readReason = 'provider-not-found';
+        else if (status === 429) readReason = 'provider-rate-limited';
+      }
+      const validation = validateProviderAsset(providerAsset, input.publicId);
+      if (!validation.ok) {
+        return response(422, {
+          error: 'El archivo privado no cumple el contrato MP4 de ASANDA.',
+          reason: providerAsset == null ? readReason : validation.reason,
+        });
       }
       const payload = {
         title: input.title,

@@ -54,22 +54,15 @@ export function validateUploadPreset(value) {
 }
 
 export function validateProviderAsset(value, expectedPublicId = value?.public_id) {
-  const valid = validateVideoPublicId(expectedPublicId)
-    && value?.public_id === expectedPublicId
-    && value?.resource_type === 'video'
-    && value?.type === 'authenticated'
-    && value?.format === VIDEO_FORMAT
-    && Number.isInteger(value?.bytes)
-    && value.bytes > 0
-    && value.bytes <= VIDEO_MAX_BYTES
-    && typeof value?.duration === 'number'
-    && Number.isFinite(value.duration)
-    && value.duration > 0
-    && Number.isInteger(value?.width)
-    && value.width > 0
-    && Number.isInteger(value?.height)
-    && value.height > 0;
-  return valid ? { ok: true } : { ok: false, error: 'asset-invalid' };
+  const invalid = (reason) => ({ ok: false, error: 'asset-invalid', reason });
+  if (!validateVideoPublicId(expectedPublicId) || value?.public_id !== expectedPublicId) return invalid('id-invalid');
+  if (value?.resource_type !== 'video') return invalid('resource-type-invalid');
+  if (value?.type !== 'authenticated') return invalid('delivery-type-invalid');
+  if (value?.format !== VIDEO_FORMAT) return invalid('format-invalid');
+  if (!Number.isInteger(value?.bytes) || value.bytes <= 0 || value.bytes > VIDEO_MAX_BYTES) return invalid('bytes-invalid');
+  if (typeof value?.duration !== 'number' || !Number.isFinite(value.duration) || value.duration <= 0) return invalid('duration-invalid');
+  if (!Number.isInteger(value?.width) || value.width <= 0 || !Number.isInteger(value?.height) || value.height <= 0) return invalid('dimensions-invalid');
+  return { ok: true };
 }
 
 // Cloudinary URL signatures are the first eight base64url characters of the

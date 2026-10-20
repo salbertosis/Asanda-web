@@ -44,6 +44,8 @@ Si falla el registro después de subir el MP4, el panel conserva el Public ID mi
 2. Revisá **Public ID del video ya subido**. Si recargaste la página, pegá el ID completo de Cloudinary (`asanda/videos/...`), no una URL ni el nombre del archivo.
 3. Elegí **Registrar archivo existente**. No vuelve a subir el MP4 ni lo publica; el servidor mantiene la autenticación, las comprobaciones del recurso y el límite de 100 MB.
 
+El rechazo de un recurso incluye un motivo seguro cuando está disponible: consulta denegada, recurso autenticado no encontrado, límite temporal de consultas, consulta no disponible o validación de identidad, tipo, formato, tamaño, duración o dimensiones. Estos motivos se entregan únicamente tras autorizar la gestión del video; no incluyen respuestas, URLs ni credenciales de Cloudinary. El diagnóstico no prueba una causa antes de consultar el recurso real ni corrige el archivo automáticamente.
+
 Un rechazo sigue siendo un rechazo: esta recuperación no convierte recursos públicos o de otra carpeta en recursos admitidos. No cambies la privacidad ni subas otra copia para resolverlo. Un error sin respuesta legible conserva el aviso genérico; no prueba la causa original del 422.
 
 ## Logo ASANDA

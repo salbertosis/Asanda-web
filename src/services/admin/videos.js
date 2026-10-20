@@ -117,6 +117,21 @@ const REGISTRATION_ERRORS = new Map([
   [502, new Set(['El archivo quedó privado en Cloudinary, pero no se pudo registrar el borrador.'])],
 ]);
 
+const REGISTRATION_REASONS = new Map([
+  ['provider-access-denied', 'Cloudinary rechazó la consulta. Revisá los permisos de la clave del servidor.'],
+  ['provider-not-found', 'Cloudinary no encontró el recurso autenticado consultado.'],
+  ['provider-rate-limited', 'Cloudinary limitó temporalmente las consultas.'],
+  ['provider-unavailable', 'No se pudo consultar el recurso en Cloudinary.'],
+  ['id-invalid', 'El identificador devuelto por Cloudinary no coincide con el solicitado.'],
+  ['resource-type-invalid', 'Cloudinary no identificó el recurso como video.'],
+  ['delivery-type-invalid', 'El recurso no tiene tipo de entrega authenticated.'],
+  ['format-invalid', 'El formato verificado por Cloudinary no es MP4.'],
+  ['bytes-invalid', 'El tamaño verificado no es válido o supera los 100 MB.'],
+  ['duration-invalid', 'Cloudinary no devolvió una duración válida y positiva.'],
+  ['dimensions-invalid', 'Cloudinary no devolvió dimensiones válidas y positivas.'],
+]);
+const RESOURCE_REJECTION = 'El archivo privado no cumple el contrato MP4 de ASANDA.';
+
 export async function registerVideoDraft({ publicId, title, slug, description = '' }) {
   const input = videoInput({ title, slug, description });
   if (!PUBLIC_ID_PATTERN.test(publicId ?? '')) throw new Error('VIDEO_INPUT_INVALID');
@@ -136,6 +151,9 @@ export async function registerVideoDraft({ publicId, title, slug, description = 
       if (REGISTRATION_ERRORS.get(context.status)?.has(body?.error)) {
         error.registrationStatus = context.status;
         error.registrationDetail = body.error;
+        if (context.status === 422 && body.error === RESOURCE_REJECTION && REGISTRATION_REASONS.has(body.reason)) {
+          error.registrationReason = body.reason;
+        }
       }
     } catch { /* Unreadable or unknown responses keep the safe generic message. */ }
     throw error;
@@ -206,9 +224,10 @@ export function formatVideoError(error) {
   if (error?.name === 'AbortError') return 'La carga del video fue cancelada.';
   if (code === 'video-registration-failed') {
     const warning = 'El MP4 puede permanecer privado en Cloudinary: no se pudo registrar el borrador.';
-    return REGISTRATION_ERRORS.get(error.registrationStatus)?.has(error.registrationDetail)
-      ? `${warning} ${error.registrationStatus}: ${error.registrationDetail}`
-      : warning;
+    if (!REGISTRATION_ERRORS.get(error.registrationStatus)?.has(error.registrationDetail)) return warning;
+    const reason = error.registrationStatus === 422 && error.registrationDetail === RESOURCE_REJECTION
+      ? REGISTRATION_REASONS.get(error.registrationReason) : null;
+    return `${warning} ${error.registrationStatus}: ${error.registrationDetail}${reason ? ` ${reason}` : ''}`;
   }
   if (code.includes('provider-upload') || message.includes('provider_upload')) return 'No se pudo subir el MP4. Revisá la conexión e intentá nuevamente.';
   if (code === '23505' || /duplicate|unique/.test(message)) return 'Ese video o slug ya está registrado.';

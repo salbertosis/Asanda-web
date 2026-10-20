@@ -160,7 +160,7 @@ test('retains the uploaded public ID and retries only registration after an exac
     const body = route.request().postDataJSON(); actions.push(body.action);
     if (body.action === 'sign-upload') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ upload: { uploadUrl: 'https://api.cloudinary.com/v1_1/demo/video/upload', apiKey: 'key', timestamp: 1, folder: 'asanda/videos', type: 'authenticated', uploadPreset: 'preset', signature: 'signature' } }) });
     expect(body.action).toBe('register'); registrations += 1;
-    if (registrations === 1) return route.fulfill({ status: 422, contentType: 'application/json', body: JSON.stringify({ error: 'El archivo privado no cumple el contrato MP4 de ASANDA.' }) });
+    if (registrations === 1) return route.fulfill({ status: 422, contentType: 'application/json', body: JSON.stringify({ error: 'El archivo privado no cumple el contrato MP4 de ASANDA.', reason: 'duration-invalid' }) });
     state.rows = [dbRow()];
     return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ video: { id: videoId, publicationStatus: 'draft' } }) });
   });
@@ -170,6 +170,7 @@ test('retains the uploaded public ID and retries only registration after an exac
   await page.getByLabel(/derechos y la difusión/).check();
   await page.getByRole('button', { name: 'Subir como borrador privado' }).click();
   await expect(page.getByRole('alert')).toContainText('422: El archivo privado no cumple el contrato MP4 de ASANDA.');
+  await expect(page.getByRole('alert')).toContainText('Cloudinary no devolvió una duración válida y positiva.');
   await expect(page.getByLabel('Public ID del video ya subido')).toHaveValue('asanda/videos/final-estadal');
   await expect(page.getByRole('button', { name: 'Subir como borrador privado' })).toBeDisabled();
   expect(state.rows).toEqual([]); expect(uploads).toBe(1); expect(registrations).toBe(1);

@@ -36,7 +36,7 @@ Deno.serve(async (request) => {
         method: 'GET',
         headers: { Authorization: authorization, Accept: 'application/json' },
       });
-      if (!providerResponse.ok) throw new Error('Provider read failed.');
+      if (!providerResponse.ok) throw Object.assign(new Error('Provider read failed.'), { providerStatus: providerResponse.status });
       return providerResponse.json();
     };
 

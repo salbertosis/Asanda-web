@@ -118,6 +118,35 @@ await check('registration exposes only safe server errors and retains the existi
     });
   }
 });
+await check('registration renders allowlisted validation reasons but never unknown reason data', async () => {
+  const input = { publicId: 'asanda/videos/owned-one', title: 'Video prueba', slug: 'video-prueba' };
+  for (const [reason, text] of [
+    ['provider-access-denied', 'Cloudinary rechazó la consulta'],
+    ['provider-not-found', 'Cloudinary no encontró el recurso autenticado consultado'],
+    ['provider-rate-limited', 'Cloudinary limitó temporalmente las consultas'],
+    ['provider-unavailable', 'No se pudo consultar el recurso en Cloudinary'],
+    ['id-invalid', 'El identificador devuelto por Cloudinary no coincide'],
+    ['resource-type-invalid', 'Cloudinary no identificó el recurso como video'],
+    ['delivery-type-invalid', 'El recurso no tiene tipo de entrega authenticated'],
+    ['format-invalid', 'El formato verificado por Cloudinary no es MP4'],
+    ['bytes-invalid', 'El tamaño verificado no es válido o supera los 100 MB'],
+    ['duration-invalid', 'Cloudinary no devolvió una duración válida y positiva'],
+    ['dimensions-invalid', 'Cloudinary no devolvió dimensiones válidas y positivas'],
+  ]) {
+    nextResult = { data: null, error: { context: new Response(JSON.stringify({ error: 'El archivo privado no cumple el contrato MP4 de ASANDA.', reason }), { status: 422 }) } };
+    await assert.rejects(() => admin.registerVideoDraft(input), error => {
+      assert.equal(error.publicId, input.publicId);
+      assert.ok(admin.formatVideoError(error).includes(text));
+      return true;
+    });
+  }
+  nextResult = { data: null, error: { context: new Response(JSON.stringify({ error: 'El archivo privado no cumple el contrato MP4 de ASANDA.', reason: 'private-token-value' }), { status: 422 }) } };
+  await assert.rejects(() => admin.registerVideoDraft(input), error => {
+    assert.doesNotMatch(admin.formatVideoError(error), /private-token-value/);
+    assert.match(admin.formatVideoError(error), /422: El archivo privado no cumple/);
+    return true;
+  });
+});
 await check('register-only recovery creates a draft with no signing, upload, or publication', async () => {
   const input = { publicId: 'asanda/videos/owned-one', title: 'Video prueba', slug: 'video-prueba' };
   nextResult = { data: { video: { id: 'video-1', publicationStatus: 'draft' } }, error: null };
