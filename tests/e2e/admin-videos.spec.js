@@ -194,7 +194,7 @@ test('compares duration explicitly without a file, rights confirmation or record
   expect(actions).toEqual([]);
   await page.getByLabel('Public ID del video ya subido').fill('asanda/videos/owned-one');
   await page.getByRole('button', { name: 'Comparar duración (solo lectura)', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('Consulta habitual: duración ausente');
+  await expect(page.getByRole('status')).toContainText('Sin metadatos: duración ausente');
   await expect(page.getByRole('status')).toContainText('Con metadatos: duración válida');
   await expect(page.getByRole('status')).toContainText('Mismo recurso y versión: sí');
   await expect(page.getByRole('status')).toContainText('No se modificó ni registró el archivo');

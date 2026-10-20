@@ -13,7 +13,7 @@ export function createCloudinaryProviderReader({ cloudName, apiKey, apiSecret, f
     readUploadPreset(name) {
       return read(`upload_presets/${encodeURIComponent(name)}`);
     },
-    async readProviderAsset(publicId, { mediaMetadata = false } = {}) {
+    async readProviderAsset(publicId, { mediaMetadata = true } = {}) {
       if (!validateVideoPublicId(publicId)) throw new Error('INVALID_VIDEO_ID');
       const query = mediaMetadata === true ? '?media_metadata=true' : '';
       return read(`resources/video/authenticated/${encodeURIComponent(publicId)}${query}`);

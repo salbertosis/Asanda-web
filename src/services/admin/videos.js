@@ -180,7 +180,7 @@ export async function compareVideoDuration(publicId) {
     throw new Error('VIDEO_COMPARISON_INVALID');
   }
   const describe = (value) => `duración ${labels.get(value.duration)}; validación ${value.validAsset ? 'completa' : 'rechazada'}`;
-  return `Consulta habitual: ${describe(comparison.baseline)}. Con metadatos: ${describe(comparison.withMetadata)}. Mismo recurso y versión: ${comparison.sameResource ? 'sí' : 'no'}. No se modificó ni registró el archivo.`;
+  return `Sin metadatos: ${describe(comparison.baseline)}. Con metadatos: ${describe(comparison.withMetadata)}. Mismo recurso y versión: ${comparison.sameResource ? 'sí' : 'no'}. No se modificó ni registró el archivo.`;
 }
 
 export async function listAdminVideos() {

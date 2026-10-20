@@ -159,7 +159,7 @@ await check('register-only recovery creates a draft with no signing, upload, or 
 await check('duration comparison sends only existing ID and formats a finite read-only result', async () => {
   nextResult = { data: { comparison: { baseline: { duration: 'missing', validAsset: false }, withMetadata: { duration: 'valid', validAsset: true }, sameResource: true } }, error: null };
   const summary = await admin.compareVideoDuration('asanda/videos/owned-one');
-  assert.match(summary, /Consulta habitual: duración ausente/);
+  assert.match(summary, /Sin metadatos: duración ausente/);
   assert.match(summary, /Con metadatos: duración válida/);
   assert.match(summary, /Mismo recurso y versión: sí/);
   assert.match(summary, /No se modificó ni registró el archivo/);
