@@ -180,3 +180,25 @@ test('retains the uploaded public ID and retries only registration after an exac
   expect(uploads).toBe(1); expect(state.rows[0].publication_status).toBe('draft');
   expect(state.rows[0].published_at).toBeNull();
 });
+
+test('compares duration explicitly without a file, rights confirmation or record mutation', async ({ page }) => {
+  const state = { rows: [] }; await routeBase(page, state);
+  const actions = []; let uploads = 0;
+  await page.route('**/api.cloudinary.com/**', (route) => { uploads += 1; return route.abort(); });
+  await page.route('**/functions/v1/video-media', (route) => {
+    const body = route.request().postDataJSON(); actions.push(body);
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ comparison: { baseline: { duration: 'missing', validAsset: false }, withMetadata: { duration: 'valid', validAsset: true }, sameResource: true } }) });
+  });
+  await signIn(page);
+  await expect(page.getByRole('button', { name: 'Comparar duración (solo lectura)', exact: true })).toBeVisible();
+  expect(actions).toEqual([]);
+  await page.getByLabel('Public ID del video ya subido').fill('asanda/videos/owned-one');
+  await page.getByRole('button', { name: 'Comparar duración (solo lectura)', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Consulta habitual: duración ausente');
+  await expect(page.getByRole('status')).toContainText('Con metadatos: duración válida');
+  await expect(page.getByRole('status')).toContainText('Mismo recurso y versión: sí');
+  await expect(page.getByRole('status')).toContainText('No se modificó ni registró el archivo');
+  expect(actions).toEqual([{ action: 'compare-duration', publicId: 'asanda/videos/owned-one' }]);
+  expect(uploads).toBe(0); expect(state.rows).toEqual([]);
+  await expect(page.getByLabel(/derechos y la difusión/)).not.toBeChecked();
+});

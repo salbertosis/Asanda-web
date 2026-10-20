@@ -166,6 +166,23 @@ export async function uploadAndRegisterVideoDraft({ file, title, slug, descripti
   return registerVideoDraft({ ...asset, title, slug, description });
 }
 
+export async function compareVideoDuration(publicId) {
+  if (!PUBLIC_ID_PATTERN.test(publicId ?? '')) throw new Error('VIDEO_INPUT_INVALID');
+  const data = await invoke({ action: 'compare-duration', publicId });
+  const keys = (value, expected) => value && typeof value === 'object' && !Array.isArray(value)
+    && Object.keys(value).length === expected.length && Object.keys(value).every(key => expected.includes(key));
+  const labels = new Map([['missing', 'ausente'], ['invalid', 'inválida'], ['valid', 'válida']]);
+  const part = (value) => keys(value, ['duration', 'validAsset']) && labels.has(value.duration)
+    && typeof value.validAsset === 'boolean' && (!value.validAsset || value.duration === 'valid');
+  const comparison = data?.comparison;
+  if (!keys(data, ['comparison']) || !keys(comparison, ['baseline', 'withMetadata', 'sameResource'])
+    || !part(comparison.baseline) || !part(comparison.withMetadata) || typeof comparison.sameResource !== 'boolean') {
+    throw new Error('VIDEO_COMPARISON_INVALID');
+  }
+  const describe = (value) => `duración ${labels.get(value.duration)}; validación ${value.validAsset ? 'completa' : 'rechazada'}`;
+  return `Consulta habitual: ${describe(comparison.baseline)}. Con metadatos: ${describe(comparison.withMetadata)}. Mismo recurso y versión: ${comparison.sameResource ? 'sí' : 'no'}. No se modificó ni registró el archivo.`;
+}
+
 export async function listAdminVideos() {
   const { data, error } = await supabase.from('videos').select(VIDEO_SELECT).order('created_at', { ascending: false });
   if (error) throw error;

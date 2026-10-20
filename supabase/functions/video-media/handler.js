@@ -21,7 +21,7 @@ const isObject = (value) => value !== null && typeof value === 'object' && !Arra
 const exactKeys = (value, allowed) => isObject(value) && Object.keys(value).every((key) => allowed.has(key));
 const duplicate = (error) => error?.code === '23505' || /duplicate|unique/i.test(String(error?.message ?? ''));
 const validId = (value) => typeof value === 'string' && ID_PATTERN.test(value);
-const protectedAction = (action) => ['sign-upload', 'register', 'preview', 'publish'].includes(action);
+const protectedAction = (action) => ['sign-upload', 'register', 'preview', 'publish', 'compare-duration'].includes(action);
 
 function normalizeVideo(row) {
   return {
@@ -78,6 +78,32 @@ export function createVideoMediaHandler(deps) {
       const auth = await requireEditor(deps, authorization);
       if (auth.error) return auth.error;
       actor = auth.actor;
+    }
+
+    if (body.action === 'compare-duration') {
+      if (!exactKeys(body, new Set(['action', 'publicId'])) || !validateVideoPublicId(body.publicId)) {
+        return response(422, { error: 'El Public ID del video no es válido.' });
+      }
+      try {
+        const baseline = await deps.readProviderAsset(body.publicId, { mediaMetadata: false });
+        const withMetadata = await deps.readProviderAsset(body.publicId, { mediaMetadata: true });
+        const summarize = (asset) => ({
+          duration: asset?.duration === undefined ? 'missing'
+            : typeof asset.duration === 'number' && Number.isFinite(asset.duration) && asset.duration > 0 ? 'valid' : 'invalid',
+          validAsset: validateProviderAsset(asset, body.publicId).ok,
+        });
+        const identity = (asset) => asset?.public_id === body.publicId && asset?.resource_type === 'video'
+          && asset?.type === 'authenticated' && typeof asset?.asset_id === 'string' && asset.asset_id.length > 0
+          && Number.isInteger(asset?.version) && asset.version > 0;
+        return response(200, { comparison: {
+          baseline: summarize(baseline),
+          withMetadata: summarize(withMetadata),
+          sameResource: identity(baseline) && identity(withMetadata)
+            && baseline.asset_id === withMetadata.asset_id && baseline.version === withMetadata.version,
+        } });
+      } catch {
+        return response(502, { error: 'No se pudo comparar la duración del video.' });
+      }
     }
 
     if (body.action === 'sign-upload') {

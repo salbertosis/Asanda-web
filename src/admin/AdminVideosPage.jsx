@@ -3,7 +3,7 @@ import { Archive, RefreshCw, Save, Upload, Video } from 'lucide-react';
 import VideoPlayer from '../components/VideoPlayer';
 import { getAdminMediaUrl, listPublicImageMedia } from '../services/admin/media';
 import {
-  archiveAdminVideo, formatVideoError, listAdminVideos, publishAdminVideo, requestVideoPreview,
+  archiveAdminVideo, compareVideoDuration, formatVideoError, listAdminVideos, publishAdminVideo, requestVideoPreview,
   registerVideoDraft, updateAdminVideo, uploadAndRegisterVideoDraft, validateVideoFile, VIDEO_MAX_BYTES,
 } from '../services/admin/videos';
 
@@ -56,6 +56,12 @@ export default function AdminVideosPage() {
     await load();
     const loaded = (await listAdminVideos()).find((item) => item.id === draft.id);
     if (loaded) { setSelected(loaded); setEdit(editorValues(loaded)); }
+  };
+  const compareDuration = async () => {
+    setNotice(null); setBusy(true);
+    try { setNotice({ type: 'success', text: await compareVideoDuration(existingPublicId.trim()) }); }
+    catch { setNotice({ type: 'error', text: 'No se pudo comparar la duración. Revisá la sesión y el Public ID. No se modificó ni registró el archivo.' }); }
+    finally { setBusy(false); }
   };
   const registerExisting = async () => {
     setNotice(null);
@@ -136,6 +142,8 @@ export default function AdminVideosPage() {
         <p id="existing-video-help" className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">Usá el Public ID completo de Cloudinary (asanda/videos/...), no una URL ni el nombre del archivo. Registrar conserva las validaciones del servidor: no vuelve a subir el MP4 ni lo publica. Completá el título, slug y confirmación de derechos de arriba.</p>
         <label className="mt-3 block text-sm font-bold">Public ID del video ya subido<input value={existingPublicId} onChange={(event) => setExistingPublicId(event.target.value)} aria-describedby="existing-video-help" className="mt-2 block min-h-12 w-full rounded-lg border border-asanda-line px-3 font-normal dark:bg-slate-900" /></label>
         <button type="button" disabled={busy || !existingPublicId.trim()} onClick={registerExisting} className="mt-3 min-h-12 border border-asanda-line px-5 font-bold disabled:opacity-60">Registrar archivo existente</button>
+        <button type="button" disabled={busy || !existingPublicId.trim()} onClick={compareDuration} className="ml-3 mt-3 min-h-12 border border-asanda-line px-5 font-bold disabled:opacity-60">Comparar duración (solo lectura)</button>
+        <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">Comparar hace como máximo dos consultas privadas del mismo recurso con y sin metadatos. No requiere un archivo nuevo ni registra, transforma o publica el video. El resultado no aplica correcciones automáticamente.</p>
         <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">El ID de una carga fallida se conserva mientras esta página siga abierta. Mientras haya un Public ID, la carga de otro MP4 queda deshabilitada para evitar duplicados; borrá el campo solo si querés iniciar otra carga.</p>
       </div>
     </form>

@@ -112,6 +112,35 @@ await check('anonymous, invalid and inactive editors cannot use protected video 
     assert.equal(inactive.state.writes, 0);
   }
 });
+await check('duration comparison is editor-only, bounded to two reads and never mutates records', async () => {
+  const input = { action: 'compare-duration', publicId: 'asanda/videos/owned-one' };
+  const reads = [];
+  const harness = makeHarness({ readProviderAsset: async (id, options) => {
+    reads.push([id, options]);
+    return asset({ asset_id: 'same-asset', version: 1, duration: options.mediaMetadata ? 76.5 : undefined, secure_url: 'private-url-value' });
+  } });
+  const denied = await readResponse(await harness.handler(jsonRequest(input)));
+  assert.equal(denied.status, 401); assert.deepEqual(denied.body, { error: 'No autorizado.' }); assert.deepEqual(reads, []);
+  const result = await readResponse(await harness.handler(jsonRequest(input, 'good')));
+  assert.equal(result.status, 200);
+  assert.deepEqual(result.body, { comparison: { baseline: { duration: 'missing', validAsset: false }, withMetadata: { duration: 'valid', validAsset: true }, sameResource: true } });
+  assert.deepEqual(reads, [[input.publicId, { mediaMetadata: false }], [input.publicId, { mediaMetadata: true }]]);
+  assert.equal(harness.state.writes, 0); assert.equal(harness.state.videoReads, 0);
+  assert.equal(result.headers.get('Cache-Control'), 'private, no-store');
+  assert.doesNotMatch(JSON.stringify(result.body), /same-asset|private-url|server-secret|76.5/);
+  const changed = makeHarness({ readProviderAsset: async (id, options) => asset({ asset_id: 'same-asset', version: options.mediaMetadata ? 2 : 1 }) });
+  assert.equal((await readResponse(await changed.handler(jsonRequest(input, 'good')))).body.comparison.sameResource, false);
+  const failed = makeHarness({ readProviderAsset: async () => { throw new Error('private-token-value'); } });
+  const error = await readResponse(await failed.handler(jsonRequest(input, 'good')));
+  assert.equal(error.status, 502); assert.deepEqual(error.body, { error: 'No se pudo comparar la duración del video.' }); assert.equal(failed.state.writes, 0);
+  for (const body of [{ ...input, publicId: 'WhatsApp_Video' }, { ...input, url: 'https://evil.test' }]) {
+    const invalid = makeHarness();
+    assert.equal((await invalid.handler(jsonRequest(body, 'good'))).status, 422);
+    assert.equal(invalid.state.metadataReads, 0); assert.equal(invalid.state.writes, 0);
+  }
+  const inactive = makeHarness({ authenticate: async () => ({ ...actor, isActive: false }) });
+  assert.equal((await inactive.handler(jsonRequest(input, 'good'))).status, 403); assert.equal(inactive.state.metadataReads, 0);
+});
 await check('sign-upload preserves the fixed legacy folder response and omits secrets', async () => {
   const { handler } = makeHarness();
   const response = await readResponse(await handler(jsonRequest({ action: 'sign-upload', fileName: 'clip.mp4', mimeType: 'video/mp4', size: 42 }, 'good')));

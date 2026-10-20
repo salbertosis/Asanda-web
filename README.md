@@ -48,6 +48,16 @@ El rechazo de un recurso incluye un motivo seguro cuando está disponible: consu
 
 Un rechazo sigue siendo un rechazo: esta recuperación no convierte recursos públicos o de otra carpeta en recursos admitidos. No cambies la privacidad ni subas otra copia para resolverlo. Un error sin respuesta legible conserva el aviso genérico; no prueba la causa original del 422.
 
+### Comparar la duración sin modificar el archivo
+
+En `/admin/videos`, pegá el Public ID admitido en **Public ID del video ya subido** y elegí **Comparar duración (solo lectura)**. No necesitás seleccionar un MP4, completar título/slug ni confirmar una publicación para esta consulta. Requiere una sesión activa de editor o administrador.
+
+El servidor hace como máximo dos consultas Admin GET del mismo video autenticado: la habitual y otra con la opción documentada `media_metadata=true`. Solo devuelve si la duración está ausente, es inválida o es válida; si cada respuesta pasa la validación completa; y si ambas identifican el mismo recurso y versión. No devuelve metadatos, identificadores internos, enlaces ni credenciales. Si falta la identidad de versión o cambió, no se considera una comparación concluyente.
+
+La comparación consume consultas API, no crea registros ni sube, transforma, publica o cambia el acceso del video. Tampoco modifica automáticamente la consulta utilizada para registrar/publicar: una duración válida en esta comparación es evidencia para decidir el siguiente paso, no una publicación. Una consulta fallida no se reintenta automáticamente.
+
+Checks del adaptador de solo lectura: `node scripts/video-provider-regression.mjs`.
+
 ## Logo ASANDA
 
 El logo `asanda.png` ya está configurado en la carpeta `public/` y se muestra automáticamente en:

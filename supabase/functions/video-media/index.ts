@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.112.3';
 import { createVideoMediaHandler } from './handler.js';
+import { createCloudinaryProviderReader } from './provider.js';
 
 function requiredSecret(name: string) {
   const value = Deno.env.get(name);
@@ -30,15 +31,7 @@ Deno.serve(async (request) => {
     const publicClient = createClient(supabaseUrl, anonKey, clientOptions);
     let actorClient: ReturnType<typeof createClient> | null = null;
 
-    const providerJson = async (path: string) => {
-      const authorization = `Basic ${btoa(`${apiKey}:${apiSecret}`)}`;
-      const providerResponse = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/${path}`, {
-        method: 'GET',
-        headers: { Authorization: authorization, Accept: 'application/json' },
-      });
-      if (!providerResponse.ok) throw Object.assign(new Error('Provider read failed.'), { providerStatus: providerResponse.status });
-      return providerResponse.json();
-    };
+    const providerReader = createCloudinaryProviderReader({ cloudName, apiKey, apiSecret });
 
     const handler = createVideoMediaHandler({
       cloudName,
@@ -56,12 +49,7 @@ Deno.serve(async (request) => {
         if (profileError || !profile) return null;
         return { id: authData.user.id, role: profile.role, isActive: profile.is_active };
       },
-      readUploadPreset(name: string) {
-        return providerJson(`upload_presets/${encodeURIComponent(name)}`);
-      },
-      readProviderAsset(publicId: string) {
-        return providerJson(`resources/video/authenticated/${encodeURIComponent(publicId)}`);
-      },
+      ...providerReader,
       async insertDraft(payload: Record<string, unknown>) {
         if (!actorClient) throw new Error('Missing actor client.');
         const { data, error } = await actorClient.from('videos').insert(payload).select('id,slug,title,description,provider,provider_video_id,duration_seconds,thumbnail_asset_id,publication_status,published_at').single();
